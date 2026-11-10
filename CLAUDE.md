@@ -6,7 +6,7 @@
 - Estado estático precisa ser zerado a cada Play (Domain Reload está desligado). Siga o padrão de Noise.ResetOnPlay e MatchLog.Reset.
 - Proteja contra input duplicado no mesmo frame, como já é feito com PhaseChangedFrame.
 - Não rode "Montar Fase 1": a cena tem ajustes manuais que seriam perdidos.
-- Toda mudança vem com testes EditMode e uma entrada em NOTAS_DESENVOLVIMENTO.md.
+- Toda mudança vem com testes (EditMode; PlayMode quando precisar da cena) e uma entrada em NOTAS_DESENVOLVIMENTO.md.
 - Antes de codar, leia os arquivos relacionados e me diga o plano em poucos passos. Depois de codar, rode os testes e diga como validar jogando.
 - Não altere nada fora do escopo pedido.
 

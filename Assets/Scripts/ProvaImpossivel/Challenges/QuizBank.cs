@@ -191,8 +191,10 @@ namespace ProvaImpossivel
 
         /// <summary>
         /// Começo de partida: esquece as perguntas já usadas e sorteia um gabarito novo para os chutes.
-        /// Chamado no Awake do QuizChallenge, ou seja, a cada carga da cena (o domínio não recarrega entre Plays).
+        /// Chamado pelo GameManager a cada partida e, como o domínio não recarrega entre Plays, também ao dar Play
+        /// (mesmo padrão de Noise.ResetOnPlay).
         /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Reset() => Reset(System.Guid.NewGuid().GetHashCode());
 
         /// <summary>Igual a <see cref="Reset()"/>, com semente fixa: mesma semente = mesmo gabarito e mesma ordem (testes).</summary>

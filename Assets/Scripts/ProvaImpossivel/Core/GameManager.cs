@@ -75,6 +75,21 @@ namespace ProvaImpossivel
         public bool showSuspicionMeter = true;
         [Tooltip("Ícones de aviso em cima do Nerd e do Puxa-saco (além dos sinais no corpo deles)")]
         public bool showStudentHints = true;
+        [Tooltip("Distância (m) até onde o jogador vê os ícones de aviso do Nerd e do Puxa-saco")]
+        public float studentHintDistance = 3.4f;
+        [Tooltip("Acima deste ângulo (graus) a mudança de rumo do professor conta como 'virar' e ganha o aviso")]
+        public float turnTellAngle = 100f;
+
+        [Header("Detalhes (antes fixos no código)")]
+        [Tooltip("Raio (m) do espirro do colega (ameaça)")] public float sneezeRadius = 30f;
+        [Tooltip("Suspeita do espirro = threatSuspicion × isto")] public float sneezeNoiseFactor = 1.5f;
+        [Tooltip("Pego no ato durante a trégua: em vez do flagrante, esta suspeita")] public float graceCatchSuspicion = 30f;
+        [Tooltip("Treino: suspeita que sobra depois do 'isso era flagrante'")] public float practiceCatchSuspicion = 40f;
+        [Tooltip("Fundão: chance (0 a 1) de derrubar tudo")] [Range(0, 1)] public float backRowDropChance = 0.35f;
+        [Tooltip("Fundão: chance (0 a 1) de passar cola (depois de 'derrubar'; o resto é o show)")] [Range(0, 1)] public float backRowColaChance = 0.35f;
+        [Tooltip("Fundão: chance de a cola ser boa (senão é a lista do mercado)")] [Range(0, 1)] public float backRowGoodColaChance = 0.6f;
+        [Tooltip("Nerd: segundos parado (aviso) antes de olhar de lado")] public float nerdGlanceWarning = 1.5f;
+        [Tooltip("Nerd: segundos olhando de lado")] public float nerdGlanceDuration = 1.8f;
 
         [Header("Acontecimentos")]
         public Vector2 eventInterval = new(38f, 56f);
@@ -242,15 +257,28 @@ namespace ProvaImpossivel
                 n.glanceInterval = Settings.nerdGlanceInterval;
                 n.maxCopies = Settings.nerdCopies;
                 n.showHint = Settings.showStudentHints;
+                n.hintDistance = Settings.studentHintDistance;
+                n.glanceWarning = Settings.nerdGlanceWarning;
+                n.glanceDuration = Settings.nerdGlanceDuration;
             }
             foreach (var sn in FindObjectsByType<SnitchStudent>(FindObjectsInactive.Exclude))
+            {
                 sn.showHint = Settings.showStudentHints;
+                sn.hintDistance = Settings.studentHintDistance;
+            }
+            foreach (var b in FindObjectsByType<BackRowStudent>(FindObjectsInactive.Exclude))
+            {
+                b.dropChance = Settings.backRowDropChance;
+                b.colaChance = Settings.backRowColaChance;
+                b.colaCorretaChance = Settings.backRowGoodColaChance;
+            }
             if (FacePokerChallenge.I != null)
             {
                 FacePokerChallenge.I.baseSpeed = Settings.facePokerSpeed;
                 FacePokerChallenge.I.zoneWidth = Settings.facePokerZone;
                 FacePokerChallenge.I.missesAllowed = Settings.facePokerMisses;
             }
+            QuizBank.Reset(); // gabarito do chute novo a cada partida (antes: no Awake do QuizChallenge)
             ExamSystem.I.SetKnown(Settings.knownQuestions);
             SetPhase(Phase.Playing);
             HUD.I.HideIntro();

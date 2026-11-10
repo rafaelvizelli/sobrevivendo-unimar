@@ -37,7 +37,6 @@ namespace ProvaImpossivel
         void Awake()
         {
             I = this;
-            QuizBank.Reset();
         }
 
         void Start() => Build();

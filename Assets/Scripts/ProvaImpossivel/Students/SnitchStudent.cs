@@ -15,6 +15,7 @@ namespace ProvaImpossivel
         [Tooltip("Segundos vendo algo suspeito até dedurar")] public float timeToSnitch = 0.6f;
         public float questionCooldown = 40f;
         [Tooltip("Ícone de aviso em cima dele (a dificuldade decide; a cabeça virando existe sempre)")] public bool showHint = true;
+        [Tooltip("Distância (m) até onde o jogador vê o ícone (a dificuldade sobrescreve)")] public float hintDistance = 3.4f;
         MoodIcon hint;
 
         public bool Watching { get; private set; }
@@ -92,8 +93,9 @@ namespace ProvaImpossivel
             visual.expression = Watching ? Expression.Desconfiado : Expression.Feliz;
             if (hint != null)
             {
-                if (showHint && Watching) hint.Show("O_O", HUD.Red, 0.6f);
-                else if (showHint && AboutToWatch) hint.Show("...", HUD.Orange, 0.4f);
+                bool perto = showHint && PlayerNear(hintDistance);
+                if (perto && Watching) hint.Show("O_O", HUD.Red, 0.6f);
+                else if (perto && AboutToWatch) hint.Show("...", HUD.Orange, 0.4f);
                 else hint.Show("", Color.clear);
             }
             if (!Playing) return;

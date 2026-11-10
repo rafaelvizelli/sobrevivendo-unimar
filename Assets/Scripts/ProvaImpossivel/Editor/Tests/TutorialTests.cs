@@ -23,6 +23,16 @@ namespace ProvaImpossivel.Tests
         // ------------------------------------------------------------------ flag
 
         [Test]
+        public void QuizBankZeraNoPadraoDoNoise()
+        {
+            // CLAUDE.md: estado estático zerado a cada Play como Noise.ResetOnPlay (RuntimeInitializeOnLoadMethod)
+            var reset = typeof(QuizBank).GetMethod("Reset", System.Type.EmptyTypes);
+            Assert.IsNotNull(reset);
+            Assert.IsNotNull(System.Attribute.GetCustomAttribute(reset, typeof(RuntimeInitializeOnLoadMethodAttribute)),
+                "QuizBank.Reset() deveria ter [RuntimeInitializeOnLoadMethod]");
+        }
+
+        [Test]
         public void FlagComecaDesligadaELigaAoTerminar()
         {
             TutorialFlag.Clear();

@@ -1,18 +1,19 @@
 # Sobrevivendo à UNIMAR — notas de desenvolvimento
 
-Última atualização: 04/11/2026 (madrugada, trabalho autônomo)
+Última atualização: 10/11/2026 (Bloco 12 — consolidação para playtest)
 
 ## Onde paramos
-- Fase 1 do jogo ("A Prova Impossível") jogável de ponta a ponta.
-- Fase 1b (assemblies + testes) concluída: 4 assemblies; PlayMode tests rodando em batch mode.
-- Roadmap de evolução (auditoria de 04/11, nota 4,5/10). Blocos de curto prazo:
-  - [x] **Bloco 1** — a prova que exige cola (questões conhecidas / chute / cola). Ver relatório abaixo.
-  - [x] Bloco 2 — identidade das colas (bateria do celular, sinal do Nerd, barulho do Fundão, confisco por enum).
-  - [x] Bloco 3 — economia de distrações (favores por partida; distração não cancela investigação).
-  - [x] Bloco 4 — câmera sentada, log de partidas, executável novo, NavMesh validado.
-- Médio prazo: [x] Bloco 5 (áudio funcional) · [x] Bloco 6 (ruído como evento) · [x] Bloco 7 (falas com consequência, HUD).
-- Próximos (sugestão, aguardando você): partidas reais + ajuste de números; level design (decidir antes o destino do
-  menu "Montar Fase 1"); direção visual (precisa da sua autorização); tutorial jogável.
+- Fase 1 ("A Prova Impossível") jogável de ponta a ponta, com tutorial. Código no GitHub (privado):
+  https://github.com/rafaelvizelli/sobrevivendo-unimar (branch master). Regras do projeto em `CLAUDE.md`.
+- Blocos 1–7 (04/11): prova que exige cola, identidade das colas, economia de distrações, estabilidade, áudio,
+  ruído como evento, falas com consequência.
+- Blocos de 09/11 (auditoria nota 5,0): configuração (SampleScene, MCP fixado, confirmação do "Montar Fase 1");
+  gabarito do chute sorteado; **8** cola necessária + ameaças; **9** leitura no corpo + HUD enxuta;
+  **10** tutorial jogável; **11** level design (colegas bloqueiam a visão, rotas).
+- **12** (10/11) consolidação: números fixos movidos para `DifficultySettings`, bugs do Fundão/cone/ícones,
+  grandões voltaram a 1×, testes que faltavam, executável regenerado.
+- Próximo: PLAYTEST HUMANO (tutorial + 3 partidas por dificuldade, `partidas.csv`) e ajuste de números pelos dados.
+  Depois: direção visual (precisa de autorização).
 
 ## Como rodar os testes
 - Batch (Unity FECHADO): `Unity.exe -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`.
@@ -228,6 +229,34 @@
 - Visto em imagem renderizada (batch): os grandões leem bem do quadro. PROBLEMA VISUAL CONHECIDO: escalados,
   eles sentam ~25 cm acima da cadeira (o quadril sobe com a escala). Não corrigi (etapa sem visual).
 - Executável NÃO regenerado. NÃO jogado: se o vão apertado (fileiras 3/4) é passável com o controle de verdade.
+
+### Bloco 12 — consolidação para playtest (10/11)
+- Sem feature nova e sem mudar equilíbrio. Números que eram fixos no código foram para `DifficultySettings` com os
+  MESMOS valores (e para a cena nas 4 dificuldades): `sneezeRadius` 30, `sneezeNoiseFactor` 1,5,
+  `graceCatchSuspicion` 30, `practiceCatchSuspicion` 40, `backRowDropChance` 0,35, `backRowColaChance` 0,35,
+  `backRowGoodColaChance` 0,6, `nerdGlanceWarning` 1,5, `nerdGlanceDuration` 1,8, `turnTellAngle` 100;
+  novo `studentHintDistance` 3,4 (o alcance do antigo aviso do Nerd).
+  ÚNICA mudança de efeito: o "ATENTO" depois do ronco/ligação (`EventDirector`) usa `threatAlertSeconds`
+  (era 12 fixo; agora 10 no Fácil, 12 no Normal, 15 no Difícil), como pedido.
+- Fundão (`BackRowStudent.Resolve`): se a bagunça não pode funcionar (`ProfessorAI.CanBeDistractedNow` falso), ele
+  nem tenta — sem "psiu", sem recarga, sem favor. O "psiu" da bagunça vem DEPOIS da distração (não sabota mais).
+- Cone (`VisionConeView`): agora é uma malha de amostras (24 raios, a cada 0,5 m) testada com a mesma regra do jogo
+  (`Vision.LineOfSight`, cabeça OU peito do jogador na postura atual); onde ele não vê, transparente. Teste
+  `ConeMostraExatamenteOQueOProfessorVe` confere vértice a vértice (60 vistos, 9 escondidos na pose do teste).
+- Ícones do Nerd/Puxa-saco só até `studentHintDistance` (`StudentBase.PlayerNear`).
+- `QuizBank.Reset()` com `[RuntimeInitializeOnLoadMethod]` (padrão do Noise) + a cada partida em
+  `GameManager.StartMatch`; saiu do `QuizChallenge.Awake`.
+- DECISÃO DOS GRANDÕES: **B** — PEDRÃO, CAIO e LARI voltaram a 1× (posições do Bloco 11 mantidas). Visto em imagem
+  renderizada: sentam na cadeira, sem flutuar nem atravessar. Consequência medida: com colegas normais, o assento e
+  as rotas do Nerd ficam 100% expostos (o colega da frente esconde só o PEITO); as rotas do Fundão continuam
+  diferentes (central 100% / Puxa-saco 17 de 17 x fundo 82% / 9 de 21). Rotas do Nerd diferem só em comprimento e
+  proximidade da ronda. `LevelDesignTests` ajustados para essa geometria.
+- Testes: EditMode 54/54 (+1), PlayMode 58/58 (+11: 4 ameaças, ronco espera o aviso, Fundão recusado, ícone de
+  perto, cone = visão, gabarito por partida, botões do menu, tecla T pula o tutorial).
+- Executável regenerado (10/11 00:50; Build Succeeded, 0 erros, 104 MB). Player.log ao abrir: 0 exceções, 0 erros de
+  NavMesh, sem erro do shader do cone; só os avisos antigos de pós-processamento do URP removido do build.
+- NÃO verificado: uma partida rodando DENTRO do executável (as teclas enviadas por fora não chegaram ao jogo; o log
+  termina no carregamento); a aparência do novo cone na tela (a foto de teste não pegou o cone).
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.

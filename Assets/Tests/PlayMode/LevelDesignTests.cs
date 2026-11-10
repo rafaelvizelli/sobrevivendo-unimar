@@ -229,17 +229,18 @@ namespace ProvaImpossivel.Tests
         }
 
         [UnityTest]
-        public IEnumerator ColegaGrandaoNaFrenteEscondeOJogadorSentado()
+        public IEnumerator ColegaNaFrenteEscondeSoOPeitoDoJogadorSentado()
         {
+            // Bloco 12: os colegas voltaram ao tamanho normal (decisão B). Sentado, quem está na frente esconde o PEITO
+            // do jogador, mas a cabeça continua visível de pé: ponto cego parcial, não total.
             yield return Sala();
             var prof = ProfessorAI.I;
             float eyeH = prof.visual.HeadPosition.y - prof.transform.position.y;
             Vector3 assento = PlayerController.I.seatPoint.position;
-            // da mesa do professor, o PEDRÃO (carteira da frente) cobre o jogador sentado
-            Assert.IsFalse(Ve(new Vector3(1.4f, eyeH, -6.3f), assento, false, 30f), "da mesa do professor o jogador sentado deveria ficar atrás do grandão");
-            // do corredor da janela, não há ninguém no caminho: ele vê
-            Assert.IsTrue(Ve(new Vector3(5.1f, eyeH, 2.5f), assento, false, 30f), "do corredor da janela ele deveria ver o jogador");
-            Assert.Less(Exposicao(prof, assento, false, GameManager.I.normal.viewDistance), 0.9f, "o assento deveria ter pontos cegos");
+            Vector3 olho = new(3f, eyeH, -5.4f); // parada da ronda na frente, alinhada com a coluna do jogador
+            Assert.IsFalse(Vision.LineOfSight(olho, assento + Vector3.up * SeatedChest), "o colega da frente (PEDRÃO) deveria esconder o peito do jogador");
+            Assert.IsTrue(Vision.LineOfSight(olho, assento + Vector3.up * SeatedHead), "a cabeça do jogador sentado continua visível por cima do colega");
+            Assert.IsTrue(Ve(olho, assento, false, 30f), "visto (a cabeça basta)");
         }
 
         [UnityTest]
@@ -262,11 +263,11 @@ namespace ProvaImpossivel.Tests
             var prof = ProfessorAI.I;
             var puxa = Object.FindAnyObjectByType<SnitchStudent>();
             float vd = GameManager.I.normal.viewDistance;
-            var frente = Medir(prof, puxa, Rotas[0], vd);  // curta, atrás dos grandões da fileira 3
+            // com os colegas em tamanho normal (Bloco 12), as duas rotas são igualmente vistas do professor e do Puxa-saco;
+            // o que muda é o tempo exposto (comprimento) e onde a cola acontece (longe x colada na ronda)
+            var frente = Medir(prof, puxa, Rotas[0], vd);  // curta, vão apertado na frente da carteira
             var janela = Medir(prof, puxa, Rotas[2], vd);  // longa, pelo corredor da janela (colado na ronda)
             Assert.Greater(janela.comprimento - frente.comprimento, 1f, "a rota da janela é a mais longa");
-            Assert.Greater(janela.puxaSaco - frente.puxaSaco, 0.1f, "na rota da janela o Puxa-saco vê mais (os grandões não cobrem)");
-            Assert.Less(frente.exposicao, 0.9f, "a rota da frente tem trechos cobertos pelos grandões");
             // o ponto da cola pela janela fica colado numa parada da ronda (o professor passa do lado e pode parar pra encarar)
             Assert.Less(DistanciaDaRonda(prof, Rotas[2].points[^1]), 1f, "a cola pela janela deveria ficar colada na ronda");
             Assert.Greater(DistanciaDaRonda(prof, Rotas[0].points[^1]), 2f, "a cola pela frente deveria ficar longe das paradas da ronda");

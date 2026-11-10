@@ -121,6 +121,9 @@ namespace ProvaImpossivel
             turnTellSeconds = s.turnTellSeconds;
             showSuspicionMeter = s.showSuspicionMeter;
             neverCatches = s.professorNeverCatches;
+            turnTellAngle = s.turnTellAngle;
+            graceCatchSuspicion = s.graceCatchSuspicion;
+            practiceCatchSuspicion = s.practiceCatchSuspicion;
         }
 
         [Tooltip("Desconfiado, ele ainda pode ser distraído? (a dificuldade sobrescreve)")]
@@ -134,6 +137,9 @@ namespace ProvaImpossivel
             !busy && state != ProfState.Investigando && state != ProfState.Flagrante
             && (state != ProfState.Desconfiado || whileSuspicious);
 
+        /// <summary>Uma distração funcionaria agora? (mesma regra do Distract, para quem quer saber antes de tentar)</summary>
+        public bool CanBeDistractedNow => CanBeDistracted(State, Busy, distractWhileSuspicious);
+
         /// <summary>
         /// Pegou o jogador no ato por um meio que não é a visão (ex.: o papel da cola do Fundão caiu no pé dele).
         /// Respeita a trégua (aí ele só desconfia). Retorna true se virou flagrante.
@@ -144,7 +150,7 @@ namespace ProvaImpossivel
             if (Busy || p == null || GameManager.I == null || !GameManager.I.IsPlaying) return false;
             if (InGrace)
             {
-                Alert(p.transform.position, 30f, reason, kind);
+                Alert(p.transform.position, graceCatchSuspicion, reason, kind);
                 return false;
             }
             Suspicion = 100f;
@@ -534,6 +540,8 @@ namespace ProvaImpossivel
         }
 
         [Tooltip("Treino: ameaça, mas nunca dá flagrante (a dificuldade do tutorial liga)")] public bool neverCatches;
+        [Tooltip("Pego no ato na trégua: suspeita no lugar do flagrante (a dificuldade sobrescreve)")] public float graceCatchSuspicion = 30f;
+        [Tooltip("Treino: suspeita depois do 'isso era flagrante' (a dificuldade sobrescreve)")] public float practiceCatchSuspicion = 40f;
 
         void StartFlagrante(string reason, Infracao kind)
         {
@@ -543,7 +551,7 @@ namespace ProvaImpossivel
                 // treino: mesma percepção e mesma investigação; no lugar do flagrante, só o susto (e a lição)
                 Say(Falas.Pick(Falas.TutorialProfQuaseFlagra), 3f);
                 SoundFX.Play(Sfx.Alerta);
-                Suspicion = 40f;
+                Suspicion = practiceCatchSuspicion;
                 Notice = 0f;
                 graceUntil = Time.time + graceAfterFlagrante;
                 Enter(ProfState.Desconfiado, silent: true);
@@ -705,7 +713,7 @@ namespace ProvaImpossivel
         [Header("Leitura (a dificuldade sobrescreve)")]
         [Tooltip("Segundos parado (pigarro + '...') antes de se virar para o outro lado")] public float turnTellSeconds = 0.6f;
         [Tooltip("Barrinha discreta de suspeita em cima da cabeça")] public bool showSuspicionMeter = true;
-        [Tooltip("Acima deste ângulo (graus) a mudança de rumo conta como 'virar' e ganha o aviso")] public float turnTellAngle = 100f;
+        [Tooltip("Acima deste ângulo (graus) a mudança de rumo conta como 'virar' (a dificuldade sobrescreve)")] public float turnTellAngle = 100f;
 
         MoodIcon mood;
         float turnTellUntil;

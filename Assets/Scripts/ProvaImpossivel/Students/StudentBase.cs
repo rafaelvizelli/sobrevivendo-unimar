@@ -61,6 +61,10 @@ namespace ProvaImpossivel
             visual.headYaw = Random.value < 0.5f ? 0f : Random.Range(-maxYaw, maxYaw);
         }
 
+        /// <summary>O jogador está a menos de <paramref name="meters"/> m (no plano) deste aluno?</summary>
+        protected bool PlayerNear(float meters) =>
+            PlayerController.I != null && FlatDistance(PlayerController.I.transform.position, transform.position) <= meters;
+
         protected static float FlatDistance(Vector3 a, Vector3 b)
         {
             a.y = b.y = 0f;

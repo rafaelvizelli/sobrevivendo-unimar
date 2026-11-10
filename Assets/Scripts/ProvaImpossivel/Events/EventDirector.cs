@@ -195,7 +195,7 @@ namespace ProvaImpossivel
         {
             var f = FiguranteMaisPerto();
             f.Say("ATCHIM!", 1.5f);
-            Noise.Emit(f.transform.position, 30f, Settings.threatSuspicion * 1.5f, "um espirro", byPlayer: false);
+            Noise.Emit(f.transform.position, Settings.sneezeRadius, Settings.threatSuspicion * Settings.sneezeNoiseFactor, "um espirro", byPlayer: false);
             yield break;
         }
 
@@ -232,7 +232,7 @@ namespace ProvaImpossivel
             yield return new WaitForSeconds(1.5f);
             if (!CanContinue) yield break;
             Prof.Say("Silêncio! Agora EU vou ficar de olho em TODO MUNDO.", 3f);
-            Prof.BeAlert(12f); // a ameaça vale: a janela de oportunidade cobra o preço logo depois
+            Prof.BeAlert(Settings.threatAlertSeconds); // a ameaça vale: a janela de oportunidade cobra o preço logo depois
         }
 
         // telefone → (às vezes) o Fundão dá a dica → fim da ligação com o professor mais atento
@@ -247,7 +247,7 @@ namespace ProvaImpossivel
             if (CanContinue)
             {
                 Prof.Say("...Onde eu estava? Ah, sim. VIGIANDO VOCÊS.", 3f);
-                Prof.BeAlert(12f);
+                Prof.BeAlert(Settings.threatAlertSeconds);
             }
         }
 

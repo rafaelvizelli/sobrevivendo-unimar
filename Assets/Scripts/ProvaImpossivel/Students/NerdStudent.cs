@@ -17,6 +17,7 @@ namespace ProvaImpossivel
         [Tooltip("Segundos de aviso (para de escrever) antes de olhar")] public float glanceWarning = 1.5f;
         [Tooltip("Segundos olhando de lado")] public float glanceDuration = 1.8f;
         [Tooltip("Ícone de aviso em cima dele (a dificuldade decide; o sinal no corpo existe sempre)")] public bool showHint = true;
+        [Tooltip("Distância (m) até onde o jogador vê o ícone (a dificuldade sobrescreve)")] public float hintDistance = 3.4f;
         MoodIcon hint;
 
         int copies;
@@ -155,8 +156,9 @@ namespace ProvaImpossivel
             visual.armsCrossed = covering ? 1f : 0f;
             if (hint != null)
             {
-                if (showHint && olhar == Olhar.OlhandoDeLado) hint.Show("O_O", HUD.Red, 0.8f);
-                else if (showHint && olhar == Olhar.Aviso) hint.Show("...", HUD.Yellow, 0.4f);
+                bool perto = showHint && PlayerNear(hintDistance);
+                if (perto && olhar == Olhar.OlhandoDeLado) hint.Show("O_O", HUD.Red, 0.8f);
+                else if (perto && olhar == Olhar.Aviso) hint.Show("...", HUD.Yellow, 0.4f);
                 else hint.Show("", Color.clear);
             }
             if (!Playing) return;

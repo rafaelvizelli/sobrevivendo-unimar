@@ -31007,7 +31007,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
   m_LocalPosition: {x: 3.7497308, y: 0, z: 0.16958547}
-  m_LocalScale: {x: 1.45, y: 1.45, z: 1.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 307361446}
@@ -36860,6 +36860,17 @@ MonoBehaviour:
     snoreWarningSeconds: 4
     showSuspicionMeter: 1
     showStudentHints: 1
+    studentHintDistance: 3.4
+    turnTellAngle: 100
+    sneezeRadius: 30
+    sneezeNoiseFactor: 1.5
+    graceCatchSuspicion: 30
+    practiceCatchSuspicion: 40
+    backRowDropChance: 0.35
+    backRowColaChance: 0.35
+    backRowGoodColaChance: 0.6
+    nerdGlanceWarning: 1.5
+    nerdGlanceDuration: 1.8
     eventInterval: {x: 30, y: 46}
     distractionMultiplier: 1.4
     snitchInterval: {x: 18, y: 28}
@@ -36900,6 +36911,17 @@ MonoBehaviour:
     snoreWarningSeconds: 3
     showSuspicionMeter: 1
     showStudentHints: 1
+    studentHintDistance: 3.4
+    turnTellAngle: 100
+    sneezeRadius: 30
+    sneezeNoiseFactor: 1.5
+    graceCatchSuspicion: 30
+    practiceCatchSuspicion: 40
+    backRowDropChance: 0.35
+    backRowColaChance: 0.35
+    backRowGoodColaChance: 0.6
+    nerdGlanceWarning: 1.5
+    nerdGlanceDuration: 1.8
     eventInterval: {x: 38, y: 56}
     distractionMultiplier: 1
     snitchInterval: {x: 12, y: 20}
@@ -36940,6 +36962,17 @@ MonoBehaviour:
     snoreWarningSeconds: 2
     showSuspicionMeter: 0
     showStudentHints: 0
+    studentHintDistance: 3.4
+    turnTellAngle: 100
+    sneezeRadius: 30
+    sneezeNoiseFactor: 1.5
+    graceCatchSuspicion: 30
+    practiceCatchSuspicion: 40
+    backRowDropChance: 0.35
+    backRowColaChance: 0.35
+    backRowGoodColaChance: 0.6
+    nerdGlanceWarning: 1.5
+    nerdGlanceDuration: 1.8
     eventInterval: {x: 45, y: 65}
     distractionMultiplier: 0.8
     snitchInterval: {x: 8, y: 14}
@@ -36980,6 +37013,17 @@ MonoBehaviour:
     snoreWarningSeconds: 4
     showSuspicionMeter: 1
     showStudentHints: 1
+    studentHintDistance: 3.4
+    turnTellAngle: 100
+    sneezeRadius: 30
+    sneezeNoiseFactor: 1.5
+    graceCatchSuspicion: 30
+    practiceCatchSuspicion: 40
+    backRowDropChance: 0.35
+    backRowColaChance: 0.35
+    backRowGoodColaChance: 0.6
+    nerdGlanceWarning: 1.5
+    nerdGlanceDuration: 1.8
     eventInterval: {x: 9999, y: 9999}
     distractionMultiplier: 1.4
     snitchInterval: {x: 25, y: 35}
@@ -42276,7 +42320,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
   m_LocalPosition: {x: 2.399731, y: 0, z: 0.16958547}
-  m_LocalScale: {x: 1.45, y: 1.45, z: 1.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1941709800}
@@ -64033,7 +64077,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000004371139}
   m_LocalPosition: {x: -1.1502692, y: 0, z: 5.8695855}
-  m_LocalScale: {x: 1.45, y: 1.45, z: 1.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1935348197}

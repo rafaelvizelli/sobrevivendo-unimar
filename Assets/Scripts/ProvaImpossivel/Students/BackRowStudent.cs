@@ -37,17 +37,40 @@ namespace ProvaImpossivel
         /// </summary>
         public void Resolve(PlayerController p, float roll)
         {
-            cooldown = ideaCooldown;
-            MatchLog.FundaoPedidos++;
-            Whisper();
             // prova sem nada a melhorar: a "cola" não teria efeito, então ele só faz bagunça
             bool colaUtil = ExamSystem.I.HasRoom;
+            float colaAte = dropChance + colaChance;
+            bool cola = colaUtil && roll >= dropChance && roll < colaAte;
+            bool derruba = !cola && roll < colaAte;
+
+            // bagunça que não teria efeito (professor investigando/desconfiado/ocupado): ele nem tenta.
+            // Sem "psiu", sem recarga e sem favor gasto — o pedido simplesmente não acontece.
+            if (!cola && (Prof == null || !Prof.CanBeDistractedNow))
+            {
+                if (Prof == null || !ToastDistractionRefused(Prof.State))
+                    HUD.I.Toast("O Fundão olhou pro professor e desistiu: agora não dá. (favor não gasto)", HUD.Gray, 3f);
+                return;
+            }
+
+            cooldown = ideaCooldown;
+            MatchLog.FundaoPedidos++;
             bool fezAlgo;
-            if (roll < 0.35f || (!colaUtil && roll < 0.7f)) fezAlgo = DropMaterials(true);
-            else if (roll < 0.7f) fezAlgo = GiveCola(p);
-            else fezAlgo = ShowOff();
+            if (cola)
+            {
+                Whisper(); // pedir a cola é cochichar
+                fezAlgo = GiveCola(p);
+            }
+            else
+            {
+                fezAlgo = derruba ? DropMaterials(true) : ShowOff();
+                Whisper(); // depois da bagunça: distraído, o professor ignora o cochicho (não sabota a própria distração)
+            }
             if (fezAlgo) GameManager.I.SpendFavor();
         }
+
+        [Header("Resultado do pedido (a dificuldade sobrescreve)")]
+        [Tooltip("Chance (0 a 1) de derrubar tudo")] [Range(0, 1)] public float dropChance = 0.35f;
+        [Tooltip("Chance (0 a 1) de passar cola (o resto é o show)")] [Range(0, 1)] public float colaChance = 0.35f;
 
         /// <summary>Pedir algo ao Fundão é cochichar no fundo da sala: com o professor perto (e atento), ele olha pra cá.</summary>
         void Whisper() => Noise.Emit(transform.position, whisperRadius, whisperNoise, "um 'psiu, passa a cola!' no fundão", byPlayer: true);
