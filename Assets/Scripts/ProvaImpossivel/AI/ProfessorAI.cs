@@ -484,7 +484,7 @@ namespace ProvaImpossivel
             }
 
             float dPlayer = FlatDistance(p.transform.position);
-            bool playerAtSpot = FlatDist(p.transform.position, suspectPos) < 2.5f;
+            bool playerAtSpot = Flat.Distance(p.transform.position, suspectPos) < 2.5f;
             if (decideAt < 0f && (Arrived() || FlatDistance(suspectPos) < 1.6f))
             {
                 // chegou: para, vira para o lugar e olha um instante ANTES de decidir
@@ -700,13 +700,7 @@ namespace ProvaImpossivel
             }
         }
 
-        float FlatDistance(Vector3 p) => FlatDist(transform.position, p);
-
-        static float FlatDist(Vector3 a, Vector3 b)
-        {
-            a.y = b.y = 0f;
-            return Vector3.Distance(a, b);
-        }
+        float FlatDistance(Vector3 p) => Flat.Distance(transform.position, p);
 
         // ------------------------------------------------------------------ leitura no corpo
 

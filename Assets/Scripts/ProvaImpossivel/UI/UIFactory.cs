@@ -86,6 +86,37 @@ namespace ProvaImpossivel
             return b;
         }
 
+        /// <summary>Slider horizontal (opções da pausa). Funciona com o jogo pausado: a UI usa tempo não escalado.</summary>
+        public static Slider Slider(string name, Transform parent, float min, float max, float value, Color fillColor, UnityAction<float> onChange)
+        {
+            var bg = Box(name, parent, new Color(0.04f, 0.04f, 0.07f, 1f));
+            bg.raycastTarget = true;
+            var fillArea = Rect("Area", bg.transform).Stretch(6f);
+            var fill = Box("Fill", fillArea, fillColor, false);
+            fill.rectTransform.anchorMin = Vector2.zero;
+            fill.rectTransform.anchorMax = new Vector2(0f, 1f);
+            fill.rectTransform.offsetMin = fill.rectTransform.offsetMax = Vector2.zero;
+            var handleArea = Rect("AreaPegador", bg.transform).Stretch();
+            handleArea.offsetMin = new Vector2(12f, 0f);
+            handleArea.offsetMax = new Vector2(-12f, 0f);
+            var handle = Box("Pegador", handleArea, Color.white);
+            handle.raycastTarget = true;
+            handle.rectTransform.anchorMin = Vector2.zero;
+            handle.rectTransform.anchorMax = new Vector2(0f, 1f);
+            handle.rectTransform.sizeDelta = new Vector2(24f, 12f);
+
+            var s = bg.gameObject.AddComponent<Slider>();
+            s.fillRect = fill.rectTransform;
+            s.handleRect = handle.rectTransform;
+            s.targetGraphic = handle;
+            s.direction = UnityEngine.UI.Slider.Direction.LeftToRight;
+            s.minValue = min;
+            s.maxValue = max;
+            s.SetValueWithoutNotify(value);
+            s.onValueChanged.AddListener(onChange);
+            return s;
+        }
+
         /// <summary>Barra horizontal: retorna a imagem de preenchimento (use fillAmount).</summary>
         public static Image Bar(string name, Transform parent, Color back, Color fill)
         {

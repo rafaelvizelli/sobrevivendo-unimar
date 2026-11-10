@@ -63,12 +63,6 @@ namespace ProvaImpossivel
 
         /// <summary>O jogador está a menos de <paramref name="meters"/> m (no plano) deste aluno?</summary>
         protected bool PlayerNear(float meters) =>
-            PlayerController.I != null && FlatDistance(PlayerController.I.transform.position, transform.position) <= meters;
-
-        protected static float FlatDistance(Vector3 a, Vector3 b)
-        {
-            a.y = b.y = 0f;
-            return Vector3.Distance(a, b);
-        }
+            PlayerController.I != null && Flat.Distance(PlayerController.I.transform.position, transform.position) <= meters;
     }
 }

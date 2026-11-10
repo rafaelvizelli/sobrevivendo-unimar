@@ -1,6 +1,6 @@
 # Sobrevivendo à UNIMAR — notas de desenvolvimento
 
-Última atualização: 10/11/2026 (Bloco 13 — defeitos visuais da auditoria)
+Última atualização: 10/11/2026 (Bloco 14 — acabamento)
 
 ## Onde paramos
 - Fase 1 ("A Prova Impossível") jogável de ponta a ponta, com tutorial. Código no GitHub (privado):
@@ -12,6 +12,8 @@
   **10** tutorial jogável; **11** level design (colegas bloqueiam a visão, rotas).
 - **12** (10/11) consolidação: números fixos movidos para `DifficultySettings`, bugs do Fundão/cone/ícones,
   grandões voltaram a 1×, testes que faltavam, executável regenerado.
+- **13** (10/11) defeitos visuais da auditoria. **14** (10/11) acabamento: nome do jogo/estúdio (dados mudaram de
+  pasta!), pacotes sem uso removidos, tela final com resumo + jogar de novo, opções na pausa, áudio ambiente.
 - Próximo: PLAYTEST HUMANO (tutorial + 3 partidas por dificuldade, `partidas.csv`) e ajuste de números pelos dados.
   Depois: direção visual (precisa de autorização).
 
@@ -68,6 +70,7 @@
 ### Bloco 4 — estabilidade e validação (04/11)
 - Registro de partidas (`Core/MatchLog.cs`): uma linha CSV por partida em
   `%USERPROFILE%\AppData\LocalLow\DefaultCompany\JogoFaculdade\partidas.csv` (no editor/testes: `partidas_editor.csv`)
+  [desde o Bloco 14: `LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\`]
   + linha "[Partida]" no log. Colunas: dificuldade, resultado, nota, flagrantes e tipos, tempo restante, conhecidas
   certas/tentadas, chutes, celular, Nerd (cópias/pego), Fundão (pedidos/cola boa/ruim), favores, eventos, Cara de Paisagem.
 - NavMesh: o erro "Failed to create agent because there is no valid NavMesh" CONTINUAVA no executável (a correção
@@ -278,9 +281,45 @@
   descem para o meio da tela (não há espaço ao lado sem cobrir a NOTA); o balão de fala do professor ainda pode
   ficar por cima do "?" dele (não estava no escopo). Executável NÃO regenerado neste bloco.
 
+### Bloco 14 — acabamento (10/11)
+- Sem mexer em números de `DifficultySettings`, na visão (`Vision`) nem nas regras de suspeita. Linha de base antes:
+  EditMode 57/57, PlayMode 60/60, git limpo.
+- **Etapa 1 — limpeza.** `ProjectSettings`: companyName `EstudioFundao`, productName `Sobrevivendo à UNIMAR`.
+  Dados do jogo MUDARAM de pasta: agora `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\`
+  (partidas.csv, Player.log). PlayerPrefs (flag do tutorial, opções) no Registro: `HKCU\Software\EstudioFundao\Sobrevivendo à UNIMAR`
+  (no editor: `HKCU\Software\Unity\UnityEditor\EstudioFundao\...`). Os antigos (`LocalLow\DefaultCompany\JogoFaculdade`,
+  com o partidas.csv de 04/11, e `HKCU\Software\DefaultCompany\JogoFaculdade`) NÃO foram apagados nem copiados: o jogo
+  só não os lê mais (a flag do tutorial não existia lá — nada a migrar).
+  Timeline, Visual Scripting e Collab sem nenhuma referência (só a lista padrão de tipos do `SceneTemplateSettings`,
+  que é do Unity): removidos do `manifest.json`. `Core/Flat.cs` (`Flat.Distance`) substitui as duas cópias de
+  FlatDistance (`StudentBase`, `ProfessorAI`). `Falas.Reset()` com `[RuntimeInitializeOnLoadMethod]` (padrão do Noise).
+- **Etapa 2 — fim de partida.** `Core/MatchSummary.cs` (puro): resultado, nota/mínima, tempo usado, certas/erradas/em
+  branco (ExamSystem), flagrantes, colas por tipo (MatchLog: Celular, NerdCopias, Fundão = boa + furada), favores gastos.
+  Nenhum contador novo foi preciso. `HUD.ShowMatchResult`: duas colunas ("A PROVA" / "A FICHA CRIMINAL") e botões
+  JOGAR DE NOVO (R), MENU (M), SAIR. `GameManager.PlayAgain`: recarrega a cena e já começa na mesma dificuldade
+  (estático `pendingPlayAgain`, zerado a cada Play); no treino volta ao menu. R/M ignorados no frame em que a prova acaba.
+  Título de "Flagrado" agora é "EXPULSO!". Textos em `Falas` (seção "tela de fim de partida").
+- **Etapa 3 — opções.** `Core/GameOptions.cs`: volume geral (`AudioListener.volume`), volume dos efeitos (multiplica
+  `SoundFX.Play/PlayAt`), sensibilidade da câmera (multiplica a da cena, 0,25× a 3×). Padrões/limites em constantes,
+  chaves `sobrevivendo_unimar.*`, valores corrigidos ao ler, carregados antes da cena. Sliders na pausa
+  (`HUD.AddOption`, `UIFactory.Slider`). As mensagens do topo somem enquanto a pausa está aberta (a caixa maior as cobria).
+- **Etapa 4 — ambiente.** `Audio/AudioMix.cs` (Inspector do SoundFX, campo `mix`): TODOS os volumes relativos de
+  ambiente e tensão (o antigo `tensionVolume` virou `mix.tensionMax`, mesmo valor 0,35). `SoundFX`: murmúrio (loop 8 s),
+  tique-taque (loop 2 s), lápis e cadeira esporádicos, três AudioSources no próprio objeto do SoundFX. Só durante a
+  prova; abaixa para 20% por 1,2 s quando toca "hm?", flagrante, alerta, erro ou sinal; e cai até 60% com a tensão.
+  A tensão é o batimento que já existia, agora com teto explícito. Ambiente segue só o volume geral.
+- Testes: EditMode 72/72 (+15 `AcabamentoTests`), PlayMode 67/67 (+7 `AcabamentoPlayTests`).
+- Capturas (teste PlayMode temporário, apagado): `Captures/AuditoriaVisual3/` 01 aprovado, 02 expulso, 03 pausa.
+- Executável regenerado (10/11 12:27; Build Succeeded, 0 erros, 102 MB). Player.log novo: 0 exceções, 0 erros
+  (só os avisos antigos de shaders de pós-processamento). O log termina no carregamento, como no Bloco 12.
+- NÃO verificado: como o áudio SOA (testes medem volume, não ouvido); partida jogada dentro do executável.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
-   Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\DefaultCompany\JogoFaculdade\partidas.csv`.
+   Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`
+   (antes do Bloco 14: `LocalLow\DefaultCompany\JogoFaculdade`).
+   Bloco 14: ouvir o ambiente com fone (murmúrio/relógio/lápis audíveis mas sem tapar o "hm?" e os passos?),
+   mexer nos sliders da pausa, e testar R / M na tela final.
 2. Com fone: passos do professor (dá pra saber de que lado ele está?), "hm?", batimento (irritante ou não?).
 3. Nerd: dá pra perceber que ele parou de escrever antes de olhar? A olhada é justa?
 4. Os números (bateria 3/2/2, favores 5/3/2, conhecidas 4/3/2, olhadas do Nerd) são chute educado: ajustar com os
@@ -300,4 +339,4 @@
 - Testes: `Assets/Scripts/ProvaImpossivel/Editor/Tests` (EditMode) e `Assets/Tests/PlayMode` (PlayMode).
 - Balanceamento: Inspector do `GameManager` (Fácil / Normal / Difícil).
 - Play de fora do Unity: criar `Temp/play_fase1.sinal` (script `Editor/PlayPorSinal.cs`) com a janela do Unity em foco.
-- Executável: menu *Prova Impossível > Gerar Build Windows* → `Builds/Windows/SobrevivendoUnimar.exe` (gerado em 04/11, Blocos 1-4). Em batch: `-quit -executeMethod ProvaImpossivel.EditorTools.BuildJogo.Menu`.
+- Executável: menu *Prova Impossível > Gerar Build Windows* → `Builds/Windows/SobrevivendoUnimar.exe` (regenerado em 10/11, Bloco 14). Em batch: `-quit -executeMethod ProvaImpossivel.EditorTools.BuildJogo.Menu`.

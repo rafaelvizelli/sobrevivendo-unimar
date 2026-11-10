@@ -46,7 +46,7 @@ namespace ProvaImpossivel
             wasPlaying = playing;
             if (mouse != null && playing)
             {
-                Vector2 d = mouse.delta.ReadValue() * sensitivity;
+                Vector2 d = mouse.delta.ReadValue() * (sensitivity * GameOptions.CameraSensitivity);
                 yaw += d.x;
                 pitch = Mathf.Clamp(pitch - d.y, minPitch, maxPitch);
             }

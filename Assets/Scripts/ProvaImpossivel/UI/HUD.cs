@@ -639,25 +639,111 @@ namespace ProvaImpossivel
             HidePause();
             pausePanel = Dim("Pausa");
             var box = UIFactory.Box("Caixa", pausePanel.transform, PanelColor);
-            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(640f, 560f));
-            AddText(box.transform, "PAUSADO", 60, Yellow, new Vector2(0f, -30f), new Vector2(600f, 80f));
-            AddText(box.transform, "O professor também congelou. Aproveite pra respirar.", 22, Gray, new Vector2(0f, -110f), new Vector2(600f, 40f), FontStyle.Italic);
-            AddButton(box.transform, "CONTINUAR", new Color(0.2f, 0.6f, 0.3f), resume, -180f);
-            AddButton(box.transform, "REINICIAR FASE", new Color(0.85f, 0.55f, 0.1f), restart, -290f);
-            AddButton(box.transform, "SAIR", new Color(0.6f, 0.2f, 0.2f), quit, -400f);
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 760f));
+            // a caixa da pausa alcança a faixa das mensagens do topo: elas somem enquanto a pausa está aberta
+            toastRoot.gameObject.SetActive(false);
+            AddText(box.transform, "PAUSADO", 60, Yellow, new Vector2(0f, -30f), new Vector2(720f, 80f));
+            AddText(box.transform, "O professor também congelou. Aproveite pra respirar.", 22, Gray, new Vector2(0f, -110f), new Vector2(720f, 40f), FontStyle.Italic);
+
+            // opções (Bloco 14): salvas na hora, valem para as próximas partidas também
+            AddOption(box.transform, Falas.OpcaoVolumeGeral, GameOptions.MinVolume, GameOptions.MaxVolume, GameOptions.MasterVolume,
+                      GameOptions.SetMasterVolume, Percent, -170f);
+            AddOption(box.transform, Falas.OpcaoVolumeEfeitos, GameOptions.MinVolume, GameOptions.MaxVolume, GameOptions.SfxVolume,
+                      GameOptions.SetSfxVolume, Percent, -245f);
+            AddOption(box.transform, Falas.OpcaoSensibilidade, GameOptions.MinCameraSensitivity, GameOptions.MaxCameraSensitivity,
+                      GameOptions.CameraSensitivity, GameOptions.SetCameraSensitivity, v => v.ToString("0.00").Replace('.', ',') + "×", -320f);
+
+            AddButton(box.transform, "CONTINUAR", new Color(0.2f, 0.6f, 0.3f), resume, -420f);
+            AddButton(box.transform, "REINICIAR FASE", new Color(0.85f, 0.55f, 0.1f), restart, -530f);
+            AddButton(box.transform, "SAIR", new Color(0.6f, 0.2f, 0.2f), quit, -640f);
         }
+
+        static string Percent(float v) => Mathf.RoundToInt(v * 100f) + "%";
+
+        /// <summary>Linha de opção: rótulo à esquerda, slider no meio, valor à direita.</summary>
+        static void AddOption(Transform parent, string label, float min, float max, float value, Action<float> set, Func<float, string> show, float y)
+        {
+            var row = UIFactory.Rect("Opcao", parent).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(680f, 56f));
+            var l = UIFactory.Label("Rotulo", row, label, 24, Color.white, TextAnchor.MiddleLeft, FontStyle.Normal);
+            l.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(270f, 56f));
+            var v = UIFactory.Label("Valor", row, show(value), 24, Yellow, TextAnchor.MiddleRight);
+            v.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(90f, 56f));
+            var s = UIFactory.Slider("Slider", row, min, max, value, Yellow, x =>
+            {
+                set(x);
+                v.text = show(x);
+            });
+            s.GetComponent<RectTransform>().Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(285f, 0f), new Vector2(290f, 30f));
+        }
+
+        /// <summary>Há mensagens do topo visíveis agora? (testes: a pausa não pode ficar embaixo delas)</summary>
+        public bool ToastsVisible => toastRoot.gameObject.activeInHierarchy && toasts.Count > 0;
 
         public void HidePause()
         {
             if (pausePanel != null) Destroy(pausePanel);
+            toastRoot.gameObject.SetActive(true);
         }
 
-        public void ShowResult(string title, string message, string stats, Color color, Action restart, Action quit)
+        /// <summary>
+        /// Fim da prova (Bloco 14): resultado, frase, resumo em duas colunas (a prova x a ficha criminal) e botões
+        /// jogar de novo (R), menu (M) e sair. Caixa de 1240×790 dentro da referência 1920×1080: nada fica por cima do HUD.
+        /// </summary>
+        public void ShowMatchResult(MatchSummary sum, string message, Color color, Action playAgain, Action menu, Action quit)
+        {
+            ClearForResult();
+            resultPanel = Dim("Resultado");
+            var box = UIFactory.Box("Caixa", resultPanel.transform, PanelColor);
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240f, 790f));
+            var t = box.transform;
+            AddText(t, MatchSummary.Title(sum.result), 80, color, new Vector2(0f, -24f), new Vector2(1180f, 100f));
+            AddText(t, message, 28, Color.white, new Vector2(0f, -130f), new Vector2(1120f, 90f), FontStyle.Normal);
+
+            SummaryColumn(t, "ColunaProva", Falas.ResumoProva, sum.ExamLines, -300f);
+            SummaryColumn(t, "ColunaFicha", Falas.ResumoCrimes, sum.CrimeLines, 300f);
+            AddText(t, Falas.ResumoRodape + sum.difficulty, 22, Gray, new Vector2(0f, -600f), new Vector2(1180f, 34f), FontStyle.Italic);
+
+            ResultButton(t, "JogarDeNovo", Falas.BotaoJogarDeNovo, new Color(0.2f, 0.6f, 0.3f), playAgain, -390f, 420f);
+            ResultButton(t, "Menu", Falas.BotaoMenu, new Color(0.25f, 0.45f, 0.8f), menu, 40f, 340f);
+            ResultButton(t, "Sair", Falas.BotaoSair, new Color(0.6f, 0.2f, 0.2f), quit, 390f, 260f);
+        }
+
+        /// <summary>Uma coluna do resumo: cabeçalho e linhas "rótulo ...... valor" num painel escuro.</summary>
+        static void SummaryColumn(Transform parent, string name, string header, (string label, string value)[] lines, float x)
+        {
+            const float w = 560f, line = 52f, top = 70f;
+            var col = UIFactory.Box(name, parent, new Color(0f, 0f, 0f, 0.35f), false);
+            col.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -240f), new Vector2(w, top + line * 5 + 20f));
+            var h = UIFactory.Label("Cabecalho", col.transform, header, 26, Yellow);
+            h.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -14f), new Vector2(w - 40f, 40f));
+            for (int i = 0; i < lines.Length; i++)
+            {
+                float y = -top - i * line;
+                var l = UIFactory.Label("Rotulo", col.transform, lines[i].label, 25, Gray, TextAnchor.MiddleLeft, FontStyle.Normal);
+                l.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-90f, y), new Vector2(340f, line));
+                var v = UIFactory.Label("Valor", col.transform, lines[i].value, 28, Color.white, TextAnchor.MiddleRight);
+                v.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(170f, y), new Vector2(180f, line));
+            }
+        }
+
+        static void ResultButton(Transform parent, string name, string text, Color color, Action onClick, float x, float width)
+        {
+            var b = UIFactory.Button(name, parent, text, color, () => onClick(), 30);
+            b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -660f), new Vector2(width, 86f));
+        }
+
+        void ClearForResult()
         {
             HidePause();
             foreach (var t in toasts) Destroy(t.rect.gameObject);
             toasts.Clear();
             if (resultPanel != null) Destroy(resultPanel);
+        }
+
+        /// <summary>Tela final simples (fim do treino): título, frase, uma linha e dois botões.</summary>
+        public void ShowResult(string title, string message, string stats, Color color, Action restart, Action quit)
+        {
+            ClearForResult();
             resultPanel = Dim("Resultado");
             var box = UIFactory.Box("Caixa", resultPanel.transform, PanelColor);
             box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 680f));

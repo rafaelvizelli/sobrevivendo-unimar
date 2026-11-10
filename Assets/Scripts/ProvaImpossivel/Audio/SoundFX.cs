@@ -17,21 +17,26 @@ namespace ProvaImpossivel
     {
         public static SoundFX I { get; private set; }
         [Range(0, 1)] public float volume = 0.5f;
-        [Tooltip("Volume máximo do batimento de tensão (fica baixo de propósito para não irritar)")]
-        [Range(0, 1)] public float tensionVolume = 0.35f;
         [Tooltip("Distância máxima em que um som 3D ainda é ouvido (m)")] public float maxHearDistance = 16f;
+        [Tooltip("Volumes relativos do ambiente e da tensão (Bloco 14)")] public AudioMix mix = new();
 
         AudioSource source, tension;
+        // ambiente (Bloco 14): dois loops e uma fonte para os sons esporádicos, no mesmo objeto (como source/tension)
+        AudioSource murmurLoop, clockLoop, ambientShot;
+        AudioClip pencilClip;
+        float nextPencil, nextChair, duckUntil = -1f, ambientGain;
         AudioSource[] pool;
         int poolNext;
         readonly Dictionary<Sfx, AudioClip> clips = new();
         // contagem de sons tocados por tipo (diagnóstico e testes automatizados)
         static readonly Dictionary<Sfx, int> counts = new();
+        static readonly Dictionary<Ambiente, int> ambientCounts = new();
 
         void Awake()
         {
             I = this;
             counts.Clear(); // o domínio não recarrega entre Plays: zera junto com a cena
+            ambientCounts.Clear();
             source = gameObject.AddComponent<AudioSource>();
             source.playOnAwake = false;
             source.spatialBlend = 0f;
@@ -72,6 +77,28 @@ namespace ProvaImpossivel
             tension.loop = true;
             tension.clip = clips[Sfx.Coracao];
             tension.volume = 0f;
+
+            murmurLoop = Loop(MurmurClip());
+            clockLoop = Loop(ClockClip());
+            ambientShot = gameObject.AddComponent<AudioSource>();
+            ambientShot.playOnAwake = false;
+            ambientShot.spatialBlend = 0f;
+            pencilClip = PencilClip();
+            nextPencil = Random.Range(mix.pencilInterval.x, mix.pencilInterval.y);
+            nextChair = Random.Range(mix.chairInterval.x, mix.chairInterval.y);
+        }
+
+        /// <summary>Fonte 2D em loop que já começa tocando em silêncio (o volume é que entra e sai).</summary>
+        AudioSource Loop(AudioClip clip)
+        {
+            var s = gameObject.AddComponent<AudioSource>();
+            s.playOnAwake = false;
+            s.spatialBlend = 0f;
+            s.loop = true;
+            s.clip = clip;
+            s.volume = 0f;
+            s.Play();
+            return s;
         }
 
         void Update()
@@ -85,28 +112,79 @@ namespace ProvaImpossivel
             {
                 float s = Mathf.InverseLerp(30f, 100f, prof.Suspicion);
                 if (prof.State == ProfState.Investigando || prof.State == ProfState.Flagrante) s = Mathf.Max(s, 0.75f);
-                target = s * tensionVolume;
+                target = s * mix.tensionMax;
                 pitch = Mathf.Lerp(0.85f, 1.6f, s);
             }
-            tension.volume = Mathf.MoveTowards(tension.volume, target, Time.unscaledDeltaTime * 0.6f);
+            tension.volume = Mathf.MoveTowards(tension.volume, Mathf.Min(target, mix.tensionMax), Time.unscaledDeltaTime * 0.6f);
             tension.pitch = Mathf.MoveTowards(tension.pitch, pitch, Time.unscaledDeltaTime);
             if (tension.volume > 0.001f && !tension.isPlaying) tension.Play();
             else if (tension.volume <= 0.001f && tension.isPlaying) tension.Stop();
+
+            UpdateAmbient(gm != null && gm.IsPlaying);
+        }
+
+        /// <summary>
+        /// Ambiente da sala: só durante a prova (some no menu, na pausa e no fim), abaixa quando toca um som
+        /// importante e quando a tensão sobe. Lápis e cadeira aparecem de vez em quando, de um lado ou do outro.
+        /// </summary>
+        void UpdateAmbient(bool playing)
+        {
+            float tension01 = mix.tensionMax > 0f ? tension.volume / mix.tensionMax : 0f;
+            float target = mix.AmbientGain(playing, Time.unscaledTime < duckUntil, tension01);
+            // abaixar é rápido (o som importante não pode esperar); voltar é devagar
+            float speed = target < ambientGain ? 4f : mix.fadeSpeed;
+            ambientGain = Mathf.MoveTowards(ambientGain, target, Time.unscaledDeltaTime * speed);
+            murmurLoop.volume = mix.murmur * ambientGain;
+            clockLoop.volume = mix.clock * ambientGain;
+            ambientShot.volume = ambientGain;
+
+            if (!playing) return;
+            nextPencil -= Time.deltaTime;
+            nextChair -= Time.deltaTime;
+            if (nextPencil <= 0f)
+            {
+                nextPencil = Random.Range(mix.pencilInterval.x, mix.pencilInterval.y);
+                PlayAmbient(Ambiente.Lapis, pencilClip, Random.Range(0.9f, 1.15f));
+            }
+            if (nextChair <= 0f)
+            {
+                nextChair = Random.Range(mix.chairInterval.x, mix.chairInterval.y);
+                PlayAmbient(Ambiente.Cadeira, clips[Sfx.Cadeira], Random.Range(0.75f, 0.95f)); // mais grave: cadeira "dos outros"
+            }
+        }
+
+        void PlayAmbient(Ambiente a, AudioClip clip, float pitch)
+        {
+            ambientCounts[a] = AmbientCount(a) + 1;
+            ambientShot.panStereo = Random.Range(-0.7f, 0.7f);
+            ambientShot.pitch = pitch;
+            ambientShot.PlayOneShot(clip, mix.Level(a));
         }
 
         /// <summary>Volume atual do batimento de tensão (0 = em silêncio).</summary>
         public float TensionLevel => tension != null ? tension.volume : 0f;
 
-        public static int PlayCount(Sfx s) => counts.TryGetValue(s, out int n) ? n : 0;
+        /// <summary>Multiplicador atual do ambiente (0 = sala em silêncio, 1 = volume cheio do mix).</summary>
+        public float AmbientGain => ambientGain;
 
-        static void Count(Sfx s) => counts[s] = PlayCount(s) + 1;
+        /// <summary>Volume efetivo de um som de fundo agora (antes do volume geral).</summary>
+        public float AmbientVolume(Ambiente a) => mix.Level(a) * ambientGain;
+
+        public static int PlayCount(Sfx s) => counts.TryGetValue(s, out int n) ? n : 0;
+        public static int AmbientCount(Ambiente a) => ambientCounts.TryGetValue(a, out int n) ? n : 0;
+
+        static void Count(Sfx s)
+        {
+            counts[s] = PlayCount(s) + 1;
+            if (AudioMix.IsImportant(s)) I.duckUntil = Time.unscaledTime + I.mix.duckSeconds;
+        }
 
         /// <summary>Som de interface (2D, igual em qualquer lugar).</summary>
         public static void Play(Sfx s)
         {
             if (I == null || !I.clips.TryGetValue(s, out var c)) return;
             Count(s);
-            I.source.PlayOneShot(c, I.volume);
+            I.source.PlayOneShot(c, I.volume * GameOptions.SfxVolume);
         }
 
         /// <summary>Som no mundo (3D): o volume e o lado dependem de onde ele acontece em relação à câmera.</summary>
@@ -118,7 +196,7 @@ namespace ProvaImpossivel
             I.poolNext = (I.poolNext + 1) % I.pool.Length;
             src.transform.position = position;
             src.pitch = pitch;
-            src.PlayOneShot(c, I.volume * vol);
+            src.PlayOneShot(c, I.volume * vol * GameOptions.SfxVolume);
         }
 
         // ------------------------------------------------------------------ síntese
@@ -230,5 +308,109 @@ namespace ProvaImpossivel
                 return Mathf.Sin(2f * Mathf.PI * 52f * x) * Mathf.Exp(-x * 18f) * amp;
             }
         }
+
+        // ------------------------------------------------------------------ ambiente (Bloco 14)
+
+        /// <summary>Pico (0 a 1) de um trecho sintetizado: o mix conta com clips de ambiente sem estourar.</summary>
+        public const float AmbientClipPeak = 0.6f;
+
+        /// <summary>
+        /// Murmúrio da turma (8 s, em loop): várias "vozes" de ruído na faixa da fala, cada uma falando em sílabas
+        /// e pausas. O fim é misturado com o começo para o loop não estalar.
+        /// </summary>
+        public static AudioClip MurmurClip()
+        {
+            const float seconds = 8f, fadeSeconds = 0.6f;
+            int n = (int)(Rate * seconds), fade = (int)(Rate * fadeSeconds);
+            var raw = new float[n + fade];
+            var rnd = new System.Random(23);
+            for (int v = 0; v < 6; v++)
+            {
+                float lowA = 0f, lowB = 0f, env = 0f, target = 0f;
+                int nextChange = 0;
+                // cada voz tem um "timbre" (faixa) um pouco diferente
+                float cutHigh = 0.05f + 0.03f * (float)rnd.NextDouble(), cutLow = 0.008f + 0.006f * (float)rnd.NextDouble();
+                for (int i = 0; i < raw.Length; i++)
+                {
+                    if (i >= nextChange)
+                    {
+                        // sílaba (0,08–0,25 s) ou pausa (0,2–1,2 s)
+                        bool talk = rnd.NextDouble() < 0.6;
+                        target = talk ? 0.4f + 0.6f * (float)rnd.NextDouble() : 0f;
+                        nextChange = i + (int)(Rate * (talk ? 0.08 + 0.17 * rnd.NextDouble() : 0.2 + rnd.NextDouble()));
+                    }
+                    env += (target - env) * 0.0015f;
+                    float noise = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                    lowA += (noise - lowA) * cutHigh; // tira o chiado (agudo)
+                    lowB += (lowA - lowB) * cutLow;   // tira o grave
+                    raw[i] += (lowA - lowB) * env;
+                }
+            }
+            var d = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float k = i < fade ? (float)i / fade : 1f;
+                d[i] = raw[i] * k + (i < fade ? raw[n + i] * (1f - k) : 0f);
+            }
+            return Clip("murmurio", Normalize(d, AmbientClipPeak));
+        }
+
+        /// <summary>Tique-taque (2 s, em loop): "tic" agudo no segundo par, "tac" mais grave no ímpar.</summary>
+        public static AudioClip ClockClip()
+        {
+            var d = new float[Rate * 2];
+            var rnd = new System.Random(5);
+            Tick(d, 0, 2600f, rnd);
+            Tick(d, Rate, 1900f, rnd);
+            return Clip("relogio", Normalize(d, AmbientClipPeak));
+
+            static void Tick(float[] d, int at, float freq, System.Random rnd)
+            {
+                int len = (int)(Rate * 0.03f);
+                for (int i = 0; i < len; i++)
+                {
+                    float t = (float)i / Rate;
+                    float noise = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                    d[at + i] = (Mathf.Sin(2f * Mathf.PI * freq * t) * 0.7f + noise * 0.3f) * Mathf.Exp(-t * 220f);
+                }
+            }
+        }
+
+        /// <summary>Lápis riscando (≈1,2 s): 3 a 5 traços de ruído agudo, com pausinhas entre eles.</summary>
+        public static AudioClip PencilClip()
+        {
+            var rnd = new System.Random(17);
+            var d = new float[(int)(Rate * 1.2f)];
+            int pos = (int)(Rate * 0.02f);
+            float low = 0f;
+            int strokes = 3 + rnd.Next(3);
+            for (int s = 0; s < strokes && pos < d.Length; s++)
+            {
+                int len = (int)(Rate * (0.08 + 0.14 * rnd.NextDouble()));
+                for (int i = 0; i < len && pos + i < d.Length; i++)
+                {
+                    float noise = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                    low += (noise - low) * 0.12f;
+                    float high = noise - low; // só o agudo: o "chhh" do grafite
+                    float env = Mathf.Sin(Mathf.PI * i / len);
+                    d[pos + i] = high * env;
+                }
+                pos += len + (int)(Rate * (0.04 + 0.12 * rnd.NextDouble()));
+            }
+            return Clip("lapis", Normalize(d, AmbientClipPeak));
+        }
+
+        static float[] Normalize(float[] d, float peak)
+        {
+            float max = 0f;
+            foreach (float x in d) max = Mathf.Max(max, Mathf.Abs(x));
+            if (max <= 0f) return d;
+            float k = peak / max;
+            for (int i = 0; i < d.Length; i++) d[i] *= k;
+            return d;
+        }
+
+        /// <summary>Clip de um som de jogo, como o jogo usa (testes comparam com o ambiente).</summary>
+        public AudioClip ClipOf(Sfx s) => clips.TryGetValue(s, out var c) ? c : null;
     }
 }

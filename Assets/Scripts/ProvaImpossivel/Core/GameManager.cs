@@ -179,6 +179,12 @@ namespace ProvaImpossivel
         void Start()
         {
             SetCursor(false);
+            if (pendingPlayAgain is Difficulty again)
+            {
+                pendingPlayAgain = null;
+                Begin(again);
+                return;
+            }
             HUD.I.ShowIntro(ChooseFromMenu, BeginTutorial, SkipTutorialFromMenu, !TutorialFlag.Done);
         }
 
@@ -233,6 +239,7 @@ namespace ProvaImpossivel
         public void Begin(Difficulty d)
         {
             if (Phase != Phase.Intro) return; // clique duplo / clique + tecla no mesmo frame
+            CurrentDifficulty = d;
             StartMatch(d == Difficulty.Facil ? facil : d == Difficulty.Dificil ? dificil : normal);
             HUD.I.Toast("A PROVA COMEÇOU! Tire pelo menos " + Fmt(Settings.minGrade) + " e entregue na mesa do professor.", HUD.Yellow, 4f);
             HUD.I.Toast("Você só estudou " + Settings.knownQuestions + " questões (moldura amarela). O resto: chute... ou cola.", HUD.Orange, 6f);
@@ -303,7 +310,14 @@ namespace ProvaImpossivel
                 EndTutorial(completed: false);
                 return;
             }
-            if (kb != null && (Phase == Phase.Ended || Phase == Phase.Paused) && kb.rKey.wasPressedThisFrame) { Restart(); return; }
+            // fim: R joga de novo (mesma dificuldade), M volta ao menu; na pausa, R reinicia como antes.
+            // No frame em que a prova acabou a tecla não vale (input duplicado).
+            if (kb != null && Phase == Phase.Ended && PhaseChangedFrame != Time.frameCount)
+            {
+                if (kb.rKey.wasPressedThisFrame) { PlayAgain(); return; }
+                if (kb.mKey.wasPressedThisFrame) { Restart(); return; }
+            }
+            if (kb != null && Phase == Phase.Paused && kb.rKey.wasPressedThisFrame) { Restart(); return; }
 
             if (kb != null && kb.escapeKey.wasPressedThisFrame)
             {
@@ -401,29 +415,51 @@ namespace ProvaImpossivel
             if (Phase == Phase.Ended) return;
             SetPhase(Phase.Ended);
             float g = ExamSystem.I.Grade;
-            string title, msg;
+            string msg;
             Color color;
             switch (r)
             {
                 case LevelResult.Aprovado:
-                    title = "APROVADO!"; msg = Falas.Pick(Falas.FinalAprovado); color = HUD.Green; break;
+                    msg = Falas.Pick(Falas.FinalAprovado); color = HUD.Green; break;
                 case LevelResult.AprovadoNoSufoco:
-                    title = "APROVADO NO SUFOCO!";
                     msg = (timeUp ? "O sinal tocou e você entregou a prova no grito. " : "") + Falas.Pick(Falas.FinalSufoco);
                     color = HUD.Yellow; break;
                 case LevelResult.Flagrado:
-                    title = "FLAGRADO!"; msg = Falas.Pick(Falas.FinalFlagrado); color = HUD.Red; break;
+                    msg = Falas.Pick(Falas.FinalFlagrado); color = HUD.Red; break;
                 default:
-                    title = "REPROVADO"; msg = (timeUp ? "O tempo acabou. " : "Você entregou a prova com nota insuficiente. ") + Falas.Pick(Falas.FinalReprovado);
+                    msg = (timeUp ? "O tempo acabou. " : "Você entregou a prova com nota insuficiente. ") + Falas.Pick(Falas.FinalReprovado);
                     color = HUD.Red; break;
             }
-            string stats = "Nota final: " + Fmt(g) + "   (mínimo " + Fmt(Settings.minGrade) + ")\n"
-                         + "Flagrantes: " + Flagrantes + " de " + Settings.maxFlagrantes + "\n"
-                         + "Tempo restante: " + HUD.FormatTime(TimeLeft) + "   •   Dificuldade: " + Settings.name;
             if (r == LevelResult.Reprovado || r == LevelResult.Flagrado) SoundFX.Play(Sfx.Erro);
             else SoundFX.Play(Sfx.Ponto);
             MatchLog.Write(Settings, r, g, Flagrantes, TimeLeft, Favors);
-            HUD.I.ShowResult(title, msg, stats, color, Restart, Quit);
+            var exam = ExamSystem.I;
+            LastSummary = MatchSummary.Build(Settings, r, g, TimeLeft, Flagrantes, Favors,
+                                             exam.Count(QuestionState.Certa), exam.Count(QuestionState.Errada), exam.Count(QuestionState.EmBranco));
+            HUD.I.ShowMatchResult(LastSummary, msg, color, PlayAgain, Restart, Quit);
+        }
+
+        /// <summary>Resumo mostrado na última tela de fim de prova (testes).</summary>
+        public MatchSummary LastSummary { get; private set; }
+
+        /// <summary>Dificuldade da prova em andamento (para "jogar de novo").</summary>
+        public Difficulty CurrentDifficulty { get; private set; } = Difficulty.Normal;
+
+        /// <summary>
+        /// "Jogar de novo" recarrega a cena e já começa na mesma dificuldade, sem passar pelo menu.
+        /// Estático porque sobrevive ao recarregamento da cena; zerado a cada Play (o domínio não recarrega).
+        /// </summary>
+        static Difficulty? pendingPlayAgain;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetOnPlay() => pendingPlayAgain = null;
+
+        /// <summary>Recomeça a prova na mesma dificuldade (no treino, volta ao menu).</summary>
+        public void PlayAgain()
+        {
+            if (InTutorial) { Restart(); return; }
+            pendingPlayAgain = CurrentDifficulty;
+            Restart();
         }
 
         // ------------------------------------------------------------- pausa / reinício

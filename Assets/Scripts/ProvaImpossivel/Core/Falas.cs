@@ -8,6 +8,13 @@ namespace ProvaImpossivel
     {
         static readonly Dictionary<string[], int> last = new();
 
+        /// <summary>Esquece a última frase de cada lista. O domínio não recarrega ao dar Play: roda a cada Play (padrão do Noise).</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void Reset() => last.Clear();
+
+        /// <summary>Quantas listas têm uma "última frase" lembrada (testes).</summary>
+        public static int RememberedLists => last.Count;
+
         public static string Pick(string[] list)
         {
             if (list == null || list.Length == 0) return "";
@@ -157,6 +164,33 @@ namespace ProvaImpossivel
             "Três flagrantes. Sua prova agora está emoldurada na sala dos professores.",
             "Expulso da sala. Sua cola agora é peça de museu.",
         };
+
+        // ---------------------------------------------------------- tela de fim de partida (resumo)
+        public const string TituloAprovado = "APROVADO!";
+        public const string TituloSufoco = "APROVADO NO SUFOCO!";
+        public const string TituloReprovado = "REPROVADO";
+        public const string TituloExpulso = "EXPULSO!";
+        public const string ResumoProva = "A PROVA";
+        public const string ResumoCrimes = "A FICHA CRIMINAL";
+        public const string ResumoNota = "Nota final";
+        public const string ResumoMinima = "Nota mínima";
+        public const string ResumoQuestoes = "Certas / erradas / em branco";
+        public const string ResumoTempo = "Tempo usado";
+        public const string ResumoFlagrantes = "Flagrantes";
+        public const string ResumoCelular = "Colas do celular";
+        public const string ResumoNerd = "Colas do Nerd";
+        public const string ResumoFundao = "Colas do Fundão";
+        public const string ResumoFundaoFurada = "furada";
+        public const string ResumoFavores = "Favores gastos";
+        public const string ResumoRodape = "Dificuldade: ";
+        public const string BotaoJogarDeNovo = "JOGAR DE NOVO (R)";
+        public const string BotaoMenu = "MENU (M)";
+        public const string BotaoSair = "SAIR";
+
+        // ---------------------------------------------------------- opções (pausa)
+        public const string OpcaoVolumeGeral = "Volume geral";
+        public const string OpcaoVolumeEfeitos = "Volume dos efeitos";
+        public const string OpcaoSensibilidade = "Sensibilidade da câmera";
 
         // ---------------------------------------------------------- tutorial (prova de treino)
         public const string TutorialAndar = "Levante (Espaço) e dê uma voltinha (WASD). Hoje ninguém te prende.";
