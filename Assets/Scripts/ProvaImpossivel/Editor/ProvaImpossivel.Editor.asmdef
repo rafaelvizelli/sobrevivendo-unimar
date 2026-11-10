@@ -1,0 +1,21 @@
+{
+    "name": "ProvaImpossivel.Editor",
+    "rootNamespace": "ProvaImpossivel",
+    "references": [
+        "ProvaImpossivel",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.AI.Navigation"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
