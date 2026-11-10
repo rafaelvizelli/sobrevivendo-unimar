@@ -23,14 +23,44 @@ namespace ProvaImpossivel.Tests
         const float TempoParaResponder = 4f, TempoFeedback = 1.6f;
         /// <summary>Quando o professor vê, ele está a 6 m, olhando a meio caminho entre o centro e a borda do cone.</summary>
         const float DistanciaReferencia = 6f;
-        /// <summary>O jogador cuidadoso só age quando o HUD diz "fora da vista": sobra metade do risco do cone.</summary>
-        const double FatorCuidado = 0.5;
+        /// <summary>
+        /// Como o jogador cola (Bloco 15b). O CUIDADOSO só age com o HUD dizendo "fora da vista", para de colar ao chegar
+        /// na nota mínima, silencia o celular na hora e olha o Nerd/professor antes do bilhete. O ARROJADO cola a qualquer
+        /// hora, quer nota alta (cola até o orçamento ou os recursos acabarem, mesmo já tendo passado), demora a silenciar
+        /// o celular, usa a colinha com o professor por perto e joga o bilhete sem conferir.
+        /// </summary>
+        public struct Perfil
+        {
+            public string nome;
+            /// <summary>Quanto do risco do cone sobra (1 = age sem olhar se ele está vendo).</summary>
+            public double fatorCuidado;
+            /// <summary>Colinha: chance de o professor estar/chegar perto.</summary>
+            public double riscoChegaPerto;
+            /// <summary>Bilhete: chance de o Nerd parar de escrever / o professor estar perto do caminho.</summary>
+            public double bilhetePerdido;
+            /// <summary>Chance de o professor VER o celular tocando (demorou a silenciar).</summary>
+            public double veCelularTocando;
+            /// <summary>Chance de não soltar a tempo quando o Nerd para de escrever.</summary>
+            public double falhaAoSoltarNerd;
+            /// <summary>Para de colar ao chegar na nota mínima (e não cola se já passou de cabeça).</summary>
+            public bool paraNaNotaMinima;
+        }
+
+        public static readonly Perfil Cuidadoso = new()
+        {
+            nome = "cuidadoso", fatorCuidado = 0.5, riscoChegaPerto = 0.06, bilhetePerdido = 0.05,
+            veCelularTocando = 0.15, falhaAoSoltarNerd = 0.15, paraNaNotaMinima = true,
+        };
+
+        public static readonly Perfil Arrojado = new()
+        {
+            nome = "arrojado", fatorCuidado = 1.0, riscoChegaPerto = 0.25, bilhetePerdido = 0.20,
+            veCelularTocando = 0.5, falhaAoSoltarNerd = 0.4, paraNaNotaMinima = false,
+        };
         /// <summary>Risco residual de ser visto agindo durante uma distração (Puxa-saco, professor perto etc.).</summary>
         const double RiscoNaJanela = 0.03;
         /// <summary>Um favor pedido (Dorminhoco/Puxa-saco) exige andar até o colega: nem sempre sobra janela para agir.</summary>
         const double EficienciaJanelaDeFavor = 0.6;
-        /// <summary>Chance de não soltar a tempo quando o Nerd para de escrever.</summary>
-        const double FalhaAoSoltarNoNerd = 0.15;
         /// <summary>Espiar em pé e ser visto: o professor vem investigar e pode te achar fora do lugar.</summary>
         const double FlagraForaDoLugarAoInvestigar = 0.5;
         const float DuracaoMediaDeEvento = 8f;
@@ -43,12 +73,6 @@ namespace ProvaImpossivel.Tests
         // --- suposições das colas novas (Bloco 15)
         /// <summary>Distância da carteira do jogador até a do Nerd (alvo do bilhete do jogador cuidadoso), medida na cena: 1,35 m.</summary>
         const float DistanciaNerd = 1.35f;
-        /// <summary>O cuidadoso só usa a colinha com o professor longe; sobra este risco de ele chegar perto no meio.</summary>
-        const double RiscoProfessorChegaPerto = 0.06;
-        /// <summary>Bilhete: chance residual de o Nerd parar de escrever / o professor estar perto (o cuidadoso olha antes).</summary>
-        const double BilhetePerdidoMesmoComCuidado = 0.05;
-        /// <summary>O cuidadoso silencia o celular assim que vibra (F): o professor ouve, mas quase nunca vê tocando.</summary>
-        const double VeOCelularTocando = 0.15;
         /// <summary>Segundos extras de cada cola nova (olhar em volta, se ajeitar).</summary>
         const float FolgaPorCola = 2f;
 
@@ -69,6 +93,8 @@ namespace ProvaImpossivel.Tests
             public bool colasNovas;
             /// <summary>Respostas que todas as colas somadas podem dar (DifficultySettings.maxCheatAnswers).</summary>
             public int orcamento;
+            /// <summary>Como o jogador cola (Bloco 15b).</summary>
+            public Perfil perfil;
         }
 
         /// <summary>Monta o modelo a partir dos números do jogo (com as colas novas e o orçamento).</summary>
@@ -82,7 +108,16 @@ namespace ProvaImpossivel.Tests
             alertaPorAmeaca = s.threatAlertSeconds,
             colasNovas = true,
             orcamento = s.maxCheatAnswers,
+            perfil = Cuidadoso,
         };
+
+        /// <summary>O mesmo modelo com outro jeito de colar.</summary>
+        public static Modelo ModeloDe(DifficultySettings s, Perfil p)
+        {
+            var m = ModeloDe(s);
+            m.perfil = p;
+            return m;
+        }
 
         /// <summary>O modelo como era antes do Bloco 15: só celular, Nerd e Fundão, sem orçamento.</summary>
         public static Modelo ModeloAntigo(DifficultySettings s)
@@ -125,11 +160,16 @@ namespace ProvaImpossivel.Tests
         public struct Resultado
         {
             public double semCola, comCola, flagradoComCola, colasUsadas;
+            /// <summary>Flagrantes por partida (Bloco 15b), contando a advertência.</summary>
+            public double flagrantesPorPartida;
         }
 
         public static Resultado Simular(DifficultySettings s, Modelo m, int partidas, int seed)
         {
             var rng = new System.Random(seed);
+            var perfil = m.perfil;
+            // nota que ele quer: o cuidadoso para na mínima; o arrojado vai até onde as colas deixarem
+            float alvo = perfil.paraNaNotaMinima ? s.minGrade - 0.001f : 10f;
             double acertoConhecida = AcertoConhecidaPorTier[Mathf.Clamp(s.quizTier, 0, 2)];
             float visRef = Vision.Weight(DistanciaReferencia, s.viewDistance, s.halfFov * 0.5f, s.halfFov);
             float suspCelular = ProfessorAI.SuspicionIfSeen(s, s.phoneSuspicion, visRef, 3f);
@@ -149,7 +189,7 @@ namespace ProvaImpossivel.Tests
             {
                 tempo = s.colinhaTime + FolgaPorCola,
                 suspSeVe = ProfessorAI.SuspicionIfSeen(s, s.colinhaSuspicion, visRef, s.colinhaTime),
-                chancePerto = RiscoProfessorChegaPerto,
+                chancePerto = perfil.riscoChegaPerto,
                 ganhoPerto = s.colinhaNearSuspicion * mult * s.colinhaTime,
             };
             var garrafa = new ColaNova
@@ -165,7 +205,7 @@ namespace ProvaImpossivel.Tests
                 suspSeVe = ProfessorAI.SuspicionIfSeen(s, s.bilheteThrowSuspicion, visRef, s.bilheteThrowTime),
                 chanceOuvir = ChanceDeOuvir(s.bilheteNoiseRadius),
                 ganhoRuido = s.bilheteNoise * mult,
-                chancePerder = Math.Min(1.0, CheatRules.BilheteMissChance(DistanciaNerd, s.bilheteMissChancePerMeter) + BilhetePerdidoMesmoComCuidado),
+                chancePerder = Math.Min(1.0, CheatRules.BilheteMissChance(DistanciaNerd, s.bilheteMissChancePerMeter) + perfil.bilhetePerdido),
             };
             // fone: mandar + ler = duas vezes o celular por foneUseTime; o toque é ruído (raramente visto: ele silencia)
             var foneUso = new ColaNova
@@ -175,7 +215,7 @@ namespace ProvaImpossivel.Tests
             };
 
             int passouSemCola = 0, passouComCola = 0, flagrado = 0;
-            long colas = 0;
+            long colas = 0, somaFlagrantes = 0;
             var acertou = new bool[10];
             for (int n = 0; n < partidas; n++)
             {
@@ -194,8 +234,12 @@ namespace ProvaImpossivel.Tests
                 if (certas >= s.minGrade - 0.001f)
                 {
                     passouSemCola++;
-                    passouComCola++;
-                    continue;
+                    if (perfil.paraNaNotaMinima)
+                    {
+                        passouComCola++;
+                        continue;
+                    }
+                    // o arrojado cola mesmo já tendo passado (quer nota alta) — e pode ser expulso por isso
                 }
 
                 // -------- acontecimentos da partida
@@ -209,7 +253,7 @@ namespace ProvaImpossivel.Tests
                 }
                 double fracAtento = Math.Min(1.0, ameacas * m.alertaPorAmeaca / s.duration);
                 double coneNaSala = Math.Min(0.9, (2.0 * s.halfFov / 360.0) * (s.viewDistance / 12.0));
-                double riscoForaDaJanela = Math.Min(0.9, coneNaSala * FatorCuidado * (1.0 + fracAtento));
+                double riscoForaDaJanela = Math.Min(0.9, coneNaSala * perfil.fatorCuidado * (1.0 + fracAtento));
 
                 // -------- colas, com cuidado: chutou tudo antes; agora corrige as erradas até a nota mínima
                 int celular = s.phoneCharges, nerd = m.nerdCopias, favores = s.favors, flagrantes = 0;
@@ -247,7 +291,7 @@ namespace ProvaImpossivel.Tests
                             {
                                 atencao++;
                                 float ganho = s.foneRingNoise * mult;
-                                bool visto = rng.NextDouble() < VeOCelularTocando;
+                                bool visto = rng.NextDouble() < perfil.veCelularTocando;
                                 bool flagra = (visto && ganho + ProfessorAI.SuspicionIfSeen(s, s.foneRingSuspicion, visRef, 1f) >= 100f)
                                               || (ganho >= 65f && rng.NextDouble() > caraDePaisagem && ganho + 30f >= 100f);
                                 if (flagra)
@@ -261,7 +305,7 @@ namespace ProvaImpossivel.Tests
                     }
 
                     int proxima = conhecidas, nColinha = s.colinhaCharges, nBilhete = s.bilheteCharges, nGarrafa = s.garrafaCharges;
-                    while (certas < s.minGrade - 0.001f && orcamento > (foneChega ? 1 : 0) && proxima < 10 && flagrantes < s.maxFlagrantes)
+                    while (certas < alvo && orcamento > (foneChega ? 1 : 0) && proxima < 10 && flagrantes < s.maxFlagrantes)
                     {
                         int qual = nColinha > 0 ? 0 : nBilhete > 0 ? 1 : nGarrafa > 0 ? 2 : -1;
                         if (qual < 0) break;
@@ -293,7 +337,7 @@ namespace ProvaImpossivel.Tests
                     }
                 }
 
-                while (certas < s.minGrade - 0.001f && flagrantes < s.maxFlagrantes)
+                while (certas < alvo && flagrantes < s.maxFlagrantes)
                 {
                     if (orcamento <= 0) break; // orçamento de colas esgotado: nenhuma cola dá mais resposta
                     if (foneChega)
@@ -351,7 +395,7 @@ namespace ProvaImpossivel.Tests
                         if (rng.NextDouble() < chanceInterrompeNerd)
                         {
                             // ele parou de escrever no meio: soltou (perdeu a vez) ou foi pego (escândalo, sem ponto)
-                            if (rng.NextDouble() < FalhaAoSoltarNoNerd) nerd--;
+                            if (rng.NextDouble() < perfil.falhaAoSoltarNerd) nerd--;
                             continue;
                         }
                     }
@@ -378,6 +422,7 @@ namespace ProvaImpossivel.Tests
                 bool passou = flagrantes < s.maxFlagrantes && certas >= s.minGrade - 0.001f;
                 if (passou) passouComCola++;
                 if (flagrantes >= s.maxFlagrantes) flagrado++;
+                somaFlagrantes += flagrantes;
             }
             return new Resultado
             {
@@ -385,6 +430,7 @@ namespace ProvaImpossivel.Tests
                 comCola = passouComCola / (double)partidas,
                 flagradoComCola = flagrado / (double)partidas,
                 colasUsadas = colas / (double)partidas,
+                flagrantesPorPartida = somaFlagrantes / (double)partidas,
             };
         }
 
@@ -437,6 +483,28 @@ namespace ProvaImpossivel.Tests
         public void TabelaDeEquilibrio()
         {
             var sb = new StringBuilder();
+            // tabela principal (Bloco 15b): os dois perfis de jogador, com os números atuais do jogo
+            sb.Append("\nATUAL, POR PERFIL (Bloco 15b)\nDificuldade | Perfil     | Sem cola | Aprovação | Expulsão | Flagrantes/partida | Colas/partida | Orçamento\n");
+            foreach (var s in new[] { gm.facil, gm.normal, gm.dificil })
+                foreach (var p in new[] { Cuidadoso, Arrojado })
+                {
+                    var r = Simular(s, ModeloDe(s, p), Partidas, 12345);
+                    sb.AppendFormat("{0,-11} | {1,-10} | {2,8:P1} | {3,9:P1} | {4,8:P1} | {5,18:0.00} | {6,13:0.0} | {7,9}\n",
+                        s.name, p.nome, r.semCola, r.comCola, r.flagradoComCola, r.flagrantesPorPartida, r.colasUsadas, s.maxCheatAnswers);
+                }
+            // quanto o professor acumula vendo cada cola do começo ao fim (6 m, a meio caminho da borda do cone).
+            // 100 = flagrante na hora; 65+ = ele vem investigar (Cara de Paisagem)
+            sb.Append("\nSuspeita se ele VÊ a cola inteira (100 = flagrante):\n");
+            foreach (var s in new[] { gm.facil, gm.normal, gm.dificil })
+            {
+                float v = Vision.Weight(DistanciaReferencia, s.viewDistance, s.halfFov * 0.5f, s.halfFov);
+                sb.AppendFormat("{0,-11} | celular 3 s {1,4:0} | colinha {2,4:0} | garrafinha {3,4:0} | bilhete {4,4:0} | fone (cada vez) {5,4:0}\n", s.name,
+                    ProfessorAI.SuspicionIfSeen(s, s.phoneSuspicion, v, 3f),
+                    ProfessorAI.SuspicionIfSeen(s, s.colinhaSuspicion, v, s.colinhaTime),
+                    ProfessorAI.SuspicionIfSeen(s, s.garrafaSuspicion, v, s.garrafaTime),
+                    ProfessorAI.SuspicionIfSeen(s, s.bilheteThrowSuspicion, v, s.bilheteThrowTime),
+                    ProfessorAI.SuspicionIfSeen(s, s.phoneSuspicion, v, s.foneUseTime));
+            }
             void Tabela(string titulo, Func<DifficultySettings, Modelo> modelo)
             {
                 sb.Append("\n" + titulo + "\nDificuldade | Sem cola | Com cola (cuidado) | Expulso colando | Colas/partida | Orçamento | Celular visto 3 s (susp.)\n");
@@ -503,6 +571,28 @@ namespace ProvaImpossivel.Tests
             var r = Simular(gm.normal, ModeloAntigo(gm.normal), Partidas, 12345);
             Assert.AreEqual(0.633, r.comCola, 0.0005, "o caminho antigo da simulação mudou sem querer");
             Assert.AreEqual(0.056, r.semCola, 0.0005);
+        }
+
+        /// <summary>
+        /// Bloco 15b: o perfil arrojado se arrisca mais — nunca leva menos flagrantes que o cuidadoso, e no Difícil leva mais.
+        /// (A EXPULSÃO, 3 flagrantes, quase não acontece no modelo para nenhum dos dois: ver NOTAS, Bloco 15b. Por isso o
+        /// teste olha os flagrantes, e não a expulsão.)
+        /// </summary>
+        [Test]
+        public void ArrojadoLevaMaisFlagrantesQueOCuidadoso()
+        {
+            foreach (var s in new[] { gm.facil, gm.normal, gm.dificil })
+            {
+                var c = Simular(s, ModeloDe(s, Cuidadoso), Partidas, 5);
+                var a = Simular(s, ModeloDe(s, Arrojado), Partidas, 5);
+                Assert.GreaterOrEqual(a.flagrantesPorPartida, c.flagrantesPorPartida, s.name + ": o arrojado não pode levar MENOS flagrantes");
+                // no Fácil e no Normal as colas novas vistas inteiras não chegam a flagrante no modelo (ver tabela de suspeita);
+                // a diferença entre os perfis aparece no Difícil
+                if (s == gm.dificil)
+                    Assert.Greater(a.flagrantesPorPartida, c.flagrantesPorPartida, s.name + ": o arrojado deveria levar mais flagrantes");
+                Assert.GreaterOrEqual(a.flagradoComCola, c.flagradoComCola, s.name + ": o arrojado não pode ser expulso MENOS");
+                Assert.GreaterOrEqual(a.colasUsadas, c.colasUsadas, s.name + ": o arrojado cola pelo menos tanto quanto o cuidadoso");
+            }
         }
 
         [Test]

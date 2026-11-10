@@ -1,6 +1,6 @@
 # Sobrevivendo à UNIMAR — notas de desenvolvimento
 
-Última atualização: 10/11/2026 (Bloco 15 — novas maneiras de colar; Bloco 16 esperando a escolha da direção visual)
+Última atualização: 10/11/2026 (Bloco 15b — colas no CSV e ícone do Nerd; Bloco 16 esperando a escolha da direção visual)
 
 ## Onde paramos
 - Fase 1 ("A Prova Impossível") jogável de ponta a ponta, com tutorial. Código no GitHub (privado):
@@ -18,6 +18,9 @@
   (`maxCheatAnswers`, vale para TODAS as colas). Playtest real até agora: 1 partida (Difícil, reprovado 5,0).
 - **16** (10/11) identidade visual dos menus: etapa 1 feita (3 direções + protótipos em `Captures/MenuOpcoes/`);
   ESPERANDO o usuário escolher a direção antes da etapa 2.
+- **15b** (10/11) `partidas.csv` registra as colas novas (colunas no fim); ícone do Nerd com teto de tamanho;
+  simulação com perfil arrojado e flagrantes/partida. Bug achado e NÃO corrigido: flagrante com bilhete no ar
+  prende 1 vaga do orçamento.
 - Próximo: escolher a direção visual (Bloco 16) e PLAYTEST HUMANO com as colas novas (`partidas.csv`).
 
 ## Como rodar os testes
@@ -369,17 +372,53 @@
   03 bilhete e fone a caminho, 04 vibrando, 05/06 orçamento esgotado + colinha confiscada (1920×1080 e 1280×720).
 - Tutorial (NÃO mexido): precisaria de um passo "use uma cola sentado (Q/G)" e uma frase explicando o orçamento
   ("cada prova tem um limite de respostas coladas") e o bilhete com mira.
-- NÃO feito/verificado: `partidas.csv` não registra as colas novas (mudar o cabeçalho quebraria o arquivo existente;
-  decidir antes); não há animação própria (manga, garrafa, bilhete voando); o som novo não foi ouvido; não jogado no
+- NÃO feito/verificado: `partidas.csv` não registra as colas novas (feito no Bloco 15b); não há animação própria (manga, garrafa, bilhete voando); o som novo não foi ouvido; não jogado no
   executável (não regenerado neste bloco).
 - Observação vista nas capturas (fora do escopo): o ícone "O_O" do Nerd fica enorme na tela porque a carteira dele é
-  colada à do jogador.
+  colada à do jogador. (Corrigido no Bloco 15b.)
 
 ### Bloco 16 — identidade visual dos menus (10/11) — etapa 1
 - 3 direções (prova impressa, caderno pautado, lousa com giz) aplicadas por cima do menu atual por um teste PlayMode
   temporário (apagado): `Captures/MenuOpcoes/` 0_atual, A, B, C. Nenhum código do jogo mudou para isso.
 - `Assets/Fonts/` não existe: os protótipos usam fontes do Windows (Courier New, Ink Free, Segoe Print, Impact) com
   negrito sintético, que borra em tamanho pequeno. Esperando a escolha para a etapa 2.
+
+### Bloco 15b — colas no CSV e ícone do Nerd (10/11)
+- Nenhum número de `DifficultySettings` mudou.
+- `partidas.csv`: 12 colunas novas NO FIM (as 22 antigas não mudaram de lugar): `colinha_/garrafa_/bilhete_/fone_` +
+  `usos;certas;erradas`. Usos = cola feita (segurou até o fim, jogou o bilhete, mandou a mensagem) ou interrompida
+  por flagrante; certas = virou resposta; erradas = não virou (flagrante no meio, bilhete interceptado/recusado/errou
+  a mesa/lista do mercado, celular confiscado antes da resposta). usos − certas − erradas = esperando quando a prova
+  acabou. Um `partidas.csv` antigo ganha o cabeçalho novo na primeira partida gravada (`MatchLog.UpgradeHeader`:
+  troca só a 1ª linha, e só se o cabeçalho antigo for o começo do novo); as partidas antigas ficam intactas, com as
+  colunas novas vazias.
+- Ícone de humor (`MoodIcon`): teto de tamanho na tela `MaxScreenFraction = 0.11` (fração da altura), calculado pela
+  profundidade na direção da câmera. Sentado ao lado do Nerd o "O_O" ocupava ~37% da altura; de 4,8 m para lá, de
+  frente, o tamanho é o mesmo de antes (~10%). Teste PlayMode: com a câmera virada para o Nerd, o ícone fica no
+  teto e não encosta nos painéis NOTA e COLAS.
+- Simulação: perfil ARROJADO acrescentado (age sem esperar "fora da vista", cola até o orçamento acabar mesmo já
+  passando, demora a silenciar o celular, usa a colinha com o professor perto, joga o bilhete sem conferir) e a coluna
+  flagrantes/partida. Tabela de suspeita "se ele vê a cola inteira".
+  | Dificuldade | Perfil | Sem cola | Aprovação | Expulsão | Flagrantes/partida | Colas/partida | Orçamento |
+  |---|---|---|---|---|---|---|---|
+  | Fácil | cuidadoso | 22,1% | 100% | 0,0% | 0,00 | 3,3 | 5 |
+  | Fácil | arrojado | 22,4% | 100% | 0,0% | 0,00 | 6,3 | 5 |
+  | Normal | cuidadoso | 5,7% | 64,0% | 0,0% | 0,00 | 3,5 | 3 |
+  | Normal | arrojado | 5,7% | 64,5% | 0,0% | 0,00 | 4,0 | 3 |
+  | Difícil | cuidadoso | 4,3% | 26,6% | 0,0% | 0,17 | 3,1 | 2 |
+  | Difícil | arrojado | 4,0% | 19,9% | 0,2% | 0,52 | 3,6 | 2 |
+  Suspeita se ele vê a cola inteira (100 = flagrante, 65+ = investiga): Normal colinha 23, garrafinha 8, bilhete 11,
+  fone 39 por vez (celular 3 s: 113). Fácil 7/3/3/12. Difícil 57/18/26/74.
+  LEITURA: no modelo, as colas novas NUNCA dão flagrante no Fácil e no Normal, nem para o arrojado; com o orçamento
+  gasto nelas, ele nem chega ao celular/Nerd. Ser arrojado não custa nada fora do Difícil. Limite do modelo: cada
+  cola é avaliada sozinha (no jogo a suspeita acumula e decai entre ações), então o risco real é maior que o
+  simulado — confirmar com o `partidas.csv`.
+- Achado (NÃO corrigido, fora do escopo): flagrante com o bilhete no ar (`OnFlagrante` zera `throwLeft`) não devolve
+  a vaga reservada do orçamento — o `Land()` nunca roda. O jogador perde 1 resposta do orçamento até o fim da prova.
+- Testes: EditMode 103/103, PlayMode 79/79. Executável regenerado; Player.log com 0 exceções (só menu aberto ~25 s;
+  partida não jogada no executável).
+- Arquivos: MatchLog, PlayerCheats (contagem), MoodIcon, testes (MatchLogTests, IconeDoNerdTests novo,
+  SimulacaoDeEquilibrioTests, ColasNovasPlayTests, ConsolidacaoTests).
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
@@ -394,6 +433,9 @@
 
 ## Problemas conhecidos (para blocos futuros)
 - Equilíbrio sem evidência: 1 partida real antiga (Fácil, antes do Bloco 1).
+- Flagrante com o bilhete no ar não devolve a vaga reservada do orçamento (Bloco 15b, achado e não corrigido).
+- A simulação avalia cada cola sozinha (sem acumular suspeita entre ações): no Fácil/Normal as colas novas nunca dão
+  flagrante no modelo. Comparar com o `partidas.csv`.
 
 - Personagens de primitivas, animação procedural, áudio sintetizado.
 - O menu *Montar Fase 1* recria tudo sob `== PROVA IMPOSSIVEL ==` (apaga ajustes manuais).

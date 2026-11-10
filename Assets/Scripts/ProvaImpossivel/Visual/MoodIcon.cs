@@ -64,6 +64,38 @@ namespace ProvaImpossivel
         /// em negrito e grandes pareciam três quadrados. Os outros símbolos ficam como estão. Pura (testável).
         /// </summary>
         public static string Glyph(string text) => text == "..." ? "•••" : text ?? "";
+        /// <summary>
+        /// Altura máxima do símbolo na tela, em fração da altura da tela (Bloco 15b). Sentado ao lado do Nerd (1,35 m)
+        /// o "O_O" ocupava ~37% da altura da tela e cobria a HUD; agora ele nunca passa disso, por mais perto que esteja.
+        /// 0,11 fica acima do tamanho que o ícone já tinha de 4,8 m para lá, de frente (FOV 60: ~0,10): o ícone do professor
+        /// longe não muda. Só encolhe o que estiver perto da câmera (inclusive o professor muito perto, na borda da tela).
+        /// </summary>
+        public const float MaxScreenFraction = 0.11f;
+        /// <summary>Altura (px do canvas) da caixa do símbolo.</summary>
+        const float SymbolBoxHeight = 120f;
+
+        /// <summary>Altura do símbolo no mundo (m) na escala base.</summary>
+        public static float SymbolWorldHeight(float baseScale) => SymbolBoxHeight * baseScale;
+
+        /// <summary>Fração da altura da tela que um objeto de <paramref name="worldHeight"/> m ocupa a <paramref name="dist"/> m. Pura (testável).</summary>
+        public static float ScreenFraction(float worldHeight, float dist, float fovDeg) =>
+            worldHeight / (2f * Mathf.Max(dist, 0.01f) * Mathf.Tan(fovDeg * 0.5f * Mathf.Deg2Rad));
+
+        /// <summary>
+        /// Multiplicador da escala do ícone pela distância: longe, cresce um pouco para continuar legível (0,8 a 1,8×);
+        /// perto, encolhe para não passar de <see cref="MaxScreenFraction"/> da tela. Pura (testável).
+        /// </summary>
+        /// <param name="depth">Profundidade na direção da câmera (é ela que decide o tamanho na tela; ao lado, é menor que a distância).</param>
+        public static float DistanceFactor(float dist, float depth, float fovDeg, float worldHeight)
+        {
+            float f = Mathf.Clamp(dist / 6f, 0.8f, 1.8f);
+            float frac = ScreenFraction(worldHeight * f, depth, fovDeg);
+            return frac > MaxScreenFraction ? f * MaxScreenFraction / frac : f;
+        }
+
+        /// <summary>Área do símbolo na tela no último frame (px). Testes.</summary>
+        public Rect ScreenRect { get; private set; }
+
         /// <summary>A barrinha está aparecendo?</summary>
         public bool MeterVisible => meterBack != null && meterBack.gameObject.activeSelf;
 
@@ -98,9 +130,10 @@ namespace ProvaImpossivel
             t.position = transform.position + Vector3.up * height;
             t.rotation = cam.transform.rotation; // sempre de frente pra câmera
             float s = scale * (1f + pulse * 0.18f * Mathf.Sin(Time.time * 12f));
-            // longe, cresce um pouco para continuar legível
-            float dist = Vector3.Distance(cam.transform.position, t.position);
-            t.localScale = Vector3.one * s * Mathf.Clamp(dist / 6f, 0.8f, 1.8f);
+            // longe, cresce um pouco para continuar legível; perto, encolhe até o teto de tamanho na tela (Bloco 15b)
+            Vector3 toIcon = t.position - cam.transform.position;
+            float depth = Vector3.Dot(toIcon, cam.transform.forward);
+            t.localScale = Vector3.one * s * DistanceFactor(toIcon.magnitude, depth, cam.fieldOfView, SymbolWorldHeight(scale));
 
             // avisa o HUD onde o ícone está na tela (as mensagens do topo desviam dele)
             if (current.Length > 0 && HUD.I != null)
@@ -114,7 +147,8 @@ namespace ProvaImpossivel
                     if (sp.z < 0f) return;
                     min = Vector2.Min(min, sp); max = Vector2.Max(max, sp);
                 }
-                HUD.I.ReportWorldIcon(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+                ScreenRect = Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+                HUD.I.ReportWorldIcon(ScreenRect);
             }
         }
     }

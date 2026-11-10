@@ -90,6 +90,22 @@ namespace ProvaImpossivel.Tests
             int i = Array.IndexOf(ExamSystem.I.Questions, QuestionState.Certa);
             Assert.IsFalse(ExamSystem.I.Known[i], "a colinha deveria ir numa questão que ele NÃO sabe");
             Assert.AreEqual(PlayerCheats.Hold.Nenhum, c.Holding);
+            Assert.AreEqual((1, 1, 0), (MatchLog.ColinhaUsos, MatchLog.ColinhaCertas, MatchLog.ColinhaErradas), "registro no partidas.csv (Bloco 15b)");
+        }
+
+        /// <summary>Bloco 15b: colinha interrompida por flagrante entra no partidas.csv como usada e errada.</summary>
+        [UnityTest]
+        public IEnumerator ColinhaInterrompidaPorFlagranteContaComoErrada()
+        {
+            yield return Comecar(Difficulty.Normal);
+            var c = PlayerController.I.Cheats;
+            InputSystem.QueueStateEvent(kb, new KeyboardState(Key.Q));
+            yield return WaitUntil(() => c.Holding == PlayerCheats.Hold.Colinha, 2f, "Q não começou a colinha");
+            GameManager.I.ApplyFlagrante("teste", Infracao.ColinhaNaManga);
+            InputSystem.QueueStateEvent(kb, new KeyboardState());
+            yield return null;
+            Assert.AreEqual((1, 0, 1), (MatchLog.ColinhaUsos, MatchLog.ColinhaCertas, MatchLog.ColinhaErradas));
+            Assert.AreEqual(0, RespostasCertas);
         }
 
         [UnityTest]
@@ -145,6 +161,7 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual(Falas.RuidoGole, gole.what, "o gole não virou ruído para o professor (Noise)");
             Assert.AreEqual(GameManager.I.normal.garrafaNoise, gole.amount);
             Assert.IsTrue(gole.byPlayer);
+            Assert.AreEqual((1, 1, 0), (MatchLog.GarrafaUsos, MatchLog.GarrafaCertas, MatchLog.GarrafaErradas), "registro no partidas.csv (Bloco 15b)");
         }
 
         // ------------------------------------------------------------------ bilhete (fluxo completo)
@@ -173,6 +190,7 @@ namespace ProvaImpossivel.Tests
             yield return WaitUntil(() => RespostasCertas == 1, 5f, "o bilhete não voltou com a resposta");
             Assert.AreEqual((1, 0), (budget.Used, budget.Reserved));
             Assert.AreEqual(GameManager.I.normal.bilheteCharges - 1, c.BilheteCharges);
+            Assert.AreEqual((1, 1, 0), (MatchLog.BilheteUsos, MatchLog.BilheteCertas, MatchLog.BilheteErradas), "registro no partidas.csv (Bloco 15b)");
         }
 
         [UnityTest]
@@ -187,6 +205,7 @@ namespace ProvaImpossivel.Tests
             yield return WaitUntil(() => !c.Throwing, 2f, "o arremesso não terminou");
             Assert.IsFalse(c.bilhete.Busy, "o Nerd em alerta não podia aceitar");
             Assert.AreEqual((0, 0), (GameManager.I.Cheats.Used, GameManager.I.Cheats.Reserved), "a vaga do bilhete devolvido tem que voltar");
+            Assert.AreEqual((1, 0, 1), (MatchLog.BilheteUsos, MatchLog.BilheteCertas, MatchLog.BilheteErradas), "registro no partidas.csv (Bloco 15b)");
         }
 
         // ------------------------------------------------------------------ fone
@@ -216,6 +235,7 @@ namespace ProvaImpossivel.Tests
             yield return Segurar(Key.F, () => RespostasCertas == 1, 3f, "segurar F de novo não leu a resposta");
             Assert.AreEqual((1, 0), (GameManager.I.Cheats.Used, GameManager.I.Cheats.Reserved));
             Assert.IsFalse(c.fone.Busy);
+            Assert.AreEqual((1, 1, 0), (MatchLog.FoneUsos, MatchLog.FoneCertas, MatchLog.FoneErradas), "registro no partidas.csv (Bloco 15b)");
         }
 
         // ------------------------------------------------------------------ orçamento e confisco
@@ -276,6 +296,7 @@ namespace ProvaImpossivel.Tests
             yield return null;
             Assert.IsFalse(c.fone.Busy, "a resposta continuou vindo para um celular confiscado");
             Assert.AreEqual(0, GameManager.I.Cheats.Reserved, "a vaga reservada tinha que voltar");
+            Assert.AreEqual((1, 0, 1), (MatchLog.FoneUsos, MatchLog.FoneCertas, MatchLog.FoneErradas), "registro no partidas.csv (Bloco 15b)");
         }
 
         // ------------------------------------------------------------------ HUD

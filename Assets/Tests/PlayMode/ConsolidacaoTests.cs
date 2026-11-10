@@ -184,6 +184,38 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual("", icon.Symbol, "longe (além de studentHintDistance) o ícone some");
         }
 
+        /// <summary>
+        /// Bloco 15b: sentado, com a carteira colada na do Nerd, o "O_O" tem tamanho limitado na tela e não cobre
+        /// os painéis do HUD (tempo, NOTA, COLAS).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator IconeDoNerdDePertoTemTamanhoLimitadoENaoCobreAHud()
+        {
+            yield return StartNormal();
+            var nerd = Object.FindAnyObjectByType<NerdStudent>();
+            var icon = nerd.GetComponent<MoodIcon>();
+            // gira a câmera para o lado do Nerd (como quem confere se ele vai olhar); a câmera guarda o giro em "yaw"
+            var rig = Object.FindAnyObjectByType<ThirdPersonCamera>();
+            Vector3 para = nerd.transform.position - PlayerController.I.transform.position;
+            typeof(ThirdPersonCamera).GetField("yaw", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(rig, Quaternion.LookRotation(new Vector3(para.x, 0f, para.z)).eulerAngles.y);
+            nerd.GlanceSoon();
+            yield return WaitUntil(() => nerd.Glancing, 4f, "o Nerd não chegou a olhar de lado");
+            yield return null;
+            yield return null;
+            Assert.AreEqual("O_O", icon.Symbol);
+            var r = icon.ScreenRect;
+            // a caixa do símbolo, com folga para a pulsação do "O_O" (até +18%)
+            Assert.LessOrEqual(r.height, Screen.height * MoodIcon.MaxScreenFraction * 1.2f,
+                "o ícone passou do teto de tamanho (" + r.height + " px de " + Screen.height + ")");
+            Assert.Greater(r.height, Screen.height * 0.03f, "o ícone ficou pequeno demais para ler");
+
+            var hud = HUD.I;
+            Rect R(RectTransform t) { var c = new Vector3[4]; t.GetWorldCorners(c); return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y); }
+            Assert.IsFalse(r.Overlaps(R(hud.GradePanel)), "o ícone cobre o painel da NOTA");
+            Assert.IsFalse(r.Overlaps(R(hud.CheatsPanel)), "o ícone cobre o painel das COLAS");
+        }
+
         // ------------------------------------------------------------------ cone = visão do jogo
 
         [UnityTest]

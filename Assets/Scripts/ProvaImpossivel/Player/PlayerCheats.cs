@@ -282,18 +282,23 @@ namespace ProvaImpossivel
             {
                 case Hold.Colinha:
                     ColinhaCharges--;
-                    if (CheatBudget.Spend() && exam.MarkCorrectBlank() >= 0) Gain(Falas.ColinhaFuncionou);
+                    MatchLog.ColinhaUsos++;
+                    if (CheatBudget.Spend() && exam.MarkCorrectBlank() >= 0) { MatchLog.ColinhaCertas++; Gain(Falas.ColinhaFuncionou); }
+                    else MatchLog.ColinhaErradas++;
                     break;
                 case Hold.Garrafinha:
                     GarrafaCharges--;
                     // o gole é o preço: barulho que o professor ouve (ele sabe o LUGAR, não quem foi)
                     player.MakeNoise(s.garrafaNoiseRadius, s.garrafaNoise, Falas.RuidoGole);
                     SoundFX.PlayAt(Sfx.Gole, transform.position);
-                    if (CheatBudget.Spend() && exam.MarkCorrectBlank() >= 0) Gain(Falas.GarrafaFuncionou);
+                    MatchLog.GarrafaUsos++;
+                    if (CheatBudget.Spend() && exam.MarkCorrectBlank() >= 0) { MatchLog.GarrafaCertas++; Gain(Falas.GarrafaFuncionou); }
+                    else MatchLog.GarrafaErradas++;
                     break;
                 case Hold.FoneEnviar:
                     FoneCharges--;
                     if (Budget != null && !Budget.TryReserve()) { HUD.I.Toast(Falas.OrcamentoAcabou, HUD.Gray, 2.5f); break; }
+                    MatchLog.FoneUsos++;
                     fone.Begin(s.foneDelay);
                     foneElapsed = 0f;
                     foneRingAt = CheatRules.FoneRingTime(Random.value, Random.value, s.foneRingChance, s.foneDelay);
@@ -302,7 +307,8 @@ namespace ProvaImpossivel
                 case Hold.FoneLer:
                     fone.Clear();
                     Budget?.Commit();
-                    if (exam.MarkCorrect() >= 0) Gain(Falas.FoneFuncionou);
+                    if (exam.MarkCorrect() >= 0) { MatchLog.FoneCertas++; Gain(Falas.FoneFuncionou); }
+                    else MatchLog.FoneErradas++;
                     break;
             }
         }
@@ -353,6 +359,7 @@ namespace ProvaImpossivel
             }
             Budget?.TryReserve();
             BilheteCharges--;
+            MatchLog.BilheteUsos++;
             throwTarget = target;
             throwLeft = Mathf.Max(0.05f, s.bilheteThrowTime);
             player.MakeNoise(s.bilheteNoiseRadius, s.bilheteNoise, Falas.RuidoPapel);
@@ -383,7 +390,7 @@ namespace ProvaImpossivel
                                                        s.bilheteLostDistance, prof.OnPhone))
             {
                 // ele estava perto: o papel some no bolso dele. Se ainda por cima te viu jogando, é flagrante.
-                if (prof.Visibility > 0f && prof.CatchRedHanded(Falas.MotivoBilhete, Infracao.Bilhete)) { Budget?.Cancel(); return; }
+                if (prof.Visibility > 0f && prof.CatchRedHanded(Falas.MotivoBilhete, Infracao.Bilhete)) { Budget?.Cancel(); MatchLog.BilheteErradas++; return; }
                 Lose(Falas.BilheteInterceptado);
                 return;
             }
@@ -406,9 +413,11 @@ namespace ProvaImpossivel
             bilhete.Begin(s.bilheteDelay);
         }
 
+        /// <summary>O bilhete se perdeu no caminho (só o bilhete usa).</summary>
         void Lose(string why)
         {
             Budget?.Cancel();
+            MatchLog.BilheteErradas++;
             HUD.I.Toast(why, HUD.Orange, 3f);
         }
 
@@ -419,13 +428,15 @@ namespace ProvaImpossivel
             if (!bilheteGood)
             {
                 Budget?.Cancel();
+                MatchLog.BilheteErradas++;
                 HUD.I.Toast(Falas.BilheteRuim, HUD.Red, 3f);
                 SoundFX.Play(Sfx.PerdePonto);
                 return;
             }
             int i = exam.MarkCorrectRandomBlank(Random.value);
-            if (i < 0) { Budget?.Cancel(); HUD.I.Toast(Falas.BilheteSemLugar, HUD.Gray, 3f); return; }
+            if (i < 0) { Budget?.Cancel(); MatchLog.BilheteErradas++; HUD.I.Toast(Falas.BilheteSemLugar, HUD.Gray, 3f); return; }
             Budget?.Commit();
+            MatchLog.BilheteCertas++;
             Gain("bilhete de " + bilheteFrom + ": questão " + (i + 1) + "!");
         }
 
@@ -450,6 +461,7 @@ namespace ProvaImpossivel
                 fone.Clear();
                 ringLeft = 0f;
                 Budget?.Cancel();
+                MatchLog.FoneErradas++;
                 HUD.I.Toast(Falas.FonePerdido, HUD.Orange, 3f);
                 return;
             }
@@ -509,6 +521,10 @@ namespace ProvaImpossivel
         /// <summary>Flagrante (já sem a advertência): leva a colinha / a garrafinha, e interrompe o que estava fazendo.</summary>
         public void OnFlagrante(Infracao kind, CheatItem taken)
         {
+            // registro (Bloco 15b): cola interrompida pelo flagrante conta como usada e errada
+            if (Holding == Hold.Colinha) { MatchLog.ColinhaUsos++; MatchLog.ColinhaErradas++; }
+            else if (Holding == Hold.Garrafinha) { MatchLog.GarrafaUsos++; MatchLog.GarrafaErradas++; }
+            if (throwLeft > 0f) MatchLog.BilheteErradas++; // o bilhete no ar não chega (BilheteUsos já contou ao jogar)
             CancelHold();
             throwLeft = 0f;
             ringLeft = 0f;
