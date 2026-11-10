@@ -1,6 +1,6 @@
 # Sobrevivendo à UNIMAR — notas de desenvolvimento
 
-Última atualização: 10/11/2026 (Bloco 15 — novas maneiras de colar)
+Última atualização: 10/11/2026 (Bloco 15 — novas maneiras de colar; Bloco 16 esperando a escolha da direção visual)
 
 ## Onde paramos
 - Fase 1 ("A Prova Impossível") jogável de ponta a ponta, com tutorial. Código no GitHub (privado):
@@ -16,7 +16,9 @@
   pasta!), pacotes sem uso removidos, tela final com resumo + jogar de novo, opções na pausa, áudio ambiente.
 - **15** (10/11) colas novas: colinha (Q), bilhete (B), fone (F), garrafinha (G) + orçamento de colas da partida
   (`maxCheatAnswers`, vale para TODAS as colas). Playtest real até agora: 1 partida (Difícil, reprovado 5,0).
-- Próximo: sentir as colas novas jogando; depois direção visual (Bloco 16) e PLAYTEST HUMANO (`partidas.csv`).
+- **16** (10/11) identidade visual dos menus: etapa 1 feita (3 direções + protótipos em `Captures/MenuOpcoes/`);
+  ESPERANDO o usuário escolher a direção antes da etapa 2.
+- Próximo: escolher a direção visual (Bloco 16) e PLAYTEST HUMANO com as colas novas (`partidas.csv`).
 
 ## Como rodar os testes
 - Batch (Unity FECHADO): `Unity.exe -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`.
@@ -372,6 +374,12 @@
   executável (não regenerado neste bloco).
 - Observação vista nas capturas (fora do escopo): o ícone "O_O" do Nerd fica enorme na tela porque a carteira dele é
   colada à do jogador.
+
+### Bloco 16 — identidade visual dos menus (10/11) — etapa 1
+- 3 direções (prova impressa, caderno pautado, lousa com giz) aplicadas por cima do menu atual por um teste PlayMode
+  temporário (apagado): `Captures/MenuOpcoes/` 0_atual, A, B, C. Nenhum código do jogo mudou para isso.
+- `Assets/Fonts/` não existe: os protótipos usam fontes do Windows (Courier New, Ink Free, Segoe Print, Impact) com
+  negrito sintético, que borra em tamanho pequeno. Esperando a escolha para a etapa 2.
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
