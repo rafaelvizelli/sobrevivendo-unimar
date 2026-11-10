@@ -50,7 +50,22 @@ namespace ProvaImpossivel
         // sentado não dá: a carteira do jogador fica colada na do Nerd, e espiar sem levantar era cola sem risco.
         // Em pé, perto dele, você fica exposto (e o professor investigando te acha fora do lugar).
         public override bool CanInteract(PlayerController p) =>
-            Playing && !p.IsSeated && copies < maxCopies && cooldown <= 0f && Time.time > coverUntil && ExamSystem.I.HasRoom;
+            Playing && !p.IsSeated && copies < maxCopies && cooldown <= 0f && Time.time > coverUntil && ExamSystem.I.HasRoom
+            && CheatBudget.CanAnswer; // orçamento de colas da partida (Bloco 15)
+
+        /// <summary>
+        /// Bilhete (Bloco 15): ele só aceita escrevendo tranquilo. Parado (vai olhar), olhando de lado ou bravo,
+        /// devolve o papel. Mesma janela da espiada: o risco continua sendo ler o Nerd.
+        /// </summary>
+        public bool AcceptsNote => Playing && olhar == Olhar.Escrevendo && Time.time > coverUntil;
+
+        public void ReceiveNote() => Say(Falas.Pick(Falas.NerdBilheteAceito), 2.5f);
+
+        public void RefuseNote()
+        {
+            Say(Falas.Pick(Falas.NerdBilheteRecusado), 2.5f);
+            visual.expression = Expression.Bravo;
+        }
 
         public override void OnHoldStart(PlayerController p)
         {
@@ -112,7 +127,7 @@ namespace ProvaImpossivel
             copies++;
             MatchLog.NerdCopias++;
             cooldown = 6f;
-            ExamSystem.I.MarkCorrect();
+            if (CheatBudget.Spend()) ExamSystem.I.MarkCorrect();
             SoundFX.Play(Sfx.Ponto);
             HUD.I.Toast("DESAFIO C CONCLUÍDO! +" + GameManager.Fmt(ExamSystem.I.PointsPerQuestion) + " — cópia perfeita ("
                         + copies + "/" + maxCopies + ")", HUD.Green, 3f);

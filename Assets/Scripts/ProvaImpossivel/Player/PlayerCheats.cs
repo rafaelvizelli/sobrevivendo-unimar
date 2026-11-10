@@ -1,0 +1,546 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
+
+namespace ProvaImpossivel
+{
+    /// <summary>Objeto que o professor leva embora num flagrante (decidido pelo tipo da infração).</summary>
+    public enum CheatItem { Nenhum, Celular, Colinha, Garrafinha }
+
+    /// <summary>Regras puras das colas novas (Bloco 15): testáveis sem cena.</summary>
+    public static class CheatRules
+    {
+        /// <summary>O que é confiscado num flagrante deste tipo. Celular tocando também é celular.</summary>
+        public static CheatItem ItemTakenFor(Infracao kind) => kind switch
+        {
+            Infracao.Celular or Infracao.CelularTocando => CheatItem.Celular,
+            Infracao.ColinhaNaManga => CheatItem.Colinha,
+            Infracao.Garrafinha => CheatItem.Garrafinha,
+            _ => CheatItem.Nenhum,
+        };
+
+        /// <summary>
+        /// Suspeita ganha num passo de tempo pelo "sentido de perto" (colinha): perto o bastante, o professor percebe
+        /// o movimento mesmo sem você estar no cone de visão. Longe, nada.
+        /// </summary>
+        public static float CloseRangeStep(float rate, float multiplier, float distance, float maxDistance, float dt) =>
+            rate > 0f && distance <= maxDistance ? rate * multiplier * dt : 0f;
+
+        /// <summary>Chance de o bilhete cair fora da mesa: cresce com a distância até o destino.</summary>
+        public static float BilheteMissChance(float meters, float perMeter) => Mathf.Clamp01(meters * perMeter);
+
+        /// <summary>Professor (fora do telefone) perto de você ou do destino: o bilhete se perde.</summary>
+        public static bool BilheteLost(float profToPlayer, float profToTarget, float lostDistance, bool profOnPhone) =>
+            !profOnPhone && Mathf.Min(profToPlayer, profToTarget) < lostDistance;
+
+        /// <summary>
+        /// Quando (segundos depois do pedido) o celular vibra enquanto você espera a resposta do fone, ou -1 se não vibrar.
+        /// <paramref name="rollChance"/> decide se vibra; <paramref name="rollWhen"/> decide quando (entre 20% e 90% da espera).
+        /// </summary>
+        public static float FoneRingTime(double rollChance, double rollWhen, float chance, float delay) =>
+            rollChance < chance ? delay * Mathf.Lerp(0.2f, 0.9f, (float)rollWhen) : -1f;
+    }
+
+    /// <summary>Uma resposta que chega depois (bilhete voltando, mensagem do fone). Pura e testável.</summary>
+    public class DelayedAnswer
+    {
+        float left;
+        public bool Waiting { get; private set; }
+        public bool Arrived { get; private set; }
+        public float SecondsLeft => Waiting ? Mathf.Max(0f, left) : 0f;
+        public bool Busy => Waiting || Arrived;
+
+        public void Begin(float delay)
+        {
+            Waiting = true;
+            Arrived = false;
+            left = delay;
+        }
+
+        /// <summary>Passa o tempo. true no passo em que a resposta chega.</summary>
+        public bool Tick(float dt)
+        {
+            if (!Waiting) return false;
+            left -= dt;
+            if (left > 0f) return false;
+            Waiting = false;
+            Arrived = true;
+            return true;
+        }
+
+        public void Clear() => Waiting = Arrived = false;
+    }
+
+    /// <summary>
+    /// As 4 colas novas do Bloco 15, todas SENTADO e com tecla própria (livres: Q, B, F, G). Cada uma troca risco por custo:
+    /// - Colinha (Q, ~1 s): rápida e quase invisível de longe, mas com o professor PERTO ele percebe mesmo sem olhar.
+    ///   Só serve para questão em branco.
+    /// - Bilhete (B, mirando no Nerd ou no Fundão): resposta volta depois de um atraso, numa questão em branco qualquer.
+    ///   O papel faz barulho, pode cair fora da mesa e se perde com o professor perto.
+    /// - Fone (F): pede a resposta a alguém de fora. Demora, e enquanto espera o celular pode VIBRAR (barulho alto).
+    /// - Garrafinha (G): beber água é quase normal de ver, mas o gole é barulhento. Só serve para questão em branco.
+    /// Todas gastam do orçamento de colas da partida (<see cref="CheatBudget"/>). Os números vêm de DifficultySettings.
+    /// </summary>
+    [RequireComponent(typeof(PlayerController))]
+    public class PlayerCheats : MonoBehaviour
+    {
+        public enum Hold { Nenhum, Colinha, Garrafinha, FoneEnviar, FoneLer }
+
+        DifficultySettings s = new();
+        PlayerController player;
+
+        public int ColinhaCharges { get; private set; }
+        public int BilheteCharges { get; private set; }
+        public int FoneCharges { get; private set; }
+        public int GarrafaCharges { get; private set; }
+        public bool HasColinha { get; private set; } = true;
+        public bool HasGarrafa { get; private set; } = true;
+
+        /// <summary>O que está segurando agora (barra de progresso).</summary>
+        public Hold Holding { get; private set; }
+        public float HoldProgress { get; private set; }
+
+        /// <summary>Bilhete a caminho de volta (ou -1 se nenhum).</summary>
+        public readonly DelayedAnswer bilhete = new();
+        /// <summary>Resposta do contato de fora (fone).</summary>
+        public readonly DelayedAnswer fone = new();
+        string bilheteFrom = "";
+        bool bilheteGood;
+        float throwLeft, foneRingAt = -1f, ringLeft, ringSoundTimer, foneElapsed;
+        StudentBase throwTarget;
+
+        /// <summary>Celular vibrando agora (barulho; se o professor vê, é flagrante "celular tocando").</summary>
+        public bool Ringing => ringLeft > 0f;
+        public bool Throwing => throwLeft > 0f;
+
+        // --- o que o PlayerController repassa para o professor
+        public float CurrentRate { get; private set; }
+        public string CurrentReason { get; private set; } = "";
+        public Infracao CurrentKind { get; private set; }
+        /// <summary>Suspeita/s pelo "sentido de perto" (só a colinha) e até onde ele vale.</summary>
+        public float CloseRangeRate => Holding == Hold.Colinha ? s.colinhaNearSuspicion : 0f;
+        public float CloseRangeDistance => s.colinhaDangerDistance;
+
+        void Awake() => player = GetComponent<PlayerController>();
+
+        public void ApplySettings(DifficultySettings settings)
+        {
+            s = settings;
+            ColinhaCharges = s.colinhaCharges;
+            BilheteCharges = s.bilheteCharges;
+            FoneCharges = s.foneCharges;
+            GarrafaCharges = s.garrafaCharges;
+            HasColinha = HasGarrafa = true;
+            Holding = Hold.Nenhum;
+            HoldProgress = 0f;
+            bilhete.Clear();
+            fone.Clear();
+            throwLeft = ringLeft = 0f;
+            foneRingAt = -1f;
+        }
+
+        static bool Playing => GameManager.I != null && GameManager.I.IsPlaying;
+        static CheatBudget Budget => CheatBudget.Current;
+
+        void Update()
+        {
+            if (!Playing)
+            {
+                if (GameManager.I == null || GameManager.I.Phase != Phase.Paused) HUD.I?.SetCheats(null);
+                CurrentRate = 0f;
+                return;
+            }
+            float dt = Time.deltaTime;
+            UpdateBilhete(dt);
+            UpdateFone(dt);
+
+            var kb = Keyboard.current;
+            bool quizOpen = QuizChallenge.I != null && QuizChallenge.I.Active;
+            bool canAct = kb != null && player.IsSeated && !player.InputLocked && !quizOpen && !player.UsingPhone;
+            if (!canAct) CancelHold();
+            else HandleInput(kb, dt);
+
+            UpdateRisk();
+            HUD.I.SetCheats(PanelText());
+        }
+
+        // ------------------------------------------------------------------ entrada
+
+        void HandleInput(Keyboard kb, float dt)
+        {
+            // segurando alguma: só aquela tecla conta (sem duas colas ao mesmo tempo)
+            if (Holding != Hold.Nenhum)
+            {
+                if (!KeyFor(kb, Holding).isPressed) { CancelHold(); return; }
+                HoldProgress += dt / HoldTime(Holding);
+                HUD.I.SetHold(HoldProgress, HoldLabel(Holding), RiskNow());
+                if (HoldProgress >= 1f) FinishHold();
+                return;
+            }
+            if (Throwing) return;
+
+            if (kb.qKey.wasPressedThisFrame) TryStart(Hold.Colinha);
+            else if (kb.gKey.wasPressedThisFrame) TryStart(Hold.Garrafinha);
+            else if (kb.fKey.wasPressedThisFrame) PressFone();
+            else if (kb.bKey.wasPressedThisFrame) TryThrow();
+        }
+
+        static KeyControl KeyFor(Keyboard kb, Hold h) =>
+            h == Hold.Colinha ? kb.qKey : h == Hold.Garrafinha ? kb.gKey : kb.fKey;
+
+        float HoldTime(Hold h) => Mathf.Max(0.05f, h switch
+        {
+            Hold.Colinha => s.colinhaTime,
+            Hold.Garrafinha => s.garrafaTime,
+            _ => s.foneUseTime,
+        });
+
+        static string HoldLabel(Hold h) => h switch
+        {
+            Hold.Colinha => Falas.SegurandoColinha,
+            Hold.Garrafinha => Falas.SegurandoGarrafinha,
+            Hold.FoneEnviar => Falas.SegurandoFoneEnviar,
+            _ => Falas.SegurandoFoneLer,
+        };
+
+        /// <summary>Por que esta cola não pode começar agora (null = pode).</summary>
+        public string WhyNot(Hold h)
+        {
+            var exam = ExamSystem.I;
+            switch (h)
+            {
+                case Hold.Colinha:
+                    if (!HasColinha) return Falas.ColinhaConfiscada;
+                    if (ColinhaCharges <= 0) return Falas.ColinhaAcabou;
+                    if (!exam.HasBlank) return Falas.SoEmBranco;
+                    break;
+                case Hold.Garrafinha:
+                    if (!HasGarrafa) return Falas.GarrafaConfiscada;
+                    if (GarrafaCharges <= 0) return Falas.GarrafaAcabou;
+                    if (!exam.HasBlank) return Falas.SoEmBranco;
+                    break;
+                case Hold.FoneEnviar:
+                    if (!player.HasPhone) return Falas.FoneSemCelular;
+                    if (FoneCharges <= 0) return Falas.FoneAcabou;
+                    if (!exam.HasRoom) return Falas.NadaACorrigir;
+                    break;
+                case Hold.FoneLer:
+                    if (!player.HasPhone) return Falas.FoneSemCelular;
+                    break;
+            }
+            if (h != Hold.FoneLer && !CheatBudget.CanAnswer) return Falas.OrcamentoAcabou;
+            return null;
+        }
+
+        bool TryStart(Hold h)
+        {
+            string no = WhyNot(h);
+            if (no != null)
+            {
+                HUD.I.Toast(no, HUD.Gray, 2.5f);
+                return false;
+            }
+            Holding = h;
+            HoldProgress = 0f;
+            return true;
+        }
+
+        void PressFone()
+        {
+            if (Ringing)
+            {
+                // atender/silenciar: o barulho para, mas quem viu, viu
+                ringLeft = 0f;
+                player.Say(Falas.Pick(Falas.JogadorSilenciaCelular), 2f);
+                return;
+            }
+            if (fone.Arrived) { TryStart(Hold.FoneLer); return; }
+            if (fone.Waiting)
+            {
+                HUD.I.Toast(Falas.FoneAindaNao + " (" + Mathf.CeilToInt(fone.SecondsLeft) + " s)", HUD.Gray, 2f);
+                return;
+            }
+            TryStart(Hold.FoneEnviar);
+        }
+
+        void CancelHold()
+        {
+            if (Holding == Hold.Nenhum) return;
+            Holding = Hold.Nenhum;
+            HoldProgress = 0f;
+            HUD.I?.SetHold(-1f, "");
+        }
+
+        void FinishHold()
+        {
+            var h = Holding;
+            Holding = Hold.Nenhum;
+            HoldProgress = 0f;
+            HUD.I.SetHold(-1f, "");
+            var exam = ExamSystem.I;
+            switch (h)
+            {
+                case Hold.Colinha:
+                    ColinhaCharges--;
+                    if (CheatBudget.Spend() && exam.MarkCorrectBlank() >= 0) Gain(Falas.ColinhaFuncionou);
+                    break;
+                case Hold.Garrafinha:
+                    GarrafaCharges--;
+                    // o gole é o preço: barulho que o professor ouve (ele sabe o LUGAR, não quem foi)
+                    player.MakeNoise(s.garrafaNoiseRadius, s.garrafaNoise, Falas.RuidoGole);
+                    SoundFX.PlayAt(Sfx.Gole, transform.position);
+                    if (CheatBudget.Spend() && exam.MarkCorrectBlank() >= 0) Gain(Falas.GarrafaFuncionou);
+                    break;
+                case Hold.FoneEnviar:
+                    FoneCharges--;
+                    if (Budget != null && !Budget.TryReserve()) { HUD.I.Toast(Falas.OrcamentoAcabou, HUD.Gray, 2.5f); break; }
+                    fone.Begin(s.foneDelay);
+                    foneElapsed = 0f;
+                    foneRingAt = CheatRules.FoneRingTime(Random.value, Random.value, s.foneRingChance, s.foneDelay);
+                    HUD.I.Toast(Falas.FoneEnviado, HUD.Yellow, 3f);
+                    break;
+                case Hold.FoneLer:
+                    fone.Clear();
+                    Budget?.Commit();
+                    if (exam.MarkCorrect() >= 0) Gain(Falas.FoneFuncionou);
+                    break;
+            }
+        }
+
+        void Gain(string text)
+        {
+            SoundFX.Play(Sfx.Ponto);
+            HUD.I.Toast("+" + GameManager.Fmt(ExamSystem.I.PointsPerQuestion) + " — " + text, HUD.Green, 2.5f);
+        }
+
+        // ------------------------------------------------------------------ bilhete
+
+        /// <summary>Colega para quem o bilhete vai: o Nerd ou o Fundão mais perto da direção da câmera (dentro da mira).</summary>
+        public StudentBase AimTarget()
+        {
+            var cam = Camera.main;
+            Vector3 look = cam != null ? cam.transform.forward : transform.forward;
+            look.y = 0f;
+            StudentBase best = null;
+            float bestAng = s.bilheteAimAngle;
+            foreach (var it in Interactable.All)
+            {
+                if (it is not NerdStudent && it is not BackRowStudent) continue;
+                if (!it.isActiveAndEnabled) continue;
+                Vector3 to = it.transform.position - transform.position;
+                to.y = 0f;
+                float ang = Vector3.Angle(look, to);
+                if (ang <= bestAng) { bestAng = ang; best = (StudentBase)it; }
+            }
+            return best;
+        }
+
+        bool TryThrow() => ThrowAt(AimTarget());
+
+        /// <summary>Joga o bilhete para <paramref name="target"/> (Nerd ou Fundão). false = não deu para jogar (motivo no toast).</summary>
+        public bool ThrowAt(StudentBase target)
+        {
+            if (Throwing) return false;
+            string no = BilheteCharges <= 0 ? Falas.BilheteAcabou
+                      : bilhete.Busy ? Falas.BilheteEsperando
+                      : !ExamSystem.I.HasBlank ? Falas.SoEmBranco
+                      : !CheatBudget.CanAnswer ? Falas.OrcamentoAcabou
+                      : target is not NerdStudent && target is not BackRowStudent ? Falas.BilheteSemMira : null;
+            if (no != null)
+            {
+                HUD.I.Toast(no, HUD.Gray, 2.5f);
+                return false;
+            }
+            Budget?.TryReserve();
+            BilheteCharges--;
+            throwTarget = target;
+            throwLeft = Mathf.Max(0.05f, s.bilheteThrowTime);
+            player.MakeNoise(s.bilheteNoiseRadius, s.bilheteNoise, Falas.RuidoPapel);
+            SoundFX.PlayAt(Sfx.Papel, transform.position);
+            return true;
+        }
+
+        void UpdateBilhete(float dt)
+        {
+            if (throwLeft > 0f)
+            {
+                throwLeft -= dt;
+                if (throwLeft <= 0f) Land();
+            }
+            if (bilhete.Tick(dt)) DeliverBilhete();
+        }
+
+        /// <summary>O bilhete chegou (ou não) na mesa do colega.</summary>
+        void Land()
+        {
+            var t = throwTarget;
+            throwTarget = null;
+            if (t == null) { Lose(Falas.BilheteSumiu); return; }
+            var prof = ProfessorAI.I;
+            float dist = Flat.Distance(transform.position, t.transform.position);
+            if (prof != null && CheatRules.BilheteLost(Flat.Distance(prof.transform.position, transform.position),
+                                                       Flat.Distance(prof.transform.position, t.transform.position),
+                                                       s.bilheteLostDistance, prof.OnPhone))
+            {
+                // ele estava perto: o papel some no bolso dele. Se ainda por cima te viu jogando, é flagrante.
+                if (prof.Visibility > 0f && prof.CatchRedHanded(Falas.MotivoBilhete, Infracao.Bilhete)) { Budget?.Cancel(); return; }
+                Lose(Falas.BilheteInterceptado);
+                return;
+            }
+            if (Random.value < CheatRules.BilheteMissChance(dist, s.bilheteMissChancePerMeter)) { Lose(Falas.BilheteErrouAMesa); return; }
+
+            if (t is NerdStudent nerd)
+            {
+                if (!nerd.AcceptsNote) { nerd.RefuseNote(); Lose(Falas.BilheteNerdRecusou); return; }
+                nerd.ReceiveNote();
+                bilheteGood = true;
+                bilheteFrom = "o Nerd";
+            }
+            else
+            {
+                var fundao = (BackRowStudent)t;
+                fundao.ReceiveNote();
+                bilheteGood = Random.value < s.backRowGoodColaChance;
+                bilheteFrom = "o Fundão";
+            }
+            bilhete.Begin(s.bilheteDelay);
+        }
+
+        void Lose(string why)
+        {
+            Budget?.Cancel();
+            HUD.I.Toast(why, HUD.Orange, 3f);
+        }
+
+        void DeliverBilhete()
+        {
+            bilhete.Clear();
+            var exam = ExamSystem.I;
+            if (!bilheteGood)
+            {
+                Budget?.Cancel();
+                HUD.I.Toast(Falas.BilheteRuim, HUD.Red, 3f);
+                SoundFX.Play(Sfx.PerdePonto);
+                return;
+            }
+            int i = exam.MarkCorrectRandomBlank(Random.value);
+            if (i < 0) { Budget?.Cancel(); HUD.I.Toast(Falas.BilheteSemLugar, HUD.Gray, 3f); return; }
+            Budget?.Commit();
+            Gain("bilhete de " + bilheteFrom + ": questão " + (i + 1) + "!");
+        }
+
+        // ------------------------------------------------------------------ fone
+
+        void UpdateFone(float dt)
+        {
+            if (ringLeft > 0f)
+            {
+                ringLeft -= dt;
+                ringSoundTimer -= dt;
+                if (ringSoundTimer <= 0f)
+                {
+                    ringSoundTimer = 0.6f;
+                    SoundFX.PlayAt(Sfx.Vibra, transform.position);
+                }
+            }
+            if (!fone.Busy) return;
+            // celular confiscado no meio da espera: a resposta não chega mais
+            if (!player.HasPhone)
+            {
+                fone.Clear();
+                ringLeft = 0f;
+                Budget?.Cancel();
+                HUD.I.Toast(Falas.FonePerdido, HUD.Orange, 3f);
+                return;
+            }
+            if (fone.Waiting)
+            {
+                foneElapsed += dt;
+                if (foneRingAt >= 0f && foneElapsed >= foneRingAt)
+                {
+                    foneRingAt = -1f;
+                    Ring();
+                }
+            }
+            if (fone.Tick(dt)) HUD.I.Toast(Falas.FoneChegou, HUD.Yellow, 3f);
+        }
+
+        /// <summary>O celular vibra: barulho alto na sua carteira por alguns segundos (aperte F para silenciar).</summary>
+        public void Ring()
+        {
+            ringLeft = s.foneRingSeconds;
+            ringSoundTimer = 0f;
+            player.MakeNoise(s.foneRingRadius, s.foneRingNoise, Falas.RuidoVibra);
+        }
+
+        // ------------------------------------------------------------------ suspeita e flagrante
+
+        void UpdateRisk()
+        {
+            CurrentRate = 0f;
+            CurrentReason = "";
+            CurrentKind = Infracao.Nenhuma;
+            void Use(float rate, string reason, Infracao kind)
+            {
+                if (rate <= CurrentRate) return;
+                CurrentRate = rate; CurrentReason = reason; CurrentKind = kind;
+            }
+            switch (Holding)
+            {
+                case Hold.Colinha: Use(s.colinhaSuspicion, Falas.MotivoColinha, Infracao.ColinhaNaManga); break;
+                case Hold.Garrafinha: Use(s.garrafaSuspicion, Falas.MotivoGarrafinha, Infracao.Garrafinha); break;
+                case Hold.FoneEnviar:
+                case Hold.FoneLer: Use(player.phoneSuspicion, Falas.MotivoFone, Infracao.Celular); break;
+            }
+            if (Throwing) Use(s.bilheteThrowSuspicion, Falas.MotivoBilhete, Infracao.Bilhete);
+            if (Ringing) Use(s.foneRingSuspicion, Falas.MotivoCelularTocando, Infracao.CelularTocando);
+        }
+
+        /// <summary>Cor da barra: vermelho se ele vê (ou, na colinha, se está perto), verde se não.</summary>
+        HUD.HoldRisk RiskNow()
+        {
+            var prof = ProfessorAI.I;
+            if (prof == null) return HUD.HoldRisk.Escondido;
+            bool near = Holding == Hold.Colinha && !prof.OnPhone
+                        && Flat.Distance(prof.transform.position, transform.position) <= s.colinhaDangerDistance;
+            return prof.Visibility > 0f || near ? HUD.HoldRisk.Visto : HUD.HoldRisk.Escondido;
+        }
+
+        /// <summary>Flagrante (já sem a advertência): leva a colinha / a garrafinha, e interrompe o que estava fazendo.</summary>
+        public void OnFlagrante(Infracao kind, CheatItem taken)
+        {
+            CancelHold();
+            throwLeft = 0f;
+            ringLeft = 0f;
+            if (taken == CheatItem.Colinha && HasColinha)
+            {
+                HasColinha = false;
+                HUD.I.Toast(Falas.ColinhaConfiscadaAgora, HUD.Red, 3.5f, important: true);
+            }
+            if (taken == CheatItem.Garrafinha && HasGarrafa)
+            {
+                HasGarrafa = false;
+                HUD.I.Toast(Falas.GarrafaConfiscadaAgora, HUD.Red, 3.5f, important: true);
+            }
+        }
+
+        // ------------------------------------------------------------------ HUD
+
+        /// <summary>Texto do painel discreto das colas (o HUD só mostra; quem sabe o estado é este componente).</summary>
+        public string PanelText()
+        {
+            var b = Budget;
+            string head = "COLAS" + (b != null ? "  •  restam " + b.Available + " resposta" + (b.Available == 1 ? "" : "s") : "");
+            string colinha = !HasColinha ? "[Q] Colinha: confiscada" : "[Q] Colinha ×" + ColinhaCharges;
+            string garrafa = !HasGarrafa ? "[G] Garrafinha: confiscada" : "[G] Garrafinha ×" + GarrafaCharges;
+            string bil = bilhete.Waiting ? "[B] Bilhete voltando... " + Mathf.CeilToInt(bilhete.SecondsLeft) + " s"
+                       : "[B] Bilhete ×" + BilheteCharges + " (mire)";
+            string fon = Ringing ? "[F] VIBRANDO! (F silencia)"
+                       : fone.Arrived ? "[F] Resposta chegou! (segure F)"
+                       : fone.Waiting ? "[F] Esperando resposta... " + Mathf.CeilToInt(fone.SecondsLeft) + " s"
+                       : !player.HasPhone ? "[F] Fone: sem celular"
+                       : "[F] Fone ×" + FoneCharges;
+            return head + "\n" + colinha + "\n" + garrafa + "\n" + bil + "\n" + fon;
+        }
+    }
+}

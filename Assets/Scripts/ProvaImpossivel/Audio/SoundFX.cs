@@ -3,7 +3,8 @@ using UnityEngine;
 
 namespace ProvaImpossivel
 {
-    public enum Sfx { Ponto, PerdePonto, Flagrante, Evento, Alerta, Clique, Acerto, Erro, Sinal, Passo, Cadeira, Ouviu, Coracao }
+    public enum Sfx { Ponto, PerdePonto, Flagrante, Evento, Alerta, Clique, Acerto, Erro, Sinal, Passo, Cadeira, Ouviu, Coracao,
+                      Papel, Vibra, Gole }
 
     /// <summary>
     /// Efeitos sonoros sintetizados na hora (sem depender de arquivos de áudio).
@@ -54,6 +55,9 @@ namespace ProvaImpossivel
             clips[Sfx.Cadeira] = ChairScrape();
             clips[Sfx.Ouviu] = Hmm();
             clips[Sfx.Coracao] = Heartbeat();
+            clips[Sfx.Papel] = PaperFlick();
+            clips[Sfx.Vibra] = Buzz();
+            clips[Sfx.Gole] = Gulp();
 
             // fontes 3D reaproveitadas (vários passos/ruídos ao mesmo tempo sem criar objetos durante o jogo)
             pool = new AudioSource[8];
@@ -268,6 +272,59 @@ namespace ProvaImpossivel
                 d[i] = (saw * 0.35f + lp * 0.5f) * env * 0.6f;
             }
             return Clip("cadeira", d);
+        }
+
+        /// <summary>Bilhete (Bloco 15): papel amassado voando — chiado curto e agudo que some rápido.</summary>
+        static AudioClip PaperFlick()
+        {
+            var rnd = new System.Random(23);
+            int n = (int)(Rate * 0.16f);
+            var d = new float[n];
+            float prev = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / Rate;
+                float noise = (float)(rnd.NextDouble() * 2.0 - 1.0);
+                float hp = noise - prev; // passa-alta simples: só o "chhh" do papel
+                prev = noise;
+                float crackle = rnd.NextDouble() < 0.02 ? 1f : 0.35f;
+                d[i] = hp * crackle * Mathf.Exp(-t * 22f) * 0.45f;
+            }
+            return Clip("papel", d);
+        }
+
+        /// <summary>Celular vibrando na mesa (Bloco 15): zumbido grave em dois pulsos ("bzz-bzz").</summary>
+        static AudioClip Buzz()
+        {
+            int n = (int)(Rate * 0.5f);
+            var d = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / Rate;
+                bool on = t < 0.18f || (t > 0.26f && t < 0.44f);
+                if (!on) continue;
+                float w = Mathf.Sign(Mathf.Sin(2f * Mathf.PI * 150f * t)) * 0.5f + 0.3f * Mathf.Sin(2f * Mathf.PI * 300f * t);
+                d[i] = w * 0.45f;
+            }
+            return Clip("vibra", d);
+        }
+
+        /// <summary>Gole de água (Bloco 15): dois "glup" graves que sobem de tom.</summary>
+        static AudioClip Gulp()
+        {
+            int n = (int)(Rate * 0.45f);
+            var d = new float[n];
+            float phase = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                float t = (float)i / Rate;
+                float local = t < 0.2f ? t : t - 0.22f;
+                if (local < 0f || local > 0.18f) continue;
+                phase += Mathf.Lerp(110f, 260f, local / 0.18f) / Rate;
+                float env = Mathf.Sin(Mathf.PI * local / 0.18f);
+                d[i] = Mathf.Sin(2f * Mathf.PI * phase) * env * 0.6f;
+            }
+            return Clip("gole", d);
         }
 
         /// <summary>"Hm?" do professor ao ouvir algo: tom grave que sobe no fim, como uma pergunta.</summary>

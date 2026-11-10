@@ -187,6 +187,92 @@ namespace ProvaImpossivel
         public const string BotaoMenu = "MENU (M)";
         public const string BotaoSair = "SAIR";
 
+        // ---------------------------------------------------------- colas novas (Bloco 15)
+        public static readonly string[] ProfFlagraColinha =
+        {
+            "Abre a mão. ABRE A MÃO. ...Isso é a fórmula de Bhaskara tatuada?!",
+            "Manga comprida em pleno calor de 35 graus. Eu SABIA.",
+            "Que mão fechada é essa? Tá segurando o quê, a resposta da 4?",
+        };
+        public static readonly string[] ProfFlagraBilhete =
+        {
+            "Correio aéreo? Na MINHA prova? Isso aqui vai pro museu da vergonha.",
+            "Bilhetinho? Que fofo. Que FOFO. Zero pra você.",
+            "Voou um papel e pousou um flagrante.",
+        };
+        public static readonly string[] ProfFlagraCelularTocando =
+        {
+            "De quem é esse celular VIBRANDO?! ...Ah, é seu. Que surpresa.",
+            "Atende. Atende, vai. Diz pra pessoa que você foi pego.",
+            "Esse toque aí é a sua DP chegando.",
+        };
+        public static readonly string[] ProfFlagraGarrafinha =
+        {
+            "Água com rótulo de 40 linhas? Que marca é essa, 'Gabarito Mineral'?",
+            "Bebe devagar... e me dá essa garrafa. Que ingrediente é 'resposta da 7'?",
+            "Hidratação demais pra quem não estudou nada.",
+        };
+
+        /// <summary>Fala do professor no flagrante, pelo TIPO da infração (as colas novas têm a sua).</summary>
+        public static string[] FlagranteDe(Infracao kind) => kind switch
+        {
+            Infracao.ColinhaNaManga => ProfFlagraColinha,
+            Infracao.Bilhete => ProfFlagraBilhete,
+            Infracao.CelularTocando => ProfFlagraCelularTocando,
+            Infracao.Garrafinha => ProfFlagraGarrafinha,
+            _ => ProfFlagrante,
+        };
+
+        // motivo do flagrante (aparece no "FLAGRANTE! (...)") e o que o professor "ouve"
+        public const string MotivoColinha = "colinha na manga";
+        public const string MotivoBilhete = "bilhete voando";
+        public const string MotivoFone = "mexendo no celular";
+        public const string MotivoCelularTocando = "celular tocando na prova";
+        public const string MotivoGarrafinha = "lendo o rótulo da garrafinha";
+        public const string RuidoPapel = "um papel voando";
+        public const string RuidoVibra = "um celular vibrando";
+        public const string RuidoGole = "um gole MUITO barulhento";
+
+        // barra de "segurando"
+        public const string SegurandoColinha = "Lendo a colinha na manga... (solte se ele chegar perto!)";
+        public const string SegurandoGarrafinha = "Bebendo água... e lendo o rótulo";
+        public const string SegurandoFoneEnviar = "Mandando 'me salva, questão 5' pro primo...";
+        public const string SegurandoFoneLer = "Lendo a resposta do primo...";
+
+        // resultados
+        public const string ColinhaFuncionou = "a colinha salvou!";
+        public const string GarrafaFuncionou = "o rótulo da garrafinha sabia!";
+        public const string FoneFuncionou = "o primo respondeu certinho!";
+        public const string FoneEnviado = "Mensagem enviada. Agora é esperar... e torcer pro celular não vibrar.";
+        public const string FoneChegou = "Chegou a resposta do primo! Segure F pra ler.";
+        public const string FoneAindaNao = "O primo ainda está digitando...";
+        public const string FonePerdido = "O celular foi confiscado. A resposta do primo agora é do professor.";
+        public const string BilheteSemMira = "Olhe pro Nerd ou pro Fundão antes de jogar o bilhete (B).";
+        public const string BilheteEsperando = "Já tem um bilhete no ar. Espere a resposta voltar.";
+        public const string BilheteInterceptado = "O professor estava perto. O bilhete sumiu no bolso dele.";
+        public const string BilheteErrouAMesa = "O bilhete caiu no chão do corredor. Ninguém vai buscar.";
+        public const string BilheteNerdRecusou = "O Nerd estava de olho e devolveu o bilhete amassado.";
+        public const string BilheteSumiu = "O bilhete se perdeu no caminho.";
+        public const string BilheteRuim = "Voltou o bilhete: 'não sei, bjs'. Pelo menos foi sincero.";
+        public const string BilheteSemLugar = "O bilhete voltou, mas você já respondeu tudo.";
+        public const string ColinhaConfiscada = "A colinha foi confiscada. Sua manga agora está vazia (e suada).";
+        public const string ColinhaAcabou = "A colinha acabou. A tinta da caneta borrou o resto.";
+        public const string GarrafaConfiscada = "A garrafinha foi confiscada. Sede E reprovação.";
+        public const string GarrafaAcabou = "A garrafinha está vazia. O rótulo também já foi lido.";
+        public const string FoneSemCelular = "Sem celular, sem primo. O fone sozinho só toca silêncio.";
+        public const string FoneAcabou = "O primo parou de responder. Bloqueou você, provavelmente.";
+        public const string BilheteAcabou = "Acabou o papel dos bilhetes. Só sobrou a prova (não rasgue).";
+        public const string SoEmBranco = "Essa cola só serve pra questão em branco, e não sobrou nenhuma.";
+        public const string NadaACorrigir = "Você já acertou tudo. O primo pode descansar.";
+        public const string OrcamentoAcabou = "Você já colou tudo que dava nesta prova. O universo cansou de te ajudar.";
+        public const string ColinhaConfiscadaAgora = "Colinha CONFISCADA até o fim da prova!";
+        public const string GarrafaConfiscadaAgora = "Garrafinha CONFISCADA! O professor vai ler o rótulo com calma.";
+
+        public static readonly string[] JogadorSilenciaCelular = { "*aperta todos os botões ao mesmo tempo*", "Não é meu! ...É meu.", "Shhh, celular, shhh!" };
+        public static readonly string[] NerdBilheteAceito = { "*suspira* Tá. Mas é a última vez. (não é)", "Isso é contra os meus princípios. Toma." };
+        public static readonly string[] NerdBilheteRecusado = { "Bilhete? Eu tô VENDO você, hein!", "Devolvido. Com correção em vermelho." };
+        public static readonly string[] FundaoBilhete = { "Correio do fundão, ao seu dispor.", "Deixa comigo. Ou com o meu primo." };
+
         // ---------------------------------------------------------- opções (pausa)
         public const string OpcaoVolumeGeral = "Volume geral";
         public const string OpcaoVolumeEfeitos = "Volume dos efeitos";

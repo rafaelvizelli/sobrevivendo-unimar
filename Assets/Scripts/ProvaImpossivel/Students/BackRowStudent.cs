@@ -37,8 +37,8 @@ namespace ProvaImpossivel
         /// </summary>
         public void Resolve(PlayerController p, float roll)
         {
-            // prova sem nada a melhorar: a "cola" não teria efeito, então ele só faz bagunça
-            bool colaUtil = ExamSystem.I.HasRoom;
+            // prova sem nada a melhorar (ou orçamento de colas esgotado, Bloco 15): a "cola" não teria efeito, então ele só faz bagunça
+            bool colaUtil = ExamSystem.I.HasRoom && CheatBudget.CanAnswer;
             float colaAte = dropChance + colaChance;
             bool cola = colaUtil && roll >= dropChance && roll < colaAte;
             bool derruba = !cola && roll < colaAte;
@@ -104,6 +104,7 @@ namespace ProvaImpossivel
             }
 
             bool good = Random.value < colaCorretaChance;
+            if (good && !CheatBudget.Spend()) good = false; // sem orçamento a cola "boa" não vale nada
             if (good)
             {
                 MatchLog.FundaoColaBoa++;
@@ -139,6 +140,9 @@ namespace ProvaImpossivel
         }
 
         void LowerHand() => visual.handRaise = 0f;
+
+        /// <summary>Recebeu um bilhete do jogador (Bloco 15): a resposta volta depois (e pode ser a lista do mercado).</summary>
+        public void ReceiveNote() => Say(Falas.Pick(Falas.FundaoBilhete), 2.5f);
 
         void Update()
         {

@@ -1,6 +1,6 @@
 # Sobrevivendo à UNIMAR — notas de desenvolvimento
 
-Última atualização: 10/11/2026 (Bloco 14 — acabamento)
+Última atualização: 10/11/2026 (Bloco 15 — novas maneiras de colar)
 
 ## Onde paramos
 - Fase 1 ("A Prova Impossível") jogável de ponta a ponta, com tutorial. Código no GitHub (privado):
@@ -14,8 +14,9 @@
   grandões voltaram a 1×, testes que faltavam, executável regenerado.
 - **13** (10/11) defeitos visuais da auditoria. **14** (10/11) acabamento: nome do jogo/estúdio (dados mudaram de
   pasta!), pacotes sem uso removidos, tela final com resumo + jogar de novo, opções na pausa, áudio ambiente.
-- Próximo: PLAYTEST HUMANO (tutorial + 3 partidas por dificuldade, `partidas.csv`) e ajuste de números pelos dados.
-  Depois: direção visual (precisa de autorização).
+- **15** (10/11) colas novas: colinha (Q), bilhete (B), fone (F), garrafinha (G) + orçamento de colas da partida
+  (`maxCheatAnswers`, vale para TODAS as colas). Playtest real até agora: 1 partida (Difícil, reprovado 5,0).
+- Próximo: sentir as colas novas jogando; depois direção visual (Bloco 16) e PLAYTEST HUMANO (`partidas.csv`).
 
 ## Como rodar os testes
 - Batch (Unity FECHADO): `Unity.exe -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`.
@@ -313,6 +314,64 @@
 - Executável regenerado (10/11 12:27; Build Succeeded, 0 erros, 102 MB). Player.log novo: 0 exceções, 0 erros
   (só os avisos antigos de shaders de pós-processamento). O log termina no carregamento, como no Bloco 12.
 - NÃO verificado: como o áudio SOA (testes medem volume, não ouvido); partida jogada dentro do executável.
+
+### Bloco 15 — novas maneiras de colar (10/11)
+- Motivo: o jogador achou poucas maneiras de colar. Linha de base: EditMode 72/72, PlayMode 67/67; simulação Normal
+  com cola 63,3%. Playtest real até aqui: 1 partida (Difícil, reprovado 5,0; errou 2 das 3 conhecidas, 8 s por questão).
+- Teclas em uso antes: WASD, Shift, E, Espaço, 1–4 (resposta), Esc, Enter/1/2/3/T (menu), R/M (fim/pausa).
+  Novas (livres, só SENTADO): **Q** colinha, **B** bilhete, **F** fone, **G** garrafinha. `ColasNovasTests` confere
+  que Q/B/F/G só aparecem em `PlayerCheats.cs`.
+- **Orçamento** (`Core/CheatBudget.cs`, puro): `maxCheatAnswers` respostas por partida para TODAS as colas somadas.
+  Celular (`PlayerController.FinishPhoneConsult`), Nerd (`NerdStudent.CanInteract/Interact`), cola boa do Fundão
+  (`BackRowStudent.Resolve/GiveCola`: sem orçamento ele só faz bagunça) e as 4 novas. Bilhete e fone RESERVAM a vaga
+  ao serem pedidos; se a resposta se perde, a vaga volta. Painel mostra "restam N respostas".
+- **Colas novas** (`Player/PlayerCheats.cs`, criado por código no `PlayerController.Awake`; a cena não mudou):
+  - Colinha (Q, segurar ~1 s): resposta numa questão EM BRANCO (não corrige errada). Se o professor está a menos de
+    `colinhaDangerDistance`, ele percebe SEM ver: `ProfessorAI.CloseRangeSense` (no `Perceive`) soma
+    `colinhaNearSuspicion`/s; sem ver não vira flagrante direto (teto 99), mas leva a investigar. Infração `ColinhaNaManga`.
+  - Bilhete (B, mirando com a câmera no Nerd ou no Fundão): ruído `Noise` pequeno; perdido se cair fora da mesa
+    (chance por metro: Nerd a 1,35 m, Fundão a 7,3 m) ou se o professor estiver perto de você/do destino (e, se ele
+    te vê nessa hora, flagrante `Bilhete`). O Nerd só aceita escrevendo (mesma janela da espiada). Volta depois de
+    `bilheteDelay` numa questão em branco SORTEADA (pode ser uma que você sabia). Fundão: pode voltar "não sei, bjs".
+  - Fone (F): segurar para mandar (é usar o celular), resposta chega depois de `foneDelay`, segurar F de novo para ler
+    (corrige errada, como o celular). Enquanto espera pode VIBRAR (`foneRingChance`): ruído forte; se ele vê, flagrante
+    `CelularTocando`. F silencia. Celular confiscado = resposta perdida.
+  - Garrafinha (G, segurar 1,5 s): pouco suspeita de ver, mas o gole é ruído (`garrafaNoise`). Só questão em branco.
+    Infração `Garrafinha`.
+- Regras por enum: `CheatRules.ItemTakenFor` — Celular e CelularTocando confiscam o celular; ColinhaNaManga leva a
+  colinha; Garrafinha leva a garrafinha (`GameManager.ApplyFlagrante` → `PlayerCheats.OnFlagrante`). Falas de flagrante
+  próprias por tipo (`Falas.FlagranteDe`, usada em `ProfessorAI.StartFlagrante`). Sons novos sintetizados: Papel,
+  Vibra, Gole (`SoundFX`). HUD: painel "COLAS" logo abaixo do da NOTA (`HUD.SetCheats`), fora das áreas dos balões.
+- Valores (Fácil / Normal / Difícil / Treino):
+  orçamento 5/3/2/10 · colinha cargas 3/2/1/1, tempo 1/1/1,2/1 s, suspeita se vê 40/55/65/40, perigo a 2,5/3,5/4,5/2,5 m,
+  suspeita de perto 35/50/65/35 · bilhete 3/2/2/1, volta em 6/8/10/5 s, erro por metro 4/6/8/0%, perdido a 2/2,5/3/2 m,
+  ruído 5/6/7/5 (raio 4/5/6/4), mira 35/30/25/40° · fone 1/1/1/1, chega em 12/15/18/8 s, vibra 30/45/60/50%,
+  toque 30/45/60/30 (raio 5/6/7/5), visto tocando 45/60/75/45 · garrafinha 3/2/2/1, 1,5 s, suspeita se vê 8/12/16/8,
+  gole 10/14/18/10 (raio 4/5/6/4).
+- Simulação (`SimulacaoDeEquilibrioTests`, mesmo jogador cuidadoso; agora usa primeiro as colas de questão em branco,
+  depois chuta, depois corrige; o caminho antigo continua idêntico e é testado):
+
+  | Dificuldade | Sem cola antes | Sem cola depois | Com cola antes | Com cola depois | Orçamento |
+  |---|---|---|---|---|---|
+  | Fácil | 22,1% | 22,1% | 100,0% | 100,0% | 5 |
+  | Normal | 5,6% | 5,7% | 63,3% | **64,0%** | 3 |
+  | Difícil | 4,2% | 4,3% | 28,1% | 26,6% | 2 |
+
+  Sem orçamento as colas novas dariam 100% / 100% / 96,6%. Normal por orçamento: 1 → 19,6%, 2 → 38,0%, **3 → 64,0%**,
+  4 → 90,4%. NÃO existe orçamento inteiro dentro da meta 50–60%: ficou 3 (o mais perto, 4 pontos acima). Para cair
+  na faixa sem mexer nas colas antigas seria preciso outra alavanca (decisão do usuário). O teste da meta continua
+  com a faixa de antes (45–70%).
+- Testes: EditMode 90/90 (+16 `ColasNovasTests`, +2 na simulação), PlayMode 77/77 (+10 `ColasNovasPlayTests`, com
+  teclado virtual Q/G/F e bilhete no Nerd).
+- Capturas (teste PlayMode temporário, apagado): `Captures/AuditoriaVisual4/` 01 painel, 02 segurando a colinha,
+  03 bilhete e fone a caminho, 04 vibrando, 05/06 orçamento esgotado + colinha confiscada (1920×1080 e 1280×720).
+- Tutorial (NÃO mexido): precisaria de um passo "use uma cola sentado (Q/G)" e uma frase explicando o orçamento
+  ("cada prova tem um limite de respostas coladas") e o bilhete com mira.
+- NÃO feito/verificado: `partidas.csv` não registra as colas novas (mudar o cabeçalho quebraria o arquivo existente;
+  decidir antes); não há animação própria (manga, garrafa, bilhete voando); o som novo não foi ouvido; não jogado no
+  executável (não regenerado neste bloco).
+- Observação vista nas capturas (fora do escopo): o ícone "O_O" do Nerd fica enorme na tela porque a carteira dele é
+  colada à do jogador.
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.

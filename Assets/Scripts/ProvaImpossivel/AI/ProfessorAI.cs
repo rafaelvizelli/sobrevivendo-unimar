@@ -241,6 +241,10 @@ namespace ProvaImpossivel
                 lastReason = p.CurrentSuspicionReason;
                 lastInfracao = p.CurrentInfracao;
             }
+            else if (CloseRangeSense(p, dt))
+            {
+                // sentiu de perto (colinha, Bloco 15): já somou; sem ver, não vira flagrante (o teto de 99 abaixo cuida)
+            }
             else if (Time.time - lastGainTime > 1.5f)
             {
                 Suspicion -= (State == ProfState.Investigando ? decaimentoInvestigando : decaimento) * dt;
@@ -262,6 +266,25 @@ namespace ProvaImpossivel
                 Enter(ProfState.Investigando);
             else if (Suspicion >= desconfiadoEm && State == ProfState.Tranquilo)
                 Enter(ProfState.Desconfiado);
+        }
+
+        /// <summary>
+        /// "Sentido de perto" (Bloco 15): algumas colas (a colinha na manga) ele percebe sem olhar, só por estar perto —
+        /// o farfalhar do papel, o braço esquisito. Soma suspeita e marca o lugar; ao telefone, nada.
+        /// Retorna true se percebeu algo neste passo.
+        /// </summary>
+        bool CloseRangeSense(PlayerController p, float dt)
+        {
+            if (OnPhone) return false;
+            float step = CheatRules.CloseRangeStep(p.CloseRangeRate, suspicionMultiplier * (State == ProfState.Distraido ? 0.35f : 1f) * (InGrace ? 0.25f : 1f),
+                                                   FlatDistance(p.transform.position), p.CloseRangeDistance, dt);
+            if (step <= 0f) return false;
+            Suspicion = Mathf.Min(99f, Suspicion + step);
+            lastGainTime = Time.time;
+            suspectPos = p.transform.position;
+            lastReason = p.CurrentSuspicionReason;
+            lastInfracao = p.CurrentInfracao;
+            return true;
         }
 
         /// <summary>
@@ -561,7 +584,7 @@ namespace ProvaImpossivel
             lastInfracao = kind;
             Enter(ProfState.Flagrante, silent: true);
             flagApplied = false;
-            Say(Falas.Pick(Falas.ProfFlagrante), 3f);
+            Say(Falas.Pick(Falas.FlagranteDe(kind)), 3f); // fala própria de cada tipo de cola (Bloco 15)
             GoTo(PlayerController.I.transform.position, chaseSpeed);
             PlayerController.I.Lock(true);
             lockedPlayer = true;

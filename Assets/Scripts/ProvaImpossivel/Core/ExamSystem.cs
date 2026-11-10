@@ -96,6 +96,35 @@ namespace ProvaImpossivel
             return MarkCorrect(i);
         }
 
+        /// <summary>
+        /// Cola que só serve para questão AINDA NÃO RESPONDIDA (colinha, garrafinha): primeiro as em branco que ele
+        /// não sabe, depois as em branco que sabe. Não corrige erradas (isso é o que celular, Nerd e fone fazem).
+        /// </summary>
+        public int MarkCorrectBlank()
+        {
+            int i = FirstBlank(false);
+            if (i < 0) i = FirstBlank(true);
+            return MarkCorrect(i);
+        }
+
+        /// <summary>
+        /// Índice da questão em branco número ⌊roll × total⌋ (roll de 0 a 1), ou -1 se não houver. Pura (testável):
+        /// o bilhete volta com a resposta de uma questão em branco QUALQUER, que pode ser uma que ele já sabia.
+        /// </summary>
+        public static int RandomBlank(QuestionState[] questions, double roll)
+        {
+            int blanks = 0;
+            foreach (var q in questions) if (q == QuestionState.EmBranco) blanks++;
+            if (blanks == 0) return -1;
+            int k = Math.Min(blanks - 1, (int)(Math.Clamp(roll, 0.0, 1.0) * blanks));
+            for (int i = 0; i < questions.Length; i++)
+                if (questions[i] == QuestionState.EmBranco && k-- == 0) return i;
+            return -1;
+        }
+
+        /// <summary>Marca como certa uma questão em branco sorteada. Retorna o índice ou -1.</summary>
+        public int MarkCorrectRandomBlank(double roll) => MarkCorrect(RandomBlank(Questions, roll));
+
         /// <summary>Marca a questão <paramref name="i"/> como certa. Retorna o índice ou -1.</summary>
         public int MarkCorrect(int i)
         {

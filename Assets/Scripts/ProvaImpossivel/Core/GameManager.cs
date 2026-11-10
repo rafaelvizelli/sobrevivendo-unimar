@@ -14,7 +14,8 @@ namespace ProvaImpossivel
     /// O QUE o jogador estava fazendo de errado. As regras (ex.: confiscar o celular) decidem por aqui,
     /// nunca pelo texto do motivo, que é só para exibir e pode mudar à vontade.
     /// </summary>
-    public enum Infracao { Nenhuma, Celular, EspiarNerd, ColaFundao, ForaDoLugar, Correndo, Dedurado, CaraDeCulpado, Outra }
+    public enum Infracao { Nenhuma, Celular, EspiarNerd, ColaFundao, ForaDoLugar, Correndo, Dedurado, CaraDeCulpado, Outra,
+                           ColinhaNaManga, Bilhete, CelularTocando, Garrafinha }
 
     /// <summary>
     /// TODOS os números de balanceamento de uma dificuldade, num lugar só (editáveis no Inspector do GameManager).
@@ -102,6 +103,45 @@ namespace ProvaImpossivel
         [Tooltip("Velocidade do ponteiro (idas e voltas por segundo)")] public float facePokerSpeed = 0.6f;
         [Tooltip("Largura da zona verde (fração da barra)")] public float facePokerZone = 0.22f;
         [Tooltip("Erros permitidos")] public int facePokerMisses = 1;
+
+        [Header("Orçamento de colas (Bloco 15)")]
+        [Tooltip("Respostas que TODAS as colas somadas podem dar na partida (celular, Nerd, Fundão, colinha, bilhete, fone, garrafinha)")]
+        public int maxCheatAnswers = 3;
+
+        [Header("Colinha na manga (Q, sentado)")]
+        [Tooltip("Consultas por partida")] public int colinhaCharges = 2;
+        [Tooltip("Segundos segurando Q para ler")] public float colinhaTime = 1f;
+        [Tooltip("Suspeita/s se o professor VÊ (como celular e Nerd)")] public float colinhaSuspicion = 55f;
+        [Tooltip("Perto assim (m), ele percebe mesmo sem olhar pra você")] public float colinhaDangerDistance = 3.5f;
+        [Tooltip("Suspeita/s quando ele está perto, mesmo fora do cone de visão")] public float colinhaNearSuspicion = 50f;
+
+        [Header("Bilhete (B, sentado, mirando no Nerd ou no Fundão)")]
+        [Tooltip("Bilhetes por partida")] public int bilheteCharges = 2;
+        [Tooltip("Segundos até a resposta voltar")] public float bilheteDelay = 8f;
+        [Tooltip("Segundos do arremesso (a ação suspeita)")] public float bilheteThrowTime = 0.6f;
+        [Tooltip("Suspeita/s se o professor vê o arremesso")] public float bilheteThrowSuspicion = 60f;
+        [Tooltip("Raio (m) em que o arremesso é ouvido")] public float bilheteNoiseRadius = 5f;
+        [Tooltip("Suspeita do barulho do papel")] public float bilheteNoise = 6f;
+        [Tooltip("Chance (0 a 1) de errar a mesa, por metro até o destino")] [Range(0, 1)] public float bilheteMissChancePerMeter = 0.06f;
+        [Tooltip("Professor a menos disto (m) de você ou do destino: o bilhete se perde")] public float bilheteLostDistance = 2.5f;
+        [Tooltip("Graus entre a câmera e o colega para valer como mira")] public float bilheteAimAngle = 30f;
+
+        [Header("Fone com contato de fora (F, sentado)")]
+        [Tooltip("Pedidos por partida")] public int foneCharges = 1;
+        [Tooltip("Segundos até a resposta chegar")] public float foneDelay = 15f;
+        [Tooltip("Segundos segurando F para mandar a mensagem e para ler a resposta (é usar o celular)")] public float foneUseTime = 1.2f;
+        [Tooltip("Chance (0 a 1) de o celular vibrar/tocar enquanto você espera")] [Range(0, 1)] public float foneRingChance = 0.45f;
+        [Tooltip("Raio (m) em que o toque é ouvido")] public float foneRingRadius = 6f;
+        [Tooltip("Suspeita do toque (alto o bastante faz o professor investigar)")] public float foneRingNoise = 45f;
+        [Tooltip("Segundos tocando")] public float foneRingSeconds = 3f;
+        [Tooltip("Suspeita/s se o professor vê o celular tocando")] public float foneRingSuspicion = 60f;
+
+        [Header("Garrafinha com rótulo (G, sentado)")]
+        [Tooltip("Consultas por partida")] public int garrafaCharges = 2;
+        [Tooltip("Segundos segurando G (bebendo e lendo o rótulo)")] public float garrafaTime = 1.5f;
+        [Tooltip("Suspeita/s se o professor vê (beber água é quase normal)")] public float garrafaSuspicion = 12f;
+        [Tooltip("Raio (m) em que o gole é ouvido")] public float garrafaNoiseRadius = 5f;
+        [Tooltip("Suspeita do gole barulhento (acima de 8, nem distraído ele ignora)")] public float garrafaNoise = 14f;
     }
 
     /// <summary>Fluxo da fase: introdução, cronômetro, pausa, flagrantes, entrega da prova e finais.</summary>
@@ -120,6 +160,13 @@ namespace ProvaImpossivel
             turnTellSeconds = 0.9f, snoreWarningSeconds = 4f, showSuspicionMeter = true, showStudentHints = true,
             eventInterval = new Vector2(30f, 46f), distractionMultiplier = 1.4f, snitchInterval = new Vector2(18f, 28f), favors = 5,
             facePokerSpeed = 0.45f, facePokerZone = 0.28f, facePokerMisses = 2,
+            maxCheatAnswers = 5,
+            colinhaCharges = 3, colinhaTime = 1f, colinhaSuspicion = 40f, colinhaDangerDistance = 2.5f, colinhaNearSuspicion = 35f,
+            bilheteCharges = 3, bilheteDelay = 6f, bilheteThrowTime = 0.6f, bilheteThrowSuspicion = 45f, bilheteNoiseRadius = 4f, bilheteNoise = 5f,
+            bilheteMissChancePerMeter = 0.04f, bilheteLostDistance = 2f, bilheteAimAngle = 35f,
+            foneCharges = 1, foneDelay = 12f, foneUseTime = 1.2f, foneRingChance = 0.3f, foneRingRadius = 5f, foneRingNoise = 30f,
+            foneRingSeconds = 3f, foneRingSuspicion = 45f,
+            garrafaCharges = 3, garrafaTime = 1.5f, garrafaSuspicion = 8f, garrafaNoiseRadius = 4f, garrafaNoise = 10f,
         };
         public DifficultySettings normal = new();
         public DifficultySettings dificil = new()
@@ -133,6 +180,13 @@ namespace ProvaImpossivel
             turnTellSeconds = 0.35f, snoreWarningSeconds = 2f, showSuspicionMeter = false, showStudentHints = false,
             eventInterval = new Vector2(45f, 65f), distractionMultiplier = 0.8f, snitchInterval = new Vector2(8f, 14f), favors = 2,
             facePokerSpeed = 0.75f, facePokerZone = 0.17f, facePokerMisses = 1,
+            maxCheatAnswers = 2,
+            colinhaCharges = 1, colinhaTime = 1.2f, colinhaSuspicion = 65f, colinhaDangerDistance = 4.5f, colinhaNearSuspicion = 65f,
+            bilheteCharges = 2, bilheteDelay = 10f, bilheteThrowTime = 0.6f, bilheteThrowSuspicion = 70f, bilheteNoiseRadius = 6f, bilheteNoise = 7f,
+            bilheteMissChancePerMeter = 0.08f, bilheteLostDistance = 3f, bilheteAimAngle = 25f,
+            foneCharges = 1, foneDelay = 18f, foneUseTime = 1.2f, foneRingChance = 0.6f, foneRingRadius = 7f, foneRingNoise = 60f,
+            foneRingSeconds = 3f, foneRingSuspicion = 75f,
+            garrafaCharges = 2, garrafaTime = 1.5f, garrafaSuspicion = 16f, garrafaNoiseRadius = 6f, garrafaNoise = 18f,
         };
         /// <summary>Prova de TREINO (tutorial): professor que não flagra, sem acontecimentos sorteados, uma de cada cola.</summary>
         public DifficultySettings tutorial = new()
@@ -147,6 +201,13 @@ namespace ProvaImpossivel
             turnTellSeconds = 0.9f, snoreWarningSeconds = 4f, showSuspicionMeter = true, showStudentHints = true,
             eventInterval = new Vector2(9999f, 9999f), distractionMultiplier = 1.4f, snitchInterval = new Vector2(25f, 35f), favors = 2,
             facePokerSpeed = 0.45f, facePokerZone = 0.28f, facePokerMisses = 2,
+            maxCheatAnswers = 10,
+            colinhaCharges = 1, colinhaTime = 1f, colinhaSuspicion = 40f, colinhaDangerDistance = 2.5f, colinhaNearSuspicion = 35f,
+            bilheteCharges = 1, bilheteDelay = 5f, bilheteThrowTime = 0.6f, bilheteThrowSuspicion = 45f, bilheteNoiseRadius = 4f, bilheteNoise = 5f,
+            bilheteMissChancePerMeter = 0f, bilheteLostDistance = 2f, bilheteAimAngle = 40f,
+            foneCharges = 1, foneDelay = 8f, foneUseTime = 1.2f, foneRingChance = 0.5f, foneRingRadius = 5f, foneRingNoise = 30f,
+            foneRingSeconds = 3f, foneRingSuspicion = 45f,
+            garrafaCharges = 1, garrafaTime = 1.5f, garrafaSuspicion = 8f, garrafaNoiseRadius = 4f, garrafaNoise = 10f,
         };
         [Tooltip("Abaixo disso (segundos restantes) a entrega conta como 'no sufoco'")]
         public float sufocoSeconds = 30f;
@@ -160,6 +221,8 @@ namespace ProvaImpossivel
         /// o jogador entende "gastei meu favor", e cada distração pedida vira uma decisão de quando usar.
         /// </summary>
         public int Favors { get; private set; }
+        /// <summary>Orçamento de respostas de cola da partida (Bloco 15), somando todas as colas.</summary>
+        public CheatBudget Cheats { get; private set; } = new(0);
         public bool IsPlaying => Phase == Phase.Playing;
         /// <summary>Frame em que a fase mudou (a tecla que escolheu o menu não vale também como ação no jogo).</summary>
         public int PhaseChangedFrame { get; private set; } = -1;
@@ -252,12 +315,14 @@ namespace ProvaImpossivel
             Settings = s;
             TimeLeft = Settings.duration;
             Favors = Settings.favors;
+            Cheats = new CheatBudget(Settings.maxCheatAnswers);
             MatchLog.Reset();
             // espalha os números da dificuldade para quem usa
             ProfessorAI.I.ApplySettings(Settings);
             PlayerController.I.phoneSuspicion = Settings.phoneSuspicion;
             PlayerController.I.quizCooldown = Settings.quizCooldown;
             PlayerController.I.PhoneCharges = Settings.phoneCharges;
+            PlayerController.I.Cheats.ApplySettings(Settings);
             foreach (var n in FindObjectsByType<NerdStudent>(FindObjectsInactive.Exclude))
             {
                 n.copySuspicion = Settings.copySuspicion;
@@ -374,11 +439,14 @@ namespace ProvaImpossivel
             HUD.I.Toast("FLAGRANTE! (" + reason + ") " + penalty + "  [" + Flagrantes + "/" + Settings.maxFlagrantes + "]", HUD.Red, 4f, important: true);
 
             var p = PlayerController.I;
-            if (Settings.confiscatePhone && !warningOnly && kind == Infracao.Celular && p.HasPhone)
+            // o que ele leva embora depende só do TIPO da infração (Bloco 15: celular tocando também é celular)
+            var taken = CheatRules.ItemTakenFor(kind);
+            if (Settings.confiscatePhone && !warningOnly && taken == CheatItem.Celular && p.HasPhone)
             {
                 p.HasPhone = false;
                 HUD.I.Toast("Celular CONFISCADO até o fim da prova!", HUD.Red, 3.5f, important: true);
             }
+            if (!warningOnly && p.Cheats != null) p.Cheats.OnFlagrante(kind, taken);
             p.Say(Falas.Pick(Falas.JogadorPego), 2.5f);
 
             if (Flagrantes >= Settings.maxFlagrantes)

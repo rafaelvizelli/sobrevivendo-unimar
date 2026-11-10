@@ -72,7 +72,17 @@ namespace ProvaImpossivel
             I = this;
             cc = GetComponent<CharacterController>();
             if (visual == null) visual = GetComponent<CharacterVisual>();
+            // colas novas (Bloco 15): criadas por código, a cena não precisa ser remontada
+            Cheats = GetComponent<PlayerCheats>();
+            if (Cheats == null) Cheats = gameObject.AddComponent<PlayerCheats>();
         }
+
+        /// <summary>Colinha, bilhete, fone e garrafinha (Bloco 15).</summary>
+        public PlayerCheats Cheats { get; private set; }
+
+        /// <summary>Suspeita/s que o professor sente só por estar perto (colinha), e até que distância (m).</summary>
+        public float CloseRangeRate => Cheats != null ? Cheats.CloseRangeRate : 0f;
+        public float CloseRangeDistance => Cheats != null ? Cheats.CloseRangeDistance : 0f;
 
         void Start()
         {
@@ -133,11 +143,13 @@ namespace ProvaImpossivel
 
                 if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) TryAnswer();
 
-                if (HasPhone && (kb.digit2Key.isPressed || kb.numpad2Key.isPressed))
+                bool otherCheat = Cheats != null && Cheats.Holding != PlayerCheats.Hold.Nenhum; // uma cola de cada vez
+                if (HasPhone && !otherCheat && (kb.digit2Key.isPressed || kb.numpad2Key.isPressed))
                 {
                     if (phoneCooldown > 0f) HUD.I.SetHold(-1f, "");
                     else if (PhoneCharges <= 0) HUD.I.Toast("A bateria do celular ACABOU. Agora é Nerd, Fundão ou fé.", HUD.Gray, 2.5f);
                     else if (!ExamSystem.I.HasRoom) HUD.I.Toast("Você já acertou tudo. O Google não tem mais o que fazer.", HUD.Gray, 2f);
+                    else if (!CheatBudget.CanAnswer) HUD.I.Toast(Falas.OrcamentoAcabou, HUD.Gray, 2.5f);
                     else
                     {
                         holdingPhone = true;
@@ -192,7 +204,7 @@ namespace ProvaImpossivel
             phoneCooldown = 4f;
             PhoneCharges--;
             MatchLog.Celular++;
-            ExamSystem.I.MarkCorrect();
+            if (CheatBudget.Spend()) ExamSystem.I.MarkCorrect(); // orçamento de colas da partida (Bloco 15)
             SoundFX.Play(Sfx.Ponto);
             HUD.I.Toast("+" + GameManager.Fmt(ExamSystem.I.PointsPerQuestion) + " — O Google sabia!"
                         + (PhoneCharges > 0 ? "" : " ...e a bateria morreu."), HUD.Green, 2.5f);
@@ -314,6 +326,7 @@ namespace ProvaImpossivel
 
             if (UsingPhone) { rate = phoneSuspicion; reason = "usando o celular"; kind = Infracao.Celular; }
             if (interactionRate > rate) { rate = interactionRate; reason = interactionReason; kind = interactionKind; }
+            if (Cheats != null && Cheats.CurrentRate > rate) { rate = Cheats.CurrentRate; reason = Cheats.CurrentReason; kind = Cheats.CurrentKind; }
 
             if (!IsSeated && rate <= 0f && seatPoint != null)
             {

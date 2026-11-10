@@ -28,7 +28,8 @@ namespace ProvaImpossivel
 
         RectTransform root, hudRoot, bubbleRoot, toastRoot;
         Text timerText, gradeTitle, gradeText, strikesText, promptText, holdText, seatedHelp, tutorialText;
-        Image tutorialBox;
+        Image tutorialBox, cheatsBox;
+        Text cheatsText;
         Image timerBox, holdFill, flash, promptBox, seatedHelpBox;
         RectTransform gradePanel;
         Canvas hudCanvas;
@@ -122,6 +123,15 @@ namespace ProvaImpossivel
             strikesText.horizontalOverflow = HorizontalWrapMode.Wrap; // nunca transborda o painel da NOTA
             strikesText.verticalOverflow = VerticalWrapMode.Truncate;
 
+            // colas novas (Bloco 15): painel discreto logo abaixo do da NOTA, mesma largura, sem encostar nele
+            cheatsBox = UIFactory.Box("Colas", hudRoot, new Color(0.1f, 0.11f, 0.16f, 0.7f));
+            cheatsBox.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -186f), new Vector2(440f, 146f));
+            cheatsText = UIFactory.Label("Texto", cheatsBox.transform, "", 19, Gray, TextAnchor.UpperLeft, FontStyle.Normal);
+            cheatsText.rectTransform.Stretch(10f);
+            cheatsText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            cheatsText.verticalOverflow = VerticalWrapMode.Truncate;
+            cheatsText.lineSpacing = 1.05f;
+            cheatsBox.gameObject.SetActive(false);
 
             // prompt de interação + barra de segurar
             promptBox = UIFactory.Box("Prompt", hudRoot, new Color(0.08f, 0.08f, 0.1f, 0.85f));
@@ -208,6 +218,7 @@ namespace ProvaImpossivel
             Add((RectTransform)holdFill.transform.parent);
             Add(seatedHelpBox.rectTransform);
             Add(tutorialBox.rectTransform);
+            Add(cheatsBox.rectTransform);
             foreach (var t in toasts) Add(t.rect);
         }
 
@@ -314,6 +325,18 @@ namespace ProvaImpossivel
             if (seatedHelpBox.gameObject.activeSelf != on) seatedHelpBox.gameObject.SetActive(on);
             if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1300f, seatedHelp.preferredWidth + 40f), 40f);
         }
+
+        /// <summary>Painel das colas novas (Bloco 15): teclas, cargas e o que está a caminho (null esconde).</summary>
+        public void SetCheats(string text)
+        {
+            bool on = !string.IsNullOrEmpty(text);
+            if (cheatsBox.gameObject.activeSelf != on) cheatsBox.gameObject.SetActive(on);
+            if (on && cheatsText.text != text) cheatsText.text = text;
+        }
+
+        /// <summary>Área do painel das colas e do painel da NOTA (testes de sobreposição).</summary>
+        public RectTransform CheatsPanel => cheatsBox.rectTransform;
+        public RectTransform GradePanel => gradePanel;
 
         /// <summary>Passo atual do tutorial (null esconde).</summary>
         public void SetTutorial(string text)
@@ -423,7 +446,7 @@ namespace ProvaImpossivel
         /// <summary>Um retângulo (no espaço do <c>root</c>) cobre o painel do tempo ou o da NOTA?</summary>
         bool InvadePainel(Rect r)
         {
-            foreach (var p in new[] { gradePanel, timerBox.rectTransform })
+            foreach (var p in new[] { gradePanel, timerBox.rectTransform, cheatsBox.rectTransform })
                 if (p != null && p.gameObject.activeInHierarchy && r.Overlaps(LocalRect(p, root))) return true;
             return false;
         }
