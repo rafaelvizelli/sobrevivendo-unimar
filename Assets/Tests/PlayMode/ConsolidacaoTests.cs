@@ -208,6 +208,7 @@ namespace ProvaImpossivel.Tests
                 for (float d = cone.step; d < prof.CurrentViewDistance - 0.01f; d += cone.step)
                 {
                     Vector3 chao = pe + dir * d;
+                    if (!cone.InsideRoom(chao)) continue; // fora da sala o cone não é desenhado (recorte visual do Bloco 13)
                     bool jogo = Vision.LineOfSight(eye, chao + Vector3.up * SeatedHeadH) || Vision.LineOfSight(eye, chao + Vector3.up * SeatedChestH);
                     Assert.AreEqual(jogo, cone.ShowsAsSeen(chao), "cone diferente da visão do jogo em " + chao + " (jogo vê: " + jogo + ")");
                     if (jogo) vistos++; else escondidos++;

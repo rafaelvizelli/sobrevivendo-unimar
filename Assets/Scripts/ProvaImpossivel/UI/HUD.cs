@@ -29,7 +29,9 @@ namespace ProvaImpossivel
         RectTransform root, hudRoot, bubbleRoot, toastRoot;
         Text timerText, gradeTitle, gradeText, strikesText, promptText, holdText, seatedHelp, tutorialText;
         Image tutorialBox;
-        Image timerBox, holdFill, flash, promptBox;
+        Image timerBox, holdFill, flash, promptBox, seatedHelpBox;
+        RectTransform gradePanel;
+        Canvas hudCanvas;
         Image[] slots, knownFrames;
         GameObject introPanel, pausePanel, resultPanel;
         float flashAlpha;
@@ -66,6 +68,7 @@ namespace ProvaImpossivel
             var go = new GameObject("HUD Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             go.transform.SetParent(transform, false);
             var canvas = go.GetComponent<Canvas>();
+            hudCanvas = canvas;
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 10;
             var scaler = go.GetComponent<CanvasScaler>();
@@ -94,6 +97,7 @@ namespace ProvaImpossivel
 
             // nota
             var grade = UIFactory.Box("Nota", hudRoot, PanelColor);
+            gradePanel = grade.rectTransform;
             grade.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -16f), new Vector2(440f, 158f));
             gradeTitle = UIFactory.Label("Titulo", grade.transform, "NOTA", 20, Yellow, TextAnchor.UpperLeft);
             gradeTitle.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(16f, -10f), new Vector2(410f, 26f));
@@ -115,6 +119,8 @@ namespace ProvaImpossivel
             }
             strikesText = UIFactory.Label("Flagrantes", grade.transform, "", 20, Gray, TextAnchor.LowerLeft);
             strikesText.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(16f, 8f), new Vector2(410f, 30f));
+            strikesText.horizontalOverflow = HorizontalWrapMode.Wrap; // nunca transborda o painel da NOTA
+            strikesText.verticalOverflow = VerticalWrapMode.Truncate;
 
 
             // prompt de interação + barra de segurar
@@ -130,8 +136,15 @@ namespace ProvaImpossivel
             holdText.rectTransform.Stretch();
             holdFill.transform.parent.gameObject.SetActive(false);
 
+            // linha de controles: fundo escuro do tamanho do texto + contorno (legível sobre o chão claro)
+            seatedHelpBox = UIFactory.Box("AjudaFundo", hudRoot, new Color(0f, 0f, 0f, 0.6f), false);
+            seatedHelpBox.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(600f, 40f));
+            seatedHelpBox.gameObject.SetActive(false);
             seatedHelp = UIFactory.Label("Ajuda", hudRoot, "", 22, Color.white);
             seatedHelp.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1300f, 40f));
+            var contorno = seatedHelp.gameObject.AddComponent<Outline>();
+            contorno.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            contorno.effectDistance = new Vector2(1.5f, -1.5f);
 
             // passo do tutorial (só no treino): uma linha, acima do prompt
             tutorialBox = UIFactory.Box("Tutorial", hudRoot, new Color(0.15f, 0.25f, 0.5f, 0.92f));
@@ -155,7 +168,61 @@ namespace ProvaImpossivel
             UpdateFlash();
         }
 
-        void LateUpdate() => UpdateBubbles();
+        void LateUpdate()
+        {
+            UpdateBubbles();
+            // os ícones do mundo informados neste frame valem para o próximo (a ordem dos LateUpdate não é garantida)
+            (iconRects, iconRectsNext) = (iconRectsNext, iconRects);
+            iconRectsNext.Clear();
+        }
+
+        // ------------------------------------------------------------------ áreas da tela
+
+        // ícones de humor do mundo (MoodIcon) em coordenadas de tela: o HUD não lê o professor; quem desenha avisa
+        List<Rect> iconRects = new(), iconRectsNext = new();
+
+        /// <summary>Um ícone do mundo (ex.: o "?" do professor) ocupa esta área da tela neste frame (MoodIcon chama).</summary>
+        public void ReportWorldIcon(Rect screenRect) => iconRectsNext.Add(screenRect);
+
+        Camera CanvasCamera => hudCanvas != null && hudCanvas.renderMode != RenderMode.ScreenSpaceOverlay ? hudCanvas.worldCamera : null;
+
+        /// <summary>Retângulo de um elemento da UI no espaço local de <paramref name="space"/>.</summary>
+        static Rect LocalRect(RectTransform r, RectTransform space)
+        {
+            var c = new Vector3[4];
+            r.GetWorldCorners(c);
+            Vector2 a = space.InverseTransformPoint(c[0]), b = space.InverseTransformPoint(c[2]);
+            return Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+        }
+
+        /// <summary>Áreas ocupadas pelo HUD (tempo, NOTA, mensagens, prompt, barra, ajuda, tutorial), onde balão não entra.</summary>
+        readonly List<Rect> hudAreas = new();
+        void CollectHudAreas()
+        {
+            hudAreas.Clear();
+            if (!hudRoot.gameObject.activeInHierarchy) return;
+            void Add(RectTransform r) { if (r != null && r.gameObject.activeInHierarchy) hudAreas.Add(LocalRect(r, bubbleRoot)); }
+            Add(timerBox.rectTransform);
+            Add(gradePanel);
+            Add(promptBox.rectTransform);
+            Add((RectTransform)holdFill.transform.parent);
+            Add(seatedHelpBox.rectTransform);
+            Add(tutorialBox.rectTransform);
+            foreach (var t in toasts) Add(t.rect);
+        }
+
+        /// <summary>Algum balão de fala visível está em cima de uma área do HUD? (testes)</summary>
+        public bool AnyBubbleOverlapsHud()
+        {
+            CollectHudAreas();
+            foreach (var b in bubbles)
+            {
+                if (!b.rect.gameObject.activeSelf) continue;
+                var r = LocalRect(b.rect, bubbleRoot);
+                foreach (var a in hudAreas) if (r.Overlaps(a)) return true;
+            }
+            return false;
+        }
 
         void RefreshHud(GameManager gm)
         {
@@ -185,16 +252,28 @@ namespace ProvaImpossivel
                 gradeTitle.text = g >= min ? "NOTA — já dá! Entregue na mesa (E)" : "NOTA";
                 gradeTitle.color = g >= min ? Green : Yellow;
             }
-            // as caixinhas já mostram o máximo de flagrantes; o espaço vai para os favores da turma (Bloco 3)
-            strikesText.text = "Flagrantes: " + Dots(gm.Flagrantes, gm.Settings.maxFlagrantes) + "    Favores: " + gm.Favors;
+            strikesText.text = StrikesLabel(gm.Flagrantes, gm.Settings.maxFlagrantes, gm.Favors);
 
         }
 
-        static string Dots(int n, int max)
+        /// <summary>Acima disto, a linha de flagrantes mostra o número em vez das caixinhas (o treino tem limite 99).</summary>
+        public const int MaxStrikeBoxes = 5;
+
+        /// <summary>
+        /// Texto da linha "Flagrantes ... Favores" do painel da NOTA. Pura (testável): até <see cref="MaxStrikeBoxes"/>
+        /// desenha uma caixinha por flagrante permitido; acima disso, só "n/max" — nunca transborda o painel.
+        /// </summary>
+        public static string StrikesLabel(int flagrantes, int max, int favors)
         {
-            var s = "";
-            for (int i = 0; i < max; i++) s += i < n ? "[X]" : "[  ]";
-            return s;
+            string f;
+            if (max > MaxStrikeBoxes) f = "Flagrantes: " + flagrantes;
+            else
+            {
+                var s = new System.Text.StringBuilder("Flagrantes: ");
+                for (int i = 0; i < max; i++) s.Append(i < flagrantes ? "[X]" : "[  ]");
+                f = s.ToString();
+            }
+            return f + "    Favores: " + favors;
         }
 
         public static string FormatTime(float seconds)
@@ -228,7 +307,13 @@ namespace ProvaImpossivel
             holdFill.color = risk == HoldRisk.Visto ? Red : risk == HoldRisk.Escondido ? Green : Yellow;
         }
 
-        public void SetSeatedHelp(string text) => seatedHelp.text = text ?? "";
+        public void SetSeatedHelp(string text)
+        {
+            seatedHelp.text = text ?? "";
+            bool on = !string.IsNullOrEmpty(text);
+            if (seatedHelpBox.gameObject.activeSelf != on) seatedHelpBox.gameObject.SetActive(on);
+            if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1300f, seatedHelp.preferredWidth + 40f), 40f);
+        }
 
         /// <summary>Passo atual do tutorial (null esconde).</summary>
         public void SetTutorial(string text)
@@ -285,6 +370,7 @@ namespace ProvaImpossivel
                     toasts.RemoveAt(i);
                 }
             }
+            float largura = 0f;
             foreach (var t in toasts)
             {
                 float a = Mathf.Clamp01((t.until - Time.unscaledTime) / 0.4f);
@@ -292,7 +378,54 @@ namespace ProvaImpossivel
                 var tc = t.text.color; tc.a = a; t.text.color = tc;
                 t.rect.anchoredPosition = Vector2.Lerp(t.rect.anchoredPosition, new Vector2(0f, -y), Time.unscaledDeltaTime * 12f);
                 y += t.rect.sizeDelta.y + 8f;
+                largura = Mathf.Max(largura, t.rect.sizeDelta.x);
             }
+            // as mensagens não podem cobrir o "?" do professor (nem outro ícone do mundo): se cobrirem, saem do caminho
+            Vector2 alvo = ToastOffset(largura, y);
+            toastRoot.anchoredPosition = Vector2.Lerp(toastRoot.anchoredPosition, ToastBase + alvo, Time.unscaledDeltaTime * 10f);
+        }
+
+        static readonly Vector2 ToastBase = new(0f, -124f);
+
+        /// <summary>Quanto a pilha de mensagens está deslocada da posição normal agora (testes).</summary>
+        public Vector2 ToastStackOffset => toastRoot.anchoredPosition - ToastBase;
+
+        /// <summary>
+        /// Deslocamento da pilha de mensagens (largura × altura, presa no topo) para não cobrir nenhum ícone do mundo:
+        /// tenta para o lado oposto ao ícone; se não couber na tela, desce para logo abaixo do ícone.
+        /// </summary>
+        Vector2 ToastOffset(float largura, float altura)
+        {
+            if (largura <= 0f || iconRects.Count == 0) return Vector2.zero;
+            var cam = CanvasCamera;
+            float topo = root.rect.yMax + ToastBase.y;
+            Rect pilha = new(-largura * 0.5f, topo - altura, largura, altura);
+            float meia = root.rect.width * 0.5f;
+            Vector2 off = Vector2.zero;
+            foreach (var s in iconRects)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(root, s.min, cam, out var a);
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(root, s.max, cam, out var b);
+                Rect icone = Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+                Rect atual = new(pilha.x + off.x, pilha.y + off.y, pilha.width, pilha.height);
+                if (!atual.Overlaps(icone)) continue;
+                float esq = atual.xMax - icone.xMin + 12f, dir = icone.xMax - atual.xMin + 12f;
+                bool vaiEsq = icone.center.x >= atual.center.x;
+                float dx = vaiEsq ? -esq : dir;
+                Rect deLado = new(atual.x + dx, atual.y, atual.width, atual.height);
+                // ao lado só se couber na tela E não invadir os painéis do topo (tempo, NOTA)
+                if (Mathf.Abs(off.x + dx) + largura * 0.5f <= meia - 16f && !InvadePainel(deLado)) off.x += dx;
+                else off.y -= atual.yMax - icone.yMin + 12f; // não cabe ao lado: desce para baixo do ícone
+            }
+            return off;
+        }
+
+        /// <summary>Um retângulo (no espaço do <c>root</c>) cobre o painel do tempo ou o da NOTA?</summary>
+        bool InvadePainel(Rect r)
+        {
+            foreach (var p in new[] { gradePanel, timerBox.rectTransform })
+                if (p != null && p.gameObject.activeInHierarchy && r.Overlaps(LocalRect(p, root))) return true;
+            return false;
         }
 
         public void Flash(Color c)
@@ -358,6 +491,7 @@ namespace ProvaImpossivel
             var cam = Camera.main;
             if (cam == null) return;
             Vector2 half = bubbleRoot.rect.size * 0.5f;
+            CollectHudAreas();
             var placed = new List<Bubble>();
             foreach (var b in bubbles)
             {
@@ -370,13 +504,11 @@ namespace ProvaImpossivel
                 Vector3 sp = cam.WorldToScreenPoint(world);
                 bool behind = sp.z < 0f;
                 if (behind) { sp.x = Screen.width - sp.x; sp.y = 0f; }
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(bubbleRoot, sp, null, out var lp);
-                float w = b.rect.sizeDelta.x * 0.5f, h = b.rect.sizeDelta.y;
-                lp.x = Mathf.Clamp(lp.x, -half.x + w + 10f, half.x - w - 10f);
-                lp.y = Mathf.Clamp(lp.y, -half.y + 180f, half.y - h - 175f);
-                b.rect.anchoredPosition = lp;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(bubbleRoot, sp, CanvasCamera, out var lp);
                 float dist = Vector3.Distance(cam.transform.position, world);
-                b.rect.localScale = Vector3.one * Mathf.Clamp(1.25f - dist * 0.04f, 0.75f, 1f);
+                float scale = Mathf.Clamp(1.25f - dist * 0.04f, 0.75f, 1f);
+                b.rect.localScale = Vector3.one * scale;
+                b.rect.anchoredPosition = KeepInSafeArea(lp, b.rect.sizeDelta * scale, half);
             }
 
             // empurra balões que se sobrepõem (de baixo pra cima)
@@ -396,6 +528,40 @@ namespace ProvaImpossivel
                 }
             }
 
+        }
+
+        /// <summary>
+        /// Posição (pé do balão, centro em x) dentro da tela e fora das áreas do HUD. Se cair em cima de um painel,
+        /// o balão sai pelo lado livre mais perto (para baixo de um painel do topo, para cima de um de baixo) — nunca
+        /// fica embaixo do painel.
+        /// </summary>
+        Vector2 KeepInSafeArea(Vector2 lp, Vector2 size, Vector2 half)
+        {
+            const float m = 10f;
+            float w = size.x * 0.5f, h = size.y;
+            for (int pass = 0; pass < 3; pass++)
+            {
+                lp.x = Mathf.Clamp(lp.x, -half.x + w + m, half.x - w - m);
+                lp.y = Mathf.Clamp(lp.y, -half.y + m, half.y - h - m);
+                bool moved = false;
+                foreach (var a in hudAreas)
+                {
+                    var r = new Rect(lp.x - w, lp.y, size.x, h);
+                    if (!r.Overlaps(a)) continue;
+                    // empurra pelo menor caminho: para os lados ou para fora do painel (de cima pra baixo, de baixo pra cima)
+                    float paraBaixo = r.yMax - (a.yMin - 6f), paraCima = (a.yMax + 6f) - r.yMin;
+                    float paraEsq = r.xMax - (a.xMin - 6f), paraDir = (a.xMax + 6f) - r.xMin;
+                    float vertical = a.center.y > 0f ? paraBaixo : paraCima;
+                    float lateral = Mathf.Min(paraEsq, paraDir);
+                    if (lateral < vertical && lp.x - w - (paraEsq <= paraDir ? paraEsq : -paraDir) > -half.x + m
+                        && lp.x + w + (paraEsq <= paraDir ? -paraEsq : paraDir) < half.x - m)
+                        lp.x += paraEsq <= paraDir ? -paraEsq : paraDir;
+                    else lp.y += a.center.y > 0f ? -paraBaixo : paraCima;
+                    moved = true;
+                }
+                if (!moved) break;
+            }
+            return lp;
         }
 
         // =================================================================== telas

@@ -1,6 +1,6 @@
 # Sobrevivendo à UNIMAR — notas de desenvolvimento
 
-Última atualização: 10/11/2026 (Bloco 12 — consolidação para playtest)
+Última atualização: 10/11/2026 (Bloco 13 — defeitos visuais da auditoria)
 
 ## Onde paramos
 - Fase 1 ("A Prova Impossível") jogável de ponta a ponta, com tutorial. Código no GitHub (privado):
@@ -257,6 +257,26 @@
   NavMesh, sem erro do shader do cone; só os avisos antigos de pós-processamento do URP removido do build.
 - NÃO verificado: uma partida rodando DENTRO do executável (as teclas enviadas por fora não chegaram ao jogo; o log
   termina no carregamento); a aparência do novo cone na tela (a foto de teste não pegou o cone).
+
+### Bloco 13 — correção dos defeitos visuais da auditoria (10/11)
+- Só interface/visual; sem mexer em Vision.cs, na lógica do ProfessorAI, em números de equilíbrio ou escalas.
+  Antes/depois: `Captures/AuditoriaVisual` x `Captures/AuditoriaVisual2` (pasta fora do git).
+- Flagrantes do tutorial (99 caixinhas): `HUD.StrikesLabel` (pura) — até `HUD.MaxStrikeBoxes` = 5 caixinhas; acima,
+  "Flagrantes: n". O texto também é cortado na largura do painel. Visto: "Flagrantes: 0" no treino.
+- Balões: `HUD.KeepInSafeArea` empurra cada balão para fora das áreas do HUD (tempo, NOTA, mensagens, prompt, barra,
+  ajuda, tutorial) — nunca fica embaixo de um painel. Mensagens do topo: `MoodIcon` informa ao HUD onde o ícone está
+  na tela (`HUD.ReportWorldIcon`; o HUD continua sem ler o professor); se a pilha cobrir um ícone, vai para o lado
+  (sem invadir tempo/NOTA, `InvadePainel`) ou desce para baixo do ícone (`HUD.ToastOffset`).
+- `MoodIcon`: barrinha de suspeita ACIMA do símbolo; contorno preto grosso; "..." desenhado como "•••"
+  (`MoodIcon.Glyph`, só no desenho — `Symbol` e o ProfessorAI continuam com "..."), maior (120).
+- Cone (`VisionConeView`): piso de opacidade `minAlpha` = 0,2 (com 0,1 ainda sumia de longe) e recorte nos limites
+  da sala (área da malha de navegação + 0,6 m; `InsideRoom`) — recorte só visual; teste do cone compara só dentro.
+- Linha de controles: fundo escuro do tamanho do texto + contorno.
+- Testes: EditMode 57/57 (+3 `InterfaceTests`), PlayMode 60/60 (+2 `InterfacePlayTests`: balão nunca em cima do HUD,
+  mensagens desviam de um ícone).
+- Visto nas capturas: tudo acima corrigido. Observações: com o ícone do Nerd grande perto da câmera, as mensagens
+  descem para o meio da tela (não há espaço ao lado sem cobrir a NOTA); o balão de fala do professor ainda pode
+  ficar por cima do "?" dele (não estava no escopo). Executável NÃO regenerado neste bloco.
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.

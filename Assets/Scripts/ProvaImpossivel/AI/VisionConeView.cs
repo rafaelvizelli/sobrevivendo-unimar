@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace ProvaImpossivel
 {
@@ -16,6 +17,29 @@ namespace ProvaImpossivel
         [Tooltip("Quantos raios (fatias) o cone tem")] public int segments = 24;
         [Tooltip("Distância (m) entre as amostras ao longo de cada raio")] public float step = 0.5f;
         [Tooltip("Refaz o teste de visão a cada N frames (a forma acompanha o professor todo frame)")] public int refreshEvery = 2;
+        [Tooltip("Opacidade mínima em todo o cone (antes ele sumia com a distância)")] [Range(0, 1)] public float minAlpha = 0.2f;
+        [Tooltip("Margem (m) além da área andável da sala até onde o cone ainda é desenhado")] public float roomMargin = 0.6f;
+
+        Rect room; // limites da sala no plano XZ (da malha de navegação): o cone não vaza pelas janelas
+        bool roomReady;
+
+        /// <summary>Este ponto do chão está dentro da sala (onde o cone é desenhado)? Recorte só visual.</summary>
+        public bool InsideRoom(Vector3 p)
+        {
+            EnsureRoom();
+            return !roomReady || room.Contains(new Vector2(p.x, p.z));
+        }
+
+        void EnsureRoom()
+        {
+            if (roomReady) return;
+            var tri = NavMesh.CalculateTriangulation();
+            if (tri.vertices == null || tri.vertices.Length == 0) return;
+            float x0 = float.MaxValue, x1 = float.MinValue, z0 = float.MaxValue, z1 = float.MinValue;
+            foreach (var v in tri.vertices) { x0 = Mathf.Min(x0, v.x); x1 = Mathf.Max(x1, v.x); z0 = Mathf.Min(z0, v.z); z1 = Mathf.Max(z1, v.z); }
+            room = Rect.MinMaxRect(x0 - roomMargin, z0 - roomMargin, x1 + roomMargin, z1 + roomMargin);
+            roomReady = true;
+        }
 
         static readonly Color Calm = new(1f, 0.95f, 0.5f, 0.07f);
         static readonly Color Alert = new(1f, 0.55f, 0.1f, 0.16f);
@@ -28,7 +52,7 @@ namespace ProvaImpossivel
         Mesh mesh;
         Vector3[] verts;
         Color[] colors;
-        bool[] seen;
+        bool[] seen, shown;
         int samples, frame;
         MeshRenderer mr;
 
@@ -50,6 +74,7 @@ namespace ProvaImpossivel
             verts = new Vector3[n];
             colors = new Color[n];
             seen = new bool[n];
+            shown = new bool[n];
             var tris = new System.Collections.Generic.List<int>();
             for (int r = 0; r < rays - 1; r++)
             {
@@ -113,6 +138,9 @@ namespace ProvaImpossivel
                     float d = Mathf.Min(dist, (s + 1) * step);
                     Vector3 p = origin + dir * d;
                     int v = V(r, s);
+                    // recorte visual na sala: fora dela o ponto vai para a borda e fica transparente
+                    bool dentro = InsideRoom(p);
+                    if (!dentro && roomReady) { p.x = Mathf.Clamp(p.x, room.xMin, room.xMax); p.z = Mathf.Clamp(p.z, room.yMin, room.yMax); }
                     verts[v] = p;
                     if (refresh)
                     {
@@ -120,7 +148,10 @@ namespace ProvaImpossivel
                         Vector3 feet = new(p.x, 0f, p.z);
                         seen[v] = Vision.LineOfSight(eye, feet + Vector3.up * headH) || Vision.LineOfSight(eye, feet + Vector3.up * chestH);
                     }
-                    colors[v] = seen[v] ? Color.Lerp(c, edge, d / dist) : hidden;
+                    Color cor = Color.Lerp(c, edge, d / dist);
+                    cor.a = Mathf.Max(cor.a, minAlpha); // piso: visível em toda a extensão
+                    shown[v] = seen[v] && dentro;
+                    colors[v] = shown[v] ? cor : hidden;
                 }
             }
             mesh.vertices = verts;
@@ -139,7 +170,7 @@ namespace ProvaImpossivel
                 Vector3 d = verts[i] - groundPoint; d.y = 0f;
                 if (d.sqrMagnitude < bestD) { bestD = d.sqrMagnitude; best = i; }
             }
-            return best > 0 && bestD < step * step && seen[best];
+            return best > 0 && bestD < step * step && shown[best];
         }
     }
 }
