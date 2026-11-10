@@ -19,8 +19,8 @@
 - **16** (10/11) identidade visual dos menus: etapa 1 feita (3 direções + protótipos em `Captures/MenuOpcoes/`);
   ESPERANDO o usuário escolher a direção antes da etapa 2.
 - **15b** (10/11) `partidas.csv` registra as colas novas (colunas no fim); ícone do Nerd com teto de tamanho;
-  simulação com perfil arrojado e flagrantes/partida. Bug achado e NÃO corrigido: flagrante com bilhete no ar
-  prende 1 vaga do orçamento.
+  simulação com perfil arrojado e flagrantes/partida. Bug do flagrante com bilhete no ar (prendia 1 vaga do
+  orçamento) corrigido.
 - Próximo: escolher a direção visual (Bloco 16) e PLAYTEST HUMANO com as colas novas (`partidas.csv`).
 
 ## Como rodar os testes
@@ -413,8 +413,12 @@
   gasto nelas, ele nem chega ao celular/Nerd. Ser arrojado não custa nada fora do Difícil. Limite do modelo: cada
   cola é avaliada sozinha (no jogo a suspeita acumula e decai entre ações), então o risco real é maior que o
   simulado — confirmar com o `partidas.csv`.
-- Achado (NÃO corrigido, fora do escopo): flagrante com o bilhete no ar (`OnFlagrante` zera `throwLeft`) não devolve
-  a vaga reservada do orçamento — o `Land()` nunca roda. O jogador perde 1 resposta do orçamento até o fim da prova.
+- Achado: flagrante com o bilhete no ar (`OnFlagrante` zera `throwLeft`) não devolvia a vaga reservada do orçamento —
+  o `Land()` nunca rodava e o jogador perdia 1 resposta até o fim da prova. CORRIGIDO logo depois (commit à parte):
+  `OnFlagrante` devolve a vaga (`Budget.Cancel`) e esquece o alvo. Teste PlayMode
+  `FlagranteComBilheteNoArDevolveAVagaDoOrcamento` (falha sem a correção, passa com ela). Com advertência (1º
+  flagrante no Fácil) o arremesso não é cortado e o bilhete segue normal, como antes. Testes: EditMode 103/103,
+  PlayMode 80/80; executável regenerado, Player.log com 0 exceções (menu).
 - Testes: EditMode 103/103, PlayMode 79/79. Executável regenerado; Player.log com 0 exceções (só menu aberto ~25 s;
   partida não jogada no executável).
 - Arquivos: MatchLog, PlayerCheats (contagem), MoodIcon, testes (MatchLogTests, IconeDoNerdTests novo,
@@ -433,7 +437,6 @@
 
 ## Problemas conhecidos (para blocos futuros)
 - Equilíbrio sem evidência: 1 partida real antiga (Fácil, antes do Bloco 1).
-- Flagrante com o bilhete no ar não devolve a vaga reservada do orçamento (Bloco 15b, achado e não corrigido).
 - A simulação avalia cada cola sozinha (sem acumular suspeita entre ações): no Fácil/Normal as colas novas nunca dão
   flagrante no modelo. Comparar com o `partidas.csv`.
 

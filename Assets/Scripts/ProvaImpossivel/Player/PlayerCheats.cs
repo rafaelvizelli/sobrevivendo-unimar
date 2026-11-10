@@ -524,7 +524,14 @@ namespace ProvaImpossivel
             // registro (Bloco 15b): cola interrompida pelo flagrante conta como usada e errada
             if (Holding == Hold.Colinha) { MatchLog.ColinhaUsos++; MatchLog.ColinhaErradas++; }
             else if (Holding == Hold.Garrafinha) { MatchLog.GarrafaUsos++; MatchLog.GarrafaErradas++; }
-            if (throwLeft > 0f) MatchLog.BilheteErradas++; // o bilhete no ar não chega (BilheteUsos já contou ao jogar)
+            if (throwLeft > 0f)
+            {
+                // o bilhete no ar não chega (BilheteUsos já contou ao jogar). O Land() não vai mais rodar,
+                // então a vaga reservada do orçamento volta aqui (antes ficava presa até o fim da prova)
+                MatchLog.BilheteErradas++;
+                Budget?.Cancel();
+                throwTarget = null;
+            }
             CancelHold();
             throwLeft = 0f;
             ringLeft = 0f;

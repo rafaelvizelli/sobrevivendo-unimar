@@ -208,6 +208,31 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual((1, 0, 1), (MatchLog.BilheteUsos, MatchLog.BilheteCertas, MatchLog.BilheteErradas), "registro no partidas.csv (Bloco 15b)");
         }
 
+        /// <summary>
+        /// Bug do Bloco 15b: flagrante com o bilhete no ar não devolvia a vaga reservada — o jogador perdia uma resposta
+        /// do orçamento até o fim da prova.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator FlagranteComBilheteNoArDevolveAVagaDoOrcamento()
+        {
+            yield return Comecar(Difficulty.Normal, s => s.bilheteThrowTime = 2f); // arremesso longo: dá tempo do flagrante
+            var c = PlayerController.I.Cheats;
+            var budget = GameManager.I.Cheats;
+            int livres = budget.Available;
+            Assert.IsTrue(c.ThrowAt(UnityEngine.Object.FindAnyObjectByType<NerdStudent>()));
+            Assert.AreEqual(livres - 1, budget.Available, "o bilhete no ar reserva uma vaga");
+
+            GameManager.I.ApplyFlagrante("teste", Infracao.Bilhete);
+            Assert.IsFalse(c.Throwing);
+            Assert.AreEqual((0, 0), (budget.Used, budget.Reserved), "a vaga do bilhete cortado tinha que voltar");
+            Assert.AreEqual(livres, budget.Available);
+
+            yield return Wait(2.5f); // e o bilhete cortado não chega depois
+            Assert.IsFalse(c.bilhete.Busy);
+            Assert.AreEqual(0, RespostasCertas);
+            Assert.AreEqual((1, 0, 1), (MatchLog.BilheteUsos, MatchLog.BilheteCertas, MatchLog.BilheteErradas));
+        }
+
         // ------------------------------------------------------------------ fone
 
         [UnityTest]
