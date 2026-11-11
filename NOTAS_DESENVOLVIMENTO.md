@@ -424,6 +424,55 @@
 - Arquivos: MatchLog, PlayerCheats (contagem), MoodIcon, testes (MatchLogTests, IconeDoNerdTests novo,
   SimulacaoDeEquilibrioTests, ColasNovasPlayTests, ConsolidacaoTests).
 
+### Bloco 15c parte 2 — auditoria do risco real das colas (10/11)
+- SÓ medição: nenhum código de jogo, número ou regra mudou. Teste novo `Assets/Tests/PlayMode/AuditoriaRiscoColasTests.cs`
+  (14 testes): cena real, professor posto onde VÊ o jogador, cola feita pelo teclado virtual (bilhete por `ThrowAt`),
+  depois o professor age sozinho por até 10 s. Tabela completa em `Captures/AuditoriaRisco/auditoria.md` (gerada a cada
+  rodada; fora do git). Uma amostra por caso: há aleatoriedade (ronda, Puxa-saco), os números variam um pouco.
+- Isolamento só no teste: sem acontecimentos nem virada sorteada do Puxa-saco, Nerd sem olhada, bilhete sem errar a
+  mesa, resposta do fone em 1,5 s. O Puxa-saco continua OUVINDO (a vibração faz ele virar e dedurar: "Dedurado").
+  Investigando, o professor anda livre (segurar parado fazia a investigação "chegar" na hora, a 10 m).
+- Resultado (Normal / Difícil; susp. no fim da cola; F = flagrante; CP = investigou → Cara de Paisagem):
+  | Cola | a) perto vendo | b) longe no cone | c) vira no meio | d) desconfiado, 2× |
+  |---|---|---|---|---|
+  | Colinha | 39 / 85 CP | 18 / 43 | 33 / 78 CP | 79 CP / 83 CP (Difícil: 1 carga) |
+  | Garrafinha | 25 / 48 | 7 / 14 | 17 / 33 | 55 / 69 CP |
+  | Bilhete | F Bilhete / F Bilhete (interceptado) | 9 / 20 | F / F | 49 / 60 (2º bilhete ainda voltando) |
+  | Fone | 64 CP / 79 CP | 63 / F Celular | 74 CP / 81 CP | 68 CP / F Celular (1 carga) |
+  | Celular (ref.) | 74 CP / 81 CP | 85 CP / F | 74 CP / 82 CP | 87 CP / F |
+  | Nerd (ref.) | 78 CP / F EspiarNerd | 37 / 58 | 36 / 62 | F ForaDoLugar / F ForaDoLugar |
+  Fone tocando (3 s): de costas 63 / 99 CP; olhando 99 CP / 99 CP, todos com "Dedurado" (Puxa-saco). Numa rodada com o
+  professor mantido olhando, o toque visto deu F CelularTocando nas duas dificuldades.
+- Divergências com o pedido do Bloco 15 (NÃO corrigidas):
+  1. Colinha: sobe aos poucos como celular/Nerd (`PlayerCheats.UpdateRisk` → taxa `colinhaSuspicion`;
+     `ProfessorAI.Perceive` só dá flagrante com suspeita 100 vendo; `CloseRangeSense` trava em 99). Nunca chegou a
+     100: no Normal, vista inteira a 2,5 m = 39. Precisaria: em `Perceive`, se vê (`Notice` = 1 e visibilidade acima
+     de um mínimo) com `CurrentInfracao == ColinhaNaManga`, `StartFlagrante` direto.
+  2. Bilhete: flagrante direto só pela interceptação (`PlayerCheats.Land`, professor a menos de `bilheteLostDistance`
+     e vendo). Ouvir o papel (`ProfessorAI.HearNoise`) grava `Infracao.Outra`, e a investigação (`UpdateInvestigando`)
+     só dá flagrante se ele VIR uma cola em andamento; senão vai para Cara de Paisagem (falha = `CaraDeCulpado`).
+     Nunca "acha o bilhete". Precisaria: `NoiseInfo` levar a Infracao; na chegada da investigação por bilhete, uma
+     chance de achar → flagrante `Infracao.Bilhete`.
+  3. Fone tocando: o toque é ruído (`PlayerCheats.Ring` → `MakeNoise`, Infracao `Outra`); flagrante
+     `CelularTocando` só se ele VIR o celular tocando até a suspeita 100. Ouvindo de costas, investiga e cai na Cara
+     de Paisagem. Além disso o "Dedurado" do Puxa-saco (`ProfessorAI.Alert`) sobrescreve o tipo registrado.
+     Precisaria: o mesmo caminho do bilhete (achar o celular na investigação → `CelularTocando`).
+  4. Garrafinha: nunca deu flagrante direto ✓. Mas além do barulho ela tem suspeita por VER (`garrafaSuspicion`
+     12/16 por s): vista 2× desconfiado chega a 55–69 e pode levar à Cara de Paisagem. Se "só o barulho" for literal,
+     `garrafaSuspicion` = 0.
+- Ajustes propostos (NÃO aplicados):
+  | Campo (DifficultySettings) | Atual (Normal / Difícil) | Proposto | Efeito esperado no risco |
+  |---|---|---|---|
+  | `colinhaInstantCatch` (novo, bool) | — (não existe) | true / true | colinha vista = flagrante direto (a, c: de 39/33 → F) |
+  | `colinhaCatchVisibility` (novo) | — | 0,5 / 0,35 | só conta se ele vê bem (perto/centro do cone); de longe (b) continua escapando |
+  | `bilheteFindChance` (novo) | — (0) | 0,5 / 0,7 | investigação pelo papel acha o bilhete → F `Bilhete` metade/70% das vezes |
+  | `bilheteNoiseRadius` | 5 / 6 | 6 / 7 | ouve o papel de mais longe (b continua fora: 9,6 / 10,9 m) |
+  | `foneRingFindChance` (novo) | — (0) | 0,6 / 0,8 | celular que tocou e foi investigado → F `CelularTocando` |
+  | `garrafaSuspicion` | 12 / 16 | 0 / 0 (só se "só barulho" for literal) | garrafinha vista deixa de somar; risco = só o gole |
+  Os 3 "chance de achar" precisam de código novo (Infracao no ruído + decisão na chegada da investigação).
+  Reavaliar a simulação e o `partidas.csv` depois: a colinha instantânea sobe bem o risco no Normal.
+- Testes: EditMode 103/103; PlayMode completo 94/94 (80 de antes + 14 da auditoria).
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`
