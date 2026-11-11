@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
@@ -9,31 +10,34 @@ namespace ProvaImpossivel
 {
     /// <summary>
     /// Interface inteira montada por código: tempo, nota/questões, flagrantes e favores, prompts, mensagens,
-    /// balões de fala e telas de introdução / pausa / resultado. O estado do professor e dos colegas NÃO fica aqui:
-    /// aparece no mundo, no corpo deles (MoodIcon, cone de visão). Por isso o HUD só lê GameManager e ExamSystem.
+    /// balões de fala e telas de menu / dificuldade / pausa / resultado. O estado do professor e dos colegas NÃO fica
+    /// aqui: aparece no mundo, no corpo deles (MoodIcon, cone de visão). Por isso o HUD só lê GameManager e ExamSystem.
+    /// Visual (Bloco 16): "prova impressa" — tudo vem do <see cref="UITheme"/> pelos componentes de papel da UIFactory.
     /// </summary>
     public class HUD : MonoBehaviour
     {
         public static HUD I { get; private set; }
 
-        public static readonly Color Yellow = new(1f, 0.85f, 0.2f);
-        public static readonly Color Red = new(1f, 0.32f, 0.3f);
-        public static readonly Color Green = new(0.4f, 0.95f, 0.45f);
-        public static readonly Color Orange = new(1f, 0.6f, 0.2f);
-        public static readonly Color Gray = new(0.8f, 0.8f, 0.82f);
-        public static readonly Color PanelColor = new(0.1f, 0.11f, 0.16f, 0.88f);
+        // cores de SINAL (as de sempre): continuam valendo para o mundo, os balões e os desafios
+        public static readonly Color Yellow = UITheme.SignalYellow;
+        public static readonly Color Red = UITheme.SignalRed;
+        public static readonly Color Green = UITheme.SignalGreen;
+        public static readonly Color Orange = UITheme.SignalOrange;
+        public static readonly Color Gray = UITheme.SignalGray;
+        public static readonly Color PanelColor = UITheme.DarkPanel;
 
         /// <summary>Raiz para painéis de desafios (fica acima do HUD).</summary>
         public RectTransform PanelRoot { get; private set; }
 
         RectTransform root, hudRoot, bubbleRoot, toastRoot;
-        Text timerText, gradeTitle, gradeText, strikesText, promptText, holdText, seatedHelp, tutorialText;
+        Text timerText, gradeTitle, gradeText, gradeNote, strikesText, promptText, holdText, seatedHelp, tutorialText;
         Image tutorialBox, cheatsBox;
-        Text cheatsText;
+        Text cheatsHeader;
         Image timerBox, holdFill, flash, promptBox, seatedHelpBox;
         RectTransform gradePanel;
         Canvas hudCanvas;
         Image[] slots, knownFrames;
+        Text[] slotNumbers;
         GameObject introPanel, pausePanel, resultPanel;
         float flashAlpha;
         Color flashColor;
@@ -41,11 +45,15 @@ namespace ProvaImpossivel
         [Tooltip("Máximo de mensagens empilhadas no topo")] public int maxToasts = 2;
         [Tooltip("Máximo de balões de fala ao mesmo tempo")] public int maxBubbles = 3;
 
-        class Toast_ { public RectTransform rect; public Image box; public Text text; public float until; public bool important; public string raw; }
+        class Toast_ { public RectTransform rect; public CanvasGroup group; public Text text; public float until; public bool important; public string raw; }
         readonly List<Toast_> toasts = new();
 
         class Bubble { public RectTransform rect; public Image box; public Text name, text; public Transform target; public float until, born; public int priority; }
         readonly List<Bubble> bubbles = new();
+
+        // tamanhos fixos do HUD (referência 1920×1080)
+        const float GradeW = 440f, GradeH = 196f, CheatsGap = 12f, CheatRowH = 34f;
+        const int SizeTimer = 54, SizeGrade = 56;
 
         void Awake()
         {
@@ -72,6 +80,7 @@ namespace ProvaImpossivel
             hudCanvas = canvas;
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 10;
+            canvas.pixelPerfect = false;
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
@@ -81,86 +90,99 @@ namespace ProvaImpossivel
             bubbleRoot = UIFactory.Rect("Baloes", root).Stretch();
             hudRoot = UIFactory.Rect("HUD", root).Stretch();
             PanelRoot = UIFactory.Rect("Paineis", root).Stretch();
-            toastRoot = UIFactory.Rect("Mensagens", root).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -124f), new Vector2(1000f, 400f));
-            flash = UIFactory.Box("Flash", root, new Color(1, 0, 0, 0), false);
+            toastRoot = UIFactory.Rect("Mensagens", root).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), ToastBase, new Vector2(1000f, 400f));
+            flash = UIFactory.Box("Flash", root, UITheme.FlashRed, false);
             flash.rectTransform.Stretch();
         }
 
         void BuildHud()
         {
-            // cronômetro
-            timerBox = UIFactory.Box("Tempo", hudRoot, PanelColor);
-            timerBox.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -16f), new Vector2(240f, 96f));
-            var cap = UIFactory.Label("Rotulo", timerBox.transform, "TEMPO", 18, Gray);
-            cap.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(200f, 24f));
-            timerText = UIFactory.Label("Valor", timerBox.transform, "06:00", 54, Color.white);
-            timerText.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 4f), new Vector2(230f, 66f));
+            // cronômetro: etiqueta de papel no topo
+            timerBox = UIFactory.Paper("Tempo", hudRoot, margin: false);
+            timerBox.rectTransform.Top(0f, -16f, 240f, 96f);
+            var cap = UIFactory.Ink("Rotulo", timerBox.transform, Falas.HudTempo, UITheme.SizeSmall, UITheme.InkSoft);
+            cap.rectTransform.Top(0f, -6f, 200f, 24f);
+            timerText = UIFactory.Ink("Valor", timerBox.transform, "06:00", SizeTimer, UITheme.Ink);
+            timerText.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 2f), new Vector2(230f, 64f));
 
-            // nota
-            var grade = UIFactory.Box("Nota", hudRoot, PanelColor);
+            // nota: folha com o título datilografado, a nota "à caneta", as questões e os flagrantes
+            var grade = UIFactory.Paper("Nota", hudRoot, margin: false);
             gradePanel = grade.rectTransform;
-            grade.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -16f), new Vector2(440f, 158f));
-            gradeTitle = UIFactory.Label("Titulo", grade.transform, "NOTA", 20, Yellow, TextAnchor.UpperLeft);
-            gradeTitle.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(16f, -10f), new Vector2(410f, 26f));
-            gradeTitle.horizontalOverflow = HorizontalWrapMode.Overflow;
-            gradeText = UIFactory.Label("Valor", grade.transform, "0,0 / 6,0", 44, Color.white, TextAnchor.UpperRight);
-            gradeText.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -6f), new Vector2(300f, 54f));
+            grade.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -16f), new Vector2(GradeW, GradeH));
+            gradeTitle = UIFactory.Ink("Titulo", grade.transform, Falas.HudNota, UITheme.SizeHeading - 6, UITheme.Ink, TextAnchor.UpperLeft);
+            gradeTitle.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(16f, -12f), new Vector2(150f, 34f));
+            gradeText = UIFactory.Ink("Valor", grade.transform, "0,0 / 6,0", SizeGrade, UITheme.PenRed, TextAnchor.UpperRight, hand: true);
+            gradeText.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -2f), new Vector2(260f, 60f));
+            gradeNote = UIFactory.Ink("Anotacao", grade.transform, "", UITheme.SizeHandSmall, UITheme.PenRed, TextAnchor.UpperLeft, hand: true);
+            gradeNote.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(16f, -58f), new Vector2(GradeW - 32f, 34f));
+            gradeNote.horizontalOverflow = HorizontalWrapMode.Overflow;
             slots = new Image[10];
             knownFrames = new Image[10];
+            slotNumbers = new Text[10];
             for (int i = 0; i < slots.Length; i++)
             {
-                // moldura amarela (atrás da caixinha) = questão que o jogador sabe responder sozinho
-                knownFrames[i] = UIFactory.Box("Sabe" + (i + 1), grade.transform, Yellow, false);
-                knownFrames[i].rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(14f + i * 41f, 42f), new Vector2(40f, 40f));
+                // marca-texto amarelo (atrás da caixinha) = questão que o jogador sabe responder sozinho
+                knownFrames[i] = UIFactory.Box("Sabe" + (i + 1), grade.transform, UITheme.Highlighter, false);
+                knownFrames[i].rectTransform.Place(Vector2.zero, Vector2.zero, new Vector2(14f + i * 41f, 42f), new Vector2(40f, 40f));
                 knownFrames[i].enabled = false;
-                slots[i] = UIFactory.Box("Q" + (i + 1), grade.transform, new Color(0.35f, 0.35f, 0.4f));
-                slots[i].rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(18f + i * 41f, 46f), new Vector2(32f, 32f));
-                var n = UIFactory.Label("N", slots[i].transform, (i + 1).ToString(), 16, Color.white);
-                n.rectTransform.Stretch();
+                slots[i] = UIFactory.Keycap("Q" + (i + 1), grade.transform, (i + 1).ToString(), 22);
+                slots[i].rectTransform.Place(Vector2.zero, Vector2.zero, new Vector2(18f + i * 41f, 46f), new Vector2(32f, 32f));
+                slotNumbers[i] = slots[i].GetComponentInChildren<Text>();
             }
-            strikesText = UIFactory.Label("Flagrantes", grade.transform, "", 20, Gray, TextAnchor.LowerLeft);
-            strikesText.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(16f, 8f), new Vector2(410f, 30f));
+            strikesText = UIFactory.Ink("Flagrantes", grade.transform, "", UITheme.SizeSmall, UITheme.Ink, TextAnchor.LowerLeft);
+            strikesText.rectTransform.Place(Vector2.zero, Vector2.zero, new Vector2(16f, 8f), new Vector2(GradeW - 32f, 30f));
             strikesText.horizontalOverflow = HorizontalWrapMode.Wrap; // nunca transborda o painel da NOTA
             strikesText.verticalOverflow = VerticalWrapMode.Truncate;
+            strikesText.resizeTextForBestFit = true;
+            strikesText.resizeTextMinSize = 15;
+            strikesText.resizeTextMaxSize = UITheme.SizeSmall;
 
-            // colas novas (Bloco 15): painel discreto logo abaixo do da NOTA, mesma largura, sem encostar nele
-            cheatsBox = UIFactory.Box("Colas", hudRoot, new Color(0.1f, 0.11f, 0.16f, 0.7f));
-            cheatsBox.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -186f), new Vector2(440f, 146f));
-            cheatsText = UIFactory.Label("Texto", cheatsBox.transform, "", 19, Gray, TextAnchor.UpperLeft, FontStyle.Normal);
-            cheatsText.rectTransform.Stretch(10f);
-            cheatsText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            cheatsText.verticalOverflow = VerticalWrapMode.Truncate;
-            cheatsText.lineSpacing = 1.05f;
+            // colas de bolso (Bloco 15): folha logo abaixo da NOTA, uma linha por tecla (etiqueta + texto)
+            cheatsBox = UIFactory.Paper("Colas", hudRoot, margin: false);
+            cheatsBox.rectTransform.Place(new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-16f, -16f - GradeH - CheatsGap),
+                                          new Vector2(GradeW, 44f + CheatRowH * 4f + 10f));
+            cheatsHeader = UIFactory.Ink("Cabecalho", cheatsBox.transform, "", UITheme.SizeSmall, UITheme.Ink, TextAnchor.MiddleLeft);
+            cheatsHeader.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(16f, -8f), new Vector2(GradeW - 32f, 32f));
+            cheatsHeader.horizontalOverflow = HorizontalWrapMode.Wrap;
+            cheatsHeader.verticalOverflow = VerticalWrapMode.Truncate;
+            UIFactory.Line("Regua", cheatsBox.transform, UITheme.Rule, 0f, -42f, GradeW - 24f);
             cheatsBox.gameObject.SetActive(false);
 
             // prompt de interação + barra de segurar
-            promptBox = UIFactory.Box("Prompt", hudRoot, new Color(0.08f, 0.08f, 0.1f, 0.85f));
+            promptBox = UIFactory.Paper("Prompt", hudRoot, margin: false);
             promptBox.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(820f, 58f));
-            promptText = UIFactory.Label("Texto", promptBox.transform, "", 28, Yellow);
+            promptText = UIFactory.Ink("Texto", promptBox.transform, "", UITheme.SizeBody + 1, UITheme.Ink);
             promptText.rectTransform.Stretch(6f);
             promptBox.gameObject.SetActive(false);
 
-            holdFill = UIFactory.Bar("Segurar", hudRoot, new Color(0f, 0f, 0f, 0.7f), Yellow);
-            ((RectTransform)holdFill.transform.parent).Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 104f), new Vector2(640f, 36f));
-            holdText = UIFactory.Label("Texto", holdFill.transform.parent, "", 20, Color.white);
+            var holdBack = UIFactory.Paper("Segurar", hudRoot, margin: false);
+            holdBack.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 104f), new Vector2(640f, 36f));
+            holdFill = UIFactory.Box("Fill", holdBack.transform, UITheme.Pen, false);
+            holdFill.rectTransform.Stretch(4f);
+            holdFill.type = Image.Type.Filled;
+            holdFill.fillMethod = Image.FillMethod.Horizontal;
+            holdFill.sprite = UIFactory.WhiteSprite;
+            holdFill.fillAmount = 0f;
+            holdText = UIFactory.Ink("Texto", holdBack.transform, "", UITheme.SizeSmall, UITheme.Ink);
             holdText.rectTransform.Stretch();
-            holdFill.transform.parent.gameObject.SetActive(false);
+            holdBack.gameObject.SetActive(false);
 
-            // linha de controles: fundo escuro do tamanho do texto + contorno (legível sobre o chão claro)
-            seatedHelpBox = UIFactory.Box("AjudaFundo", hudRoot, new Color(0f, 0f, 0f, 0.6f), false);
-            seatedHelpBox.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 28f), new Vector2(600f, 40f));
+            // linha de controles: tira de papel do tamanho do texto, teclas em caneta azul
+            seatedHelpBox = UIFactory.Paper("AjudaFundo", hudRoot, margin: false);
+            seatedHelpBox.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 26f), new Vector2(600f, 44f));
             seatedHelpBox.gameObject.SetActive(false);
-            seatedHelp = UIFactory.Label("Ajuda", hudRoot, "", 22, Color.white);
-            seatedHelp.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1300f, 40f));
-            var contorno = seatedHelp.gameObject.AddComponent<Outline>();
-            contorno.effectColor = new Color(0f, 0f, 0f, 0.9f);
-            contorno.effectDistance = new Vector2(1.5f, -1.5f);
+            seatedHelp = UIFactory.Ink("Ajuda", seatedHelpBox.transform, "", UITheme.SizeSmall + 1, UITheme.Ink);
+            seatedHelp.rectTransform.Stretch();
+            seatedHelp.horizontalOverflow = HorizontalWrapMode.Overflow;
 
-            // passo do tutorial (só no treino): uma linha, acima do prompt
-            tutorialBox = UIFactory.Box("Tutorial", hudRoot, new Color(0.15f, 0.25f, 0.5f, 0.92f));
-            tutorialBox.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 220f), new Vector2(1250f, 56f));
-            tutorialText = UIFactory.Label("Texto", tutorialBox.transform, "", 24, Color.white);
+            // passo do tutorial (só no treino): bilhete à mão, acima do prompt
+            tutorialBox = UIFactory.Paper("Tutorial", hudRoot, margin: false);
+            tutorialBox.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 218f), new Vector2(1250f, 60f));
+            var treino = UIFactory.Stamp("Carimbo", tutorialBox.transform, Falas.HudTreino, UITheme.StampBlue, UITheme.SizeSmall, -4f);
+            treino.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(14f, 0f), treino.sizeDelta);
+            tutorialText = UIFactory.Ink("Texto", tutorialBox.transform, "", UITheme.SizeHandSmall + 2, UITheme.Pen, TextAnchor.MiddleLeft, hand: true);
             tutorialText.rectTransform.Stretch(8f);
+            tutorialText.rectTransform.offsetMin = new Vector2(treino.sizeDelta.x + 30f, 4f);
             tutorialBox.gameObject.SetActive(false);
 
             hudRoot.gameObject.SetActive(false);
@@ -174,6 +196,7 @@ namespace ProvaImpossivel
             bool show = gm != null && (gm.Phase == Phase.Playing || gm.Phase == Phase.Paused);
             if (hudRoot.gameObject.activeSelf != show) hudRoot.gameObject.SetActive(show);
             if (show) RefreshHud(gm);
+            UpdateIntroKeys();
             UpdateToasts();
             UpdateFlash();
         }
@@ -235,36 +258,51 @@ namespace ProvaImpossivel
             return false;
         }
 
+        /// <summary>Retângulos (no espaço do canvas) de todos os painéis do HUD visíveis agora (testes de layout).</summary>
+        public List<Rect> HudPanelRects()
+        {
+            var list = new List<Rect>();
+            foreach (var r in new[] { timerBox.rectTransform, gradePanel, cheatsBox.rectTransform, promptBox.rectTransform,
+                                      (RectTransform)holdFill.transform.parent, seatedHelpBox.rectTransform, tutorialBox.rectTransform })
+                if (r.gameObject.activeInHierarchy) list.Add(LocalRect(r, root));
+            return list;
+        }
+
+        /// <summary>Tamanho do canvas (unidades de UI) — o que cabe na tela.</summary>
+        public Rect CanvasRect => root.rect;
+
         void RefreshHud(GameManager gm)
         {
             float left = gm.TimeLeft;
             timerText.text = FormatTime(left);
             bool urgent = left <= 60f;
-            timerText.color = urgent ? (Mathf.Repeat(Time.time, 1f) < 0.5f ? Red : Color.white) : Color.white;
+            timerText.color = urgent && Mathf.Repeat(Time.time, 1f) < 0.5f ? UITheme.StampRed : UITheme.Ink;
 
             var exam = ExamSystem.I;
             float min = gm.Settings.minGrade;
             if (exam != null)
             {
                 float g = exam.Grade;
+                bool passa = g >= min;
                 gradeText.text = GameManager.Fmt(g) + " / " + GameManager.Fmt(min);
-                gradeText.color = g >= min ? Green : Color.white;
+                gradeText.color = passa ? UITheme.InkGreen : UITheme.PenRed;
                 for (int i = 0; i < slots.Length && i < exam.Questions.Length; i++)
                 {
-                    slots[i].color = exam.Questions[i] switch
+                    var q = exam.Questions[i];
+                    slots[i].color = q switch
                     {
-                        QuestionState.Certa => new Color(0.2f, 0.75f, 0.3f),
-                        QuestionState.Errada => new Color(0.8f, 0.2f, 0.2f),
-                        _ => new Color(0.35f, 0.35f, 0.4f),
+                        QuestionState.Certa => UITheme.InkGreen,
+                        QuestionState.Errada => UITheme.StampRed,
+                        _ => UITheme.Paper,
                     };
+                    slotNumbers[i].color = q == QuestionState.EmBranco ? UITheme.Ink : UITheme.Paper;
                     knownFrames[i].enabled = exam.Known[i];
                 }
-                // o título da nota faz o papel do antigo painel de objetivo
-                gradeTitle.text = g >= min ? "NOTA — já dá! Entregue na mesa (E)" : "NOTA";
-                gradeTitle.color = g >= min ? Green : Yellow;
+                // a anotação à mão faz o papel do antigo painel de objetivo
+                gradeNote.text = passa ? Falas.HudNotaJaDa : string.Format(Falas.HudNotaFaltam, GameManager.Fmt(min - g));
+                gradeNote.color = passa ? UITheme.InkGreen : UITheme.PenRed;
             }
-            strikesText.text = StrikesLabel(gm.Flagrantes, gm.Settings.maxFlagrantes, gm.Favors);
-
+            strikesText.text = StrikesRich(StrikesLabel(gm.Flagrantes, gm.Settings.maxFlagrantes, gm.Favors));
         }
 
         /// <summary>Acima disto, a linha de flagrantes mostra o número em vez das caixinhas (o treino tem limite 99).</summary>
@@ -287,6 +325,26 @@ namespace ProvaImpossivel
             return f + "    Favores: " + favors;
         }
 
+        /// <summary>Linha de flagrantes no papel: os X viram tinta vermelha, as caixinhas vazias ficam estreitas.</summary>
+        public static string StrikesRich(string label) =>
+            label.Replace("[X]", "[<color=#" + ColorUtility.ToHtmlStringRGB(UITheme.StampRed) + ">X</color>]")
+                 .Replace("[  ]", "[ ]").Replace("    ", "   ");
+
+        /// <summary>Teclas "[1]", "[Espaço]"... de uma linha de ajuda em caneta azul (rich text).</summary>
+        public static string KeysInPen(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            string pen = "<color=#" + ColorUtility.ToHtmlStringRGB(UITheme.Pen) + ">";
+            var sb = new System.Text.StringBuilder(text.Length + 32);
+            for (int i = 0; i < text.Length; i++)
+            {
+                int end = text[i] == '[' ? text.IndexOf(']', i) : -1;
+                if (end > i && end - i <= 10) { sb.Append(pen).Append(text, i, end - i + 1).Append("</color>"); i = end; }
+                else sb.Append(text[i]);
+            }
+            return sb.ToString();
+        }
+
         public static string FormatTime(float seconds)
         {
             seconds = Mathf.Max(0f, seconds);
@@ -300,7 +358,7 @@ namespace ProvaImpossivel
         {
             bool on = !string.IsNullOrEmpty(text);
             if (promptBox.gameObject.activeSelf != on) promptBox.gameObject.SetActive(on);
-            if (on) promptText.text = text;
+            if (on) promptText.text = KeysInPen(text);
         }
 
         /// <summary>Risco da ação que o jogador está segurando: quem chama decide (o HUD não lê o professor).</summary>
@@ -314,24 +372,110 @@ namespace ProvaImpossivel
             if (!on) return;
             holdFill.fillAmount = Mathf.Clamp01(progress);
             holdText.text = label;
-            // ação arriscada sendo vista = barra vermelha; arriscada escondida = verde
-            holdFill.color = risk == HoldRisk.Visto ? Red : risk == HoldRisk.Escondido ? Green : Yellow;
+            // ação arriscada sendo vista = vermelho; arriscada escondida = verde; segura = caneta azul.
+            // Meio transparente: o texto a tinta continua legível por cima.
+            holdFill.color = HoldColor(risk);
+        }
+
+        /// <summary>Cor do preenchimento da barra de segurar (meio transparente sobre o papel).</summary>
+        public static Color HoldColor(HoldRisk risk)
+        {
+            Color c = risk == HoldRisk.Visto ? UITheme.StampRed : risk == HoldRisk.Escondido ? UITheme.InkGreen : UITheme.Pen;
+            c.a = 0.45f;
+            return c;
         }
 
         public void SetSeatedHelp(string text)
         {
-            seatedHelp.text = text ?? "";
             bool on = !string.IsNullOrEmpty(text);
+            seatedHelp.text = on ? KeysInPen(text) : "";
             if (seatedHelpBox.gameObject.activeSelf != on) seatedHelpBox.gameObject.SetActive(on);
-            if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1300f, seatedHelp.preferredWidth + 40f), 40f);
+            if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1300f, seatedHelp.preferredWidth + 40f), 44f);
         }
+
+        // ------------------------------------------------------------------ colas de bolso
+
+        class CheatRow { public RectTransform rect; public Image key; public Text keyText, text; }
+        readonly List<CheatRow> cheatRows = new();
+        string cheatsRaw;
 
         /// <summary>Painel das colas novas (Bloco 15): teclas, cargas e o que está a caminho (null esconde).</summary>
         public void SetCheats(string text)
         {
             bool on = !string.IsNullOrEmpty(text);
             if (cheatsBox.gameObject.activeSelf != on) cheatsBox.gameObject.SetActive(on);
-            if (on && cheatsText.text != text) cheatsText.text = text;
+            if (!on || cheatsRaw == text) return;
+            cheatsRaw = text;
+            var lines = text.Split('\n');
+            cheatsHeader.text = lines[0];
+            int n = 0;
+            for (int i = 1; i < lines.Length; i++)
+            {
+                if (string.IsNullOrEmpty(lines[i])) continue;
+                var row = CheatRowAt(n++);
+                SplitKey(lines[i], out string key, out string rest);
+                row.key.gameObject.SetActive(key != null);
+                if (key != null) row.keyText.text = key;
+                row.text.text = rest;
+                row.text.color = rest.Contains("!") ? UITheme.StampRed : rest.Contains("confiscad") || rest.Contains("sem celular") ? UITheme.InkFaint : UITheme.Ink;
+                row.rect.gameObject.SetActive(true);
+            }
+            for (int i = n; i < cheatRows.Count; i++) cheatRows[i].rect.gameObject.SetActive(false);
+        }
+
+        CheatRow CheatRowAt(int i)
+        {
+            while (cheatRows.Count <= i)
+            {
+                int k = cheatRows.Count;
+                var r = UIFactory.Rect("Linha" + (k + 1), cheatsBox.transform);
+                r.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(16f, -50f - k * CheatRowH), new Vector2(GradeW - 32f, CheatRowH - 4f));
+                var key = UIFactory.Keycap("Tecla", r, "Q", 22);
+                key.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(30f, 30f));
+                var t = UIFactory.Ink("Texto", r, "", UITheme.SizeSmall - 1, UITheme.Ink, TextAnchor.MiddleLeft);
+                t.rectTransform.Stretch();
+                t.rectTransform.offsetMin = new Vector2(42f, 0f);
+                t.horizontalOverflow = HorizontalWrapMode.Wrap;
+                t.verticalOverflow = VerticalWrapMode.Truncate;
+                t.resizeTextForBestFit = true;
+                t.resizeTextMinSize = 14;
+                t.resizeTextMaxSize = UITheme.SizeSmall - 1;
+                cheatRows.Add(new CheatRow { rect = r, key = key, keyText = key.GetComponentInChildren<Text>(), text = t });
+            }
+            return cheatRows[i];
+        }
+
+        /// <summary>"[Q] Colinha ×2" → tecla "Q" e texto "Colinha ×2". Sem "[x]" no começo, a tecla é null. Pura.</summary>
+        public static void SplitKey(string line, out string key, out string rest)
+        {
+            key = null;
+            rest = line ?? "";
+            int end = rest.StartsWith("[") ? rest.IndexOf(']') : -1;
+            if (end < 2 || end > 8) return;
+            key = rest.Substring(1, end - 1);
+            rest = rest.Substring(end + 1).TrimStart();
+        }
+
+        /// <summary>Teclas visíveis no painel das colas, na ordem (testes).</summary>
+        public List<string> CheatKeys()
+        {
+            var keys = new List<string>();
+            foreach (var r in cheatRows)
+                if (r.rect.gameObject.activeSelf && r.key.gameObject.activeSelf) keys.Add(r.keyText.text);
+            return keys;
+        }
+
+        /// <summary>Todos os textos do painel das colas cabem na largura e na altura do painel? (testes)</summary>
+        public bool CheatsTextFits()
+        {
+            if (cheatsHeader.preferredWidth > cheatsHeader.rectTransform.rect.width + 1f) return false;
+            foreach (var r in cheatRows)
+            {
+                if (!r.rect.gameObject.activeSelf) continue;
+                var gen = r.text.cachedTextGenerator;
+                if (gen.lineCount > 1 || LocalRect(r.rect, cheatsBox.rectTransform).yMin < cheatsBox.rectTransform.rect.yMin) return false;
+            }
+            return true;
         }
 
         /// <summary>Área do painel das colas e do painel da NOTA (testes de sobreposição).</summary>
@@ -348,6 +492,7 @@ namespace ProvaImpossivel
 
         // =================================================================== mensagens
 
+        /// <param name="color">Cor de sinal (HUD.Yellow, HUD.Red...): no papel vira a tinta equivalente.</param>
         /// <param name="important">Mensagens importantes (flagrante, desafios) nunca são descartadas por mensagens comuns.</param>
         public void Toast(string text, Color color, float seconds = 3f, bool important = false)
         {
@@ -371,15 +516,23 @@ namespace ProvaImpossivel
                 toasts.RemoveAt(idx);
             }
 
-            var box = UIFactory.Box("Mensagem", toastRoot, new Color(0.08f, 0.08f, 0.1f, 0.9f));
-            var t = UIFactory.Label("Texto", box.transform, text, important ? 25 : 22, color);
+            // tira de papel; as importantes ganham moldura vermelha
+            var box = UIFactory.Paper("Mensagem", toastRoot, margin: false);
+            var group = box.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            if (important)
+            {
+                UIFactory.Frame("Moldura", box.transform, UITheme.StampRed).rectTransform.Stretch(4f);
+            }
+            var t = UIFactory.Ink("Texto", box.transform, text, important ? UITheme.SizeBody : UITheme.SizeSmall + 1, UITheme.OnPaper(color));
             box.rectTransform.anchorMin = box.rectTransform.anchorMax = new Vector2(0.5f, 1f);
             box.rectTransform.pivot = new Vector2(0.5f, 1f);
             box.rectTransform.sizeDelta = new Vector2(980f, 10f);
-            t.rectTransform.Stretch(10f);
-            float h = Mathf.Max(52f, t.preferredHeight + 22f);
+            t.rectTransform.Stretch(14f);
+            float h = Mathf.Max(52f, t.preferredHeight + 26f);
             box.rectTransform.sizeDelta = new Vector2(980f, h);
-            toasts.Insert(0, new Toast_ { rect = box.rectTransform, box = box, text = t, until = Time.unscaledTime + seconds, important = important, raw = text });
+            toasts.Insert(0, new Toast_ { rect = box.rectTransform, group = group, text = t, until = Time.unscaledTime + seconds, important = important, raw = text });
         }
 
         void UpdateToasts()
@@ -396,9 +549,7 @@ namespace ProvaImpossivel
             float largura = 0f;
             foreach (var t in toasts)
             {
-                float a = Mathf.Clamp01((t.until - Time.unscaledTime) / 0.4f);
-                var c = t.box.color; c.a = 0.9f * a; t.box.color = c;
-                var tc = t.text.color; tc.a = a; t.text.color = tc;
+                t.group.alpha = Mathf.Clamp01((t.until - Time.unscaledTime) / 0.4f);
                 t.rect.anchoredPosition = Vector2.Lerp(t.rect.anchoredPosition, new Vector2(0f, -y), Time.unscaledDeltaTime * 12f);
                 y += t.rect.sizeDelta.y + 8f;
                 largura = Mathf.Max(largura, t.rect.sizeDelta.x);
@@ -464,7 +615,7 @@ namespace ProvaImpossivel
             flash.color = c;
         }
 
-        // =================================================================== balões de fala
+        // =================================================================== balões de fala (iguais a antes)
 
         /// <param name="priority">Quando há balões demais, os de menor prioridade somem primeiro (professor = 2).</param>
         public void Say(Transform target, string speaker, string text, float seconds, Color nameColor, int priority = 0)
@@ -474,15 +625,15 @@ namespace ProvaImpossivel
             if (b == null)
             {
                 b = new Bubble { target = target };
-                b.box = UIFactory.Box("Balao", bubbleRoot, new Color(1f, 1f, 0.97f, 0.95f));
+                b.box = UIFactory.Box("Balao", bubbleRoot, UITheme.BubblePaper);
                 b.rect = b.box.rectTransform;
                 b.rect.anchorMin = b.rect.anchorMax = new Vector2(0.5f, 0.5f);
                 b.rect.pivot = new Vector2(0.5f, 0f);
                 b.name = UIFactory.Label("Nome", b.rect, "", 17, nameColor, TextAnchor.UpperLeft);
                 b.name.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(12f, -6f), new Vector2(360f, 22f));
                 var sh = b.name.GetComponent<Shadow>();
-                sh.effectColor = new Color(0f, 0f, 0f, 0.9f);
-                b.text = UIFactory.Label("Fala", b.rect, "", 22, new Color(0.08f, 0.08f, 0.1f), TextAnchor.UpperLeft, FontStyle.Normal);
+                sh.effectColor = UITheme.BubbleNameShadow;
+                b.text = UIFactory.Label("Fala", b.rect, "", 22, UITheme.BubbleInk, TextAnchor.UpperLeft, FontStyle.Normal);
                 Destroy(b.text.GetComponent<Shadow>());
                 bubbles.Add(b);
             }
@@ -589,114 +740,188 @@ namespace ProvaImpossivel
 
         // =================================================================== telas
 
+        // menu: duas folhas dentro do mesmo painel (capa e escolha da dificuldade)
+        GameObject menuPage, difficultyPage;
+        int pageChangedFrame = -1;
+
+        /// <summary>A folha de escolha da dificuldade está aberta? (testes)</summary>
+        public bool DifficultyPageOpen => difficultyPage != null && difficultyPage.activeInHierarchy;
+
         /// <param name="firstTime">Primeira vez: escolher a dificuldade leva ao treino, e aparece "Pular tutorial".</param>
         public void ShowIntro(Action<Difficulty> onChoose, Action onTutorial = null, Action onSkipTutorial = null, bool firstTime = false)
         {
+            HideIntro();
             introPanel = Dim("Introducao");
-            var box = UIFactory.Box("Caixa", introPanel.transform, PanelColor);
-            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240f, 900f));
-            var t = box.transform;
-            AddText(t, "SOBREVIVENDO À UNIMAR", 66, Yellow, new Vector2(0f, -30f), new Vector2(1180f, 80f));
-            AddText(t, "FASE 1 — A PROVA IMPOSSÍVEL", 40, Color.white, new Vector2(0f, -110f), new Vector2(1180f, 50f));
-            AddText(t, "Você não estudou. A prova é do Prof. Takanervoso, o homem que \"não nasceu ontem\".\n"
-                     + "Consiga a nota mínima antes do sinal — respondendo o que sabe, colando do Nerd,\n"
-                     + "usando o celular ou aproveitando o caos da sala. Mas cuidado: 3 flagrantes e você está fora.",
-                     24, Gray, new Vector2(0f, -175f), new Vector2(1160f, 110f), FontStyle.Normal);
-            AddText(t, "<b>CONTROLES</b>\n"
-                     + "WASD andar  •  Mouse câmera  •  Shift correr  •  E interagir (alguns: segure)  •  Esc pausar\n"
-                     + "Sentado:  1 responder o que sabe / chutar  •  2 celular (segure; bateria fraca)  •  Espaço levantar\n"
-                     + "Cara de Paisagem (Desafio A): ESPAÇO quando o ponteiro estiver na zona verde",
-                     22, Color.white, new Vector2(0f, -310f), new Vector2(1160f, 130f), FontStyle.Normal);
-            AddText(t, "ESCOLHA A DIFICULDADE  (clique, ou aperte 1, 2 ou 3)", 28, Yellow, new Vector2(0f, -480f), new Vector2(1180f, 40f));
+            menuPage = BuildMenuPage(onTutorial, onSkipTutorial, firstTime);
+            difficultyPage = BuildDifficultyPage(onChoose);
+            difficultyPage.SetActive(false);
+        }
 
-            string[] names = { "FÁCIL", "NORMAL", "DIFÍCIL" };
-            // tempo e nota vêm das DifficultySettings (antes eram texto fixo e ficavam errados quando o equilíbrio mudava)
-            var gm = GameManager.I;
-            string Desc(DifficultySettings s, string apelido) =>
-                Mathf.RoundToInt(s.duration / 60f) + " min • nota " + GameManager.Fmt(s.minGrade) + "\n" + apelido;
-            string[] desc =
-            {
-                Desc(gm.facil, "professor míope"),
-                Desc(gm.normal, "o clássico"),
-                Desc(gm.dificil, "professor com radar"),
-            };
-            Color[] cols = { new(0.2f, 0.6f, 0.3f), new(0.85f, 0.55f, 0.1f), new(0.75f, 0.15f, 0.15f) };
-            for (int i = 0; i < 3; i++)
-            {
-                var d = (Difficulty)i;
-                var b = UIFactory.Button("Botao" + names[i], t, names[i], cols[i], () => onChoose(d), 36);
-                b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2((i - 1) * 380f, -540f), new Vector2(340f, 80f));
-                AddText(t, desc[i], 22, Gray, new Vector2((i - 1) * 380f, -630f), new Vector2(340f, 70f), FontStyle.Normal);
-            }
-            const string DicaNormal = "Dica: observe a sala. Professor, Nerd e Dorminhoco avisam antes, no corpo, não na tela.";
-            var dica = AddText(t, firstTime ? "Primeira vez? Qualquer dificuldade começa pelo treino de 1 minuto." : DicaNormal,
-                               20, new Color(0.6f, 0.9f, 1f), new Vector2(0f, -810f), new Vector2(1160f, 60f), FontStyle.Italic);
-            // tutorial: na primeira vez é o caminho padrão (com opção de pular); depois, fica como "rever"
+        /// <summary>Capa: título, recado do professor, JOGAR / TUTORIAL / SAIR.</summary>
+        GameObject BuildMenuPage(Action onTutorial, Action onSkipTutorial, bool firstTime)
+        {
+            var box = UIFactory.Paper("Caixa", introPanel.transform, margin: true, header: true);
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1180f, 900f));
+            var t = box.transform;
+            const float cx = 40f; // centro do texto: à direita da margem
+            var title = AddInk(t, Falas.JogoTitulo, UITheme.SizeHuge - 6, UITheme.Ink, new Vector2(cx, -70f), new Vector2(1040f, 96f));
+            title.horizontalOverflow = HorizontalWrapMode.Overflow;
+            UIFactory.Line("Sublinhado", t, UITheme.Ink, cx, -170f, 900f, 3f);
+            AddInk(t, Falas.JogoSubtitulo, UITheme.SizeHeading, UITheme.InkSoft, new Vector2(cx, -188f), new Vector2(1040f, 44f));
+            AddInk(t, Falas.MenuHistoria, UITheme.SizeSmall, UITheme.Ink, new Vector2(cx, -262f), new Vector2(1040f, 110f));
+
+            // recado à mão do professor, em vermelho, torto
+            var recado = AddInk(t, Falas.MenuRecadoProfessor, UITheme.SizeHand, UITheme.PenRed, new Vector2(350f, -400f), new Vector2(330f, 90f), hand: true);
+            recado.alignment = TextAnchor.UpperLeft;
+            recado.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 4f);
+
+            var jogar = UIFactory.PaperButton("BotaoJOGAR", t, Falas.BotaoJogar, ShowDifficultyPage, UITheme.SizeHeading, checkbox: true);
+            jogar.GetComponent<RectTransform>().Top(-150f, -400f, 440f, 84f);
+            Text dica = null;
             if (onTutorial != null)
             {
-                var tut = UIFactory.Button("BotaoTUTORIAL", t, firstTime ? "TUTORIAL (1 min)  [T]" : "Rever tutorial  [T]",
-                                           new Color(0.25f, 0.45f, 0.8f), () => onTutorial(), firstTime ? 30 : 24);
-                tut.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(firstTime ? -190f : 0f, -715f), new Vector2(firstTime ? 420f : 320f, 64f));
+                var tut = UIFactory.PaperButton("BotaoTUTORIAL", t, firstTime ? Falas.BotaoTutorialPrimeira : Falas.BotaoTutorialRever,
+                                                () => onTutorial(), UITheme.SizeButton - 4, checkbox: true);
+                tut.GetComponent<RectTransform>().Top(-150f, -504f, 440f, 84f);
                 if (firstTime && onSkipTutorial != null)
                 {
                     GameObject skip = null;
-                    skip = UIFactory.Button("BotaoPULAR", t, "Pular tutorial", new Color(0.3f, 0.3f, 0.35f), () =>
+                    skip = UIFactory.PaperButton("BotaoPULAR", t, Falas.BotaoPularTutorial, () =>
                     {
                         onSkipTutorial();
                         if (skip != null) skip.SetActive(false);
-                        tut.GetComponentInChildren<Text>().text = "Rever tutorial  [T]";
-                        dica.text = DicaNormal;
-                    }, 24).gameObject;
-                    skip.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(230f, -715f), new Vector2(300f, 64f));
+                        tut.GetComponentInChildren<PaperButtonFeel>().label.text = Falas.BotaoTutorialRever;
+                        if (dica != null) dica.text = Falas.MenuDica;
+                    }, UITheme.SizeSmall).gameObject;
+                    skip.GetComponent<RectTransform>().Top(250f, -514f, 280f, 64f);
                 }
             }
+            var sair = UIFactory.PaperButton("BotaoSAIR", t, Falas.BotaoSair, () => GameManager.I?.Quit(), UITheme.SizeButton, checkbox: true);
+            sair.GetComponent<RectTransform>().Top(-150f, -608f, 440f, 84f);
+
+            dica = AddInk(t, firstTime ? Falas.MenuDicaPrimeiraVez : Falas.MenuDica, UITheme.SizeHandSmall, UITheme.Pen,
+                          new Vector2(cx, -716f), new Vector2(1000f, 40f), hand: true);
+            AddInk(t, Falas.MenuAtalhos, UITheme.SizeSmall, UITheme.InkSoft, new Vector2(-140f, -790f), new Vector2(720f, 30f));
+            var carimbo = UIFactory.Stamp("Carimbo", t, Falas.MenuCarimbo, UITheme.StampRed, UITheme.SizeHeading + 4);
+            carimbo.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 34f), carimbo.sizeDelta);
+            return box.gameObject;
+        }
+
+        /// <summary>Folha de prova: as 3 dificuldades (tempo e nota das DifficultySettings) e as instruções.</summary>
+        GameObject BuildDifficultyPage(Action<Difficulty> onChoose)
+        {
+            var box = UIFactory.Paper("Folha", introPanel.transform, margin: true, header: true);
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240f, 920f));
+            var t = box.transform;
+            const float cx = 40f;
+            AddInk(t, Falas.DificuldadeTitulo, UITheme.SizeHeading + 4, UITheme.Ink, new Vector2(cx, -62f), new Vector2(1100f, 50f));
+            AddInk(t, Falas.DificuldadeEnunciado, UITheme.SizeHand, UITheme.Pen, new Vector2(cx, -116f), new Vector2(1100f, 44f), hand: true);
+
+            string[] names = { "FÁCIL", "NORMAL", "DIFÍCIL" };
+            string[] frases = { Falas.DificuldadeFacilFrase, Falas.DificuldadeNormalFrase, Falas.DificuldadeDificilFrase };
+            // tempo e nota vêm das DifficultySettings (nunca digitados aqui)
+            var gm = GameManager.I;
+            DifficultySettings[] sets = { gm != null ? gm.facil : null, gm != null ? gm.normal : null, gm != null ? gm.dificil : null };
+            for (int i = 0; i < 3; i++)
+            {
+                var d = (Difficulty)i;
+                float y = -180f - i * 118f;
+                var b = UIFactory.PaperButton("Botao" + names[i], t, (i + 1) + ") " + names[i], () => onChoose(d), UITheme.SizeButton, checkbox: true);
+                b.GetComponent<RectTransform>().Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UITheme.MarginX + 40f, y), new Vector2(380f, 84f));
+                var dados = UIFactory.Ink("Dados" + names[i], t, DifficultyData(sets[i]), UITheme.SizeBody, UITheme.Ink, TextAnchor.UpperLeft);
+                dados.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UITheme.MarginX + 450f, y - 4f), new Vector2(660f, 34f));
+                var frase = UIFactory.Ink("Frase" + names[i], t, frases[i], UITheme.SizeHandSmall + 2, UITheme.InkSoft, TextAnchor.UpperLeft, hand: true);
+                frase.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(UITheme.MarginX + 450f, y - 40f), new Vector2(660f, 44f));
+            }
+
+            UIFactory.Line("Regua", t, UITheme.Rule, cx, -540f, 1060f);
+            AddInk(t, Falas.InstrucoesTitulo, UITheme.SizeBody, UITheme.Ink, new Vector2(cx, -560f), new Vector2(1060f, 34f));
+            var instr = AddInk(t, Falas.InstrucoesControles, UITheme.SizeBody, UITheme.Ink, new Vector2(cx, -600f), new Vector2(1060f, 220f));
+            instr.lineSpacing = 1.3f;
+
+            var voltar = UIFactory.PaperButton("BotaoVOLTAR", t, Falas.BotaoVoltar, ShowMenuPage, UITheme.SizeSmall + 2);
+            voltar.GetComponent<RectTransform>().Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(UITheme.MarginX + 40f, 30f), new Vector2(300f, 64f));
+            return box.gameObject;
+        }
+
+        /// <summary>"8 min • nota mínima 6,0" a partir da dificuldade (pura: testável).</summary>
+        public static string DifficultyData(DifficultySettings s) =>
+            s == null ? "" : string.Format(Falas.DificuldadeDados, Mathf.RoundToInt(s.duration / 60f), GameManager.Fmt(s.minGrade));
+
+        /// <summary>Abre a folha da dificuldade (botão JOGAR).</summary>
+        public void ShowDifficultyPage()
+        {
+            if (menuPage == null || difficultyPage == null || pageChangedFrame == Time.frameCount) return;
+            pageChangedFrame = Time.frameCount;
+            menuPage.SetActive(false);
+            difficultyPage.SetActive(true);
+            SoundFX.Play(Sfx.Clique);
+        }
+
+        /// <summary>Volta para a capa (botão VOLTAR ou Esc).</summary>
+        public void ShowMenuPage()
+        {
+            if (menuPage == null || difficultyPage == null || pageChangedFrame == Time.frameCount) return;
+            pageChangedFrame = Time.frameCount;
+            difficultyPage.SetActive(false);
+            menuPage.SetActive(true);
+            SoundFX.Play(Sfx.Clique);
+        }
+
+        void UpdateIntroKeys()
+        {
+            // Esc na folha da dificuldade volta para a capa (no mesmo frame em que a folha abriu não vale)
+            var kb = Keyboard.current;
+            if (kb != null && DifficultyPageOpen && pageChangedFrame != Time.frameCount && kb.escapeKey.wasPressedThisFrame) ShowMenuPage();
         }
 
         public void HideIntro()
         {
             if (introPanel != null) Destroy(introPanel);
+            introPanel = menuPage = difficultyPage = null;
         }
 
         public void ShowPause(Action resume, Action restart, Action quit)
         {
             HidePause();
             pausePanel = Dim("Pausa");
-            var box = UIFactory.Box("Caixa", pausePanel.transform, PanelColor);
-            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 760f));
+            var box = UIFactory.Paper("Caixa", pausePanel.transform, margin: true);
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(780f, 760f));
             // a caixa da pausa alcança a faixa das mensagens do topo: elas somem enquanto a pausa está aberta
             toastRoot.gameObject.SetActive(false);
-            AddText(box.transform, "PAUSADO", 60, Yellow, new Vector2(0f, -30f), new Vector2(720f, 80f));
-            AddText(box.transform, "O professor também congelou. Aproveite pra respirar.", 22, Gray, new Vector2(0f, -110f), new Vector2(720f, 40f), FontStyle.Italic);
+            const float cx = 40f;
+            AddInk(box.transform, Falas.PausaTitulo, UITheme.SizeTitle, UITheme.Ink, new Vector2(cx, -34f), new Vector2(660f, 74f));
+            AddInk(box.transform, Falas.PausaFrase, UITheme.SizeHandSmall + 2, UITheme.Pen, new Vector2(cx, -112f), new Vector2(660f, 44f), hand: true);
 
             // opções (Bloco 14): salvas na hora, valem para as próximas partidas também
             AddOption(box.transform, Falas.OpcaoVolumeGeral, GameOptions.MinVolume, GameOptions.MaxVolume, GameOptions.MasterVolume,
-                      GameOptions.SetMasterVolume, Percent, -170f);
+                      GameOptions.SetMasterVolume, Percent, -180f);
             AddOption(box.transform, Falas.OpcaoVolumeEfeitos, GameOptions.MinVolume, GameOptions.MaxVolume, GameOptions.SfxVolume,
-                      GameOptions.SetSfxVolume, Percent, -245f);
+                      GameOptions.SetSfxVolume, Percent, -252f);
             AddOption(box.transform, Falas.OpcaoSensibilidade, GameOptions.MinCameraSensitivity, GameOptions.MaxCameraSensitivity,
-                      GameOptions.CameraSensitivity, GameOptions.SetCameraSensitivity, v => v.ToString("0.00").Replace('.', ',') + "×", -320f);
+                      GameOptions.CameraSensitivity, GameOptions.SetCameraSensitivity, v => v.ToString("0.00").Replace('.', ',') + "×", -324f);
 
-            AddButton(box.transform, "CONTINUAR", new Color(0.2f, 0.6f, 0.3f), resume, -420f);
-            AddButton(box.transform, "REINICIAR FASE", new Color(0.85f, 0.55f, 0.1f), restart, -530f);
-            AddButton(box.transform, "SAIR", new Color(0.6f, 0.2f, 0.2f), quit, -640f);
+            AddButton(box.transform, Falas.BotaoContinuar, resume, -420f);
+            AddButton(box.transform, Falas.BotaoReiniciar, restart, -524f);
+            AddButton(box.transform, Falas.BotaoSair, quit, -628f);
         }
 
         static string Percent(float v) => Mathf.RoundToInt(v * 100f) + "%";
 
-        /// <summary>Linha de opção: rótulo à esquerda, slider no meio, valor à direita.</summary>
+        /// <summary>Linha de opção: rótulo datilografado à esquerda, régua no meio, valor à caneta à direita.</summary>
         static void AddOption(Transform parent, string label, float min, float max, float value, Action<float> set, Func<float, string> show, float y)
         {
-            var row = UIFactory.Rect("Opcao", parent).Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(680f, 56f));
-            var l = UIFactory.Label("Rotulo", row, label, 24, Color.white, TextAnchor.MiddleLeft, FontStyle.Normal);
-            l.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(270f, 56f));
-            var v = UIFactory.Label("Valor", row, show(value), 24, Yellow, TextAnchor.MiddleRight);
-            v.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(90f, 56f));
-            var s = UIFactory.Slider("Slider", row, min, max, value, Yellow, x =>
+            var row = UIFactory.Rect("Opcao", parent).Top(40f, y, 640f, 60f);
+            var l = UIFactory.Ink("Rotulo", row, label, UITheme.SizeSmall, UITheme.Ink, TextAnchor.MiddleLeft);
+            l.rectTransform.Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(300f, 60f));
+            var v = UIFactory.Ink("Valor", row, show(value), UITheme.SizeHand, UITheme.Pen, TextAnchor.MiddleRight, hand: true);
+            v.rectTransform.Place(new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(96f, 60f));
+            var s = UIFactory.PaperSlider("Slider", row, min, max, value, x =>
             {
                 set(x);
                 v.text = show(x);
             });
-            s.GetComponent<RectTransform>().Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(285f, 0f), new Vector2(290f, 30f));
+            s.GetComponent<RectTransform>().Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(310f, 0f), new Vector2(226f, 40f));
         }
 
         /// <summary>Há mensagens do topo visíveis agora? (testes: a pausa não pode ficar embaixo delas)</summary>
@@ -709,50 +934,53 @@ namespace ProvaImpossivel
         }
 
         /// <summary>
-        /// Fim da prova (Bloco 14): resultado, frase, resumo em duas colunas (a prova x a ficha criminal) e botões
-        /// jogar de novo (R), menu (M) e sair. Caixa de 1240×790 dentro da referência 1920×1080: nada fica por cima do HUD.
+        /// Fim da prova (Bloco 14/16): carimbo do resultado, comentário do professor à caneta, resumo em duas colunas
+        /// (a prova x a ficha criminal) e botões jogar de novo (R), menu (M) e sair. Caixa de 1240×800.
         /// </summary>
         public void ShowMatchResult(MatchSummary sum, string message, Color color, Action playAgain, Action menu, Action quit)
         {
             ClearForResult();
             resultPanel = Dim("Resultado");
-            var box = UIFactory.Box("Caixa", resultPanel.transform, PanelColor);
-            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240f, 790f));
+            var box = UIFactory.Paper("Caixa", resultPanel.transform, margin: true, header: true);
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240f, 800f));
             var t = box.transform;
-            AddText(t, MatchSummary.Title(sum.result), 80, color, new Vector2(0f, -24f), new Vector2(1180f, 100f));
-            AddText(t, message, 28, Color.white, new Vector2(0f, -130f), new Vector2(1120f, 90f), FontStyle.Normal);
+            var stamp = UIFactory.Stamp("Carimbo", t, MatchSummary.Title(sum.result), UITheme.StampFor(color), UITheme.SizeStamp, -3f);
+            stamp.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(40f, -135f), stamp.sizeDelta);
+            AddInk(t, message, UITheme.SizeHand, UITheme.PenRed, new Vector2(40f, -226f), new Vector2(1060f, 70f), hand: true);
 
-            SummaryColumn(t, "ColunaProva", Falas.ResumoProva, sum.ExamLines, -300f);
-            SummaryColumn(t, "ColunaFicha", Falas.ResumoCrimes, sum.CrimeLines, 300f);
-            AddText(t, Falas.ResumoRodape + sum.difficulty, 22, Gray, new Vector2(0f, -600f), new Vector2(1180f, 34f), FontStyle.Italic);
+            SummaryColumn(t, "ColunaProva", Falas.ResumoProva, sum.ExamLines, -240f);
+            SummaryColumn(t, "ColunaFicha", Falas.ResumoCrimes, sum.CrimeLines, 330f);
+            AddInk(t, Falas.ResumoRodape + sum.difficulty, UITheme.SizeSmall, UITheme.InkSoft, new Vector2(40f, -644f), new Vector2(1060f, 28f));
 
-            ResultButton(t, "JogarDeNovo", Falas.BotaoJogarDeNovo, new Color(0.2f, 0.6f, 0.3f), playAgain, -390f, 420f);
-            ResultButton(t, "Menu", Falas.BotaoMenu, new Color(0.25f, 0.45f, 0.8f), menu, 40f, 340f);
-            ResultButton(t, "Sair", Falas.BotaoSair, new Color(0.6f, 0.2f, 0.2f), quit, 390f, 260f);
+            ResultButton(t, "JogarDeNovo", Falas.BotaoJogarDeNovo, playAgain, -260f, 400f);
+            ResultButton(t, "Menu", Falas.BotaoMenu, menu, 120f, 300f);
+            ResultButton(t, "Sair", Falas.BotaoSair, quit, 420f, 240f);
         }
 
-        /// <summary>Uma coluna do resumo: cabeçalho e linhas "rótulo ...... valor" num painel escuro.</summary>
+        /// <summary>Uma coluna do resumo: cabeçalho sublinhado e linhas "rótulo ...... valor à caneta".</summary>
         static void SummaryColumn(Transform parent, string name, string header, (string label, string value)[] lines, float x)
         {
-            const float w = 560f, line = 52f, top = 70f;
-            var col = UIFactory.Box(name, parent, new Color(0f, 0f, 0f, 0.35f), false);
-            col.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -240f), new Vector2(w, top + line * 5 + 20f));
-            var h = UIFactory.Label("Cabecalho", col.transform, header, 26, Yellow);
-            h.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -14f), new Vector2(w - 40f, 40f));
+            const float w = 520f, line = 46f, top = 54f;
+            var col = UIFactory.Rect(name, parent).Top(x, -300f, w, top + line * 6 + 8f);
+            var h = UIFactory.Ink("Cabecalho", col, header, UITheme.SizeBody + 1, UITheme.Ink, TextAnchor.MiddleLeft);
+            h.rectTransform.Top(0f, 0f, w, 40f);
+            UIFactory.Line("Sublinhado", col, UITheme.Ink, 0f, -42f, w, 2f);
             for (int i = 0; i < lines.Length; i++)
             {
                 float y = -top - i * line;
-                var l = UIFactory.Label("Rotulo", col.transform, lines[i].label, 25, Gray, TextAnchor.MiddleLeft, FontStyle.Normal);
-                l.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-90f, y), new Vector2(340f, line));
-                var v = UIFactory.Label("Valor", col.transform, lines[i].value, 28, Color.white, TextAnchor.MiddleRight);
-                v.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(170f, y), new Vector2(180f, line));
+                UIFactory.Line("Pauta", col, UITheme.Rule, 0f, y - line + 6f, w, 2f);
+                var l = UIFactory.Ink("Rotulo", col, lines[i].label, UITheme.SizeSmall - 1, UITheme.InkSoft, TextAnchor.LowerLeft);
+                l.rectTransform.Top(-w * 0.5f + 175f, y, 350f, line - 8f);
+                var v = UIFactory.Ink("Valor", col, lines[i].value, UITheme.SizeHand, UITheme.Pen, TextAnchor.LowerRight, hand: true);
+                v.rectTransform.Top(w * 0.5f - 85f, y + 2f, 170f, line - 6f);
+                v.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
         }
 
-        static void ResultButton(Transform parent, string name, string text, Color color, Action onClick, float x, float width)
+        static void ResultButton(Transform parent, string name, string text, Action onClick, float x, float width)
         {
-            var b = UIFactory.Button(name, parent, text, color, () => onClick(), 30);
-            b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(x, -660f), new Vector2(width, 86f));
+            var b = UIFactory.PaperButton(name, parent, text, () => onClick(), UITheme.SizeButton - 2);
+            b.GetComponent<RectTransform>().Top(x, -684f, width, 84f);
         }
 
         void ClearForResult()
@@ -763,42 +991,43 @@ namespace ProvaImpossivel
             if (resultPanel != null) Destroy(resultPanel);
         }
 
-        /// <summary>Tela final simples (fim do treino): título, frase, uma linha e dois botões.</summary>
+        /// <summary>Tela final simples (fim do treino): carimbo, frase, uma linha e dois botões.</summary>
         public void ShowResult(string title, string message, string stats, Color color, Action restart, Action quit)
         {
             ClearForResult();
             resultPanel = Dim("Resultado");
-            var box = UIFactory.Box("Caixa", resultPanel.transform, PanelColor);
+            var box = UIFactory.Paper("Caixa", resultPanel.transform, margin: true, header: true);
             box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 680f));
-            AddText(box.transform, title, 84, color, new Vector2(0f, -30f), new Vector2(1060f, 110f));
-            AddText(box.transform, message, 32, Color.white, new Vector2(0f, -160f), new Vector2(1000f, 120f), FontStyle.Normal);
-            AddText(box.transform, stats, 26, Gray, new Vector2(0f, -300f), new Vector2(1000f, 120f), FontStyle.Normal);
-            var a = UIFactory.Button("Reiniciar", box.transform, "TENTAR DE NOVO (R)",new Color(0.2f, 0.6f, 0.3f), () => restart(), 34);
-            a.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-230f, -520f), new Vector2(400f, 90f));
-            var q = UIFactory.Button("Sair", box.transform, "SAIR", new Color(0.6f, 0.2f, 0.2f), () => quit(), 34);
-            q.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(230f, -520f), new Vector2(400f, 90f));
+            var stamp = UIFactory.Stamp("Carimbo", box.transform, title, UITheme.StampFor(color), UITheme.SizeStamp - 8, -3f);
+            stamp.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(40f, -130f), stamp.sizeDelta);
+            AddInk(box.transform, message, UITheme.SizeHand, UITheme.PenRed, new Vector2(40f, -220f), new Vector2(920f, 120f), hand: true);
+            AddInk(box.transform, stats, UITheme.SizeBody, UITheme.Ink, new Vector2(40f, -360f), new Vector2(920f, 80f));
+            var a = UIFactory.PaperButton("Reiniciar", box.transform, Falas.BotaoTentarDeNovo, () => restart(), UITheme.SizeButton);
+            a.GetComponent<RectTransform>().Top(-190f, -520f, 400f, 88f);
+            var q = UIFactory.PaperButton("Sair", box.transform, Falas.BotaoSair, () => quit(), UITheme.SizeButton);
+            q.GetComponent<RectTransform>().Top(270f, -520f, 400f, 88f);
         }
 
         GameObject Dim(string name)
         {
-            var dim = UIFactory.Box(name, PanelRoot, new Color(0f, 0f, 0f, 0.72f), false);
+            var dim = UIFactory.Box(name, PanelRoot, UITheme.Dim, false);
             dim.raycastTarget = true;
             dim.rectTransform.Stretch();
             dim.transform.SetAsLastSibling();
             return dim.gameObject;
         }
 
-        static Text AddText(Transform parent, string text, int size, Color color, Vector2 pos, Vector2 sizeDelta, FontStyle style = FontStyle.Bold)
+        static Text AddInk(Transform parent, string text, int size, Color color, Vector2 pos, Vector2 sizeDelta, bool hand = false)
         {
-            var l = UIFactory.Label("Texto", parent, text, size, color, TextAnchor.UpperCenter, style);
+            var l = UIFactory.Ink("Texto", parent, text, size, color, TextAnchor.UpperCenter, hand);
             l.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), pos, sizeDelta);
             return l;
         }
 
-        static void AddButton(Transform parent, string text, Color color, Action onClick, float y)
+        static void AddButton(Transform parent, string text, Action onClick, float y)
         {
-            var b = UIFactory.Button("Botao", parent, text, color, () => onClick(), 32);
-            b.GetComponent<RectTransform>().Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(440f, 84f));
+            var b = UIFactory.PaperButton("Botao", parent, text, () => onClick(), UITheme.SizeButton - 2);
+            b.GetComponent<RectTransform>().Top(40f, y, 460f, 84f);
         }
     }
 }

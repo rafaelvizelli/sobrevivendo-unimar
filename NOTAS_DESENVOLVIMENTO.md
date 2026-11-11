@@ -1,6 +1,6 @@
 # Sobrevivendo à UNIMAR — notas de desenvolvimento
 
-Última atualização: 10/11/2026 (Bloco 15b — colas no CSV e ícone do Nerd; Bloco 16 esperando a escolha da direção visual)
+Última atualização: 10/11/2026 (Bloco 16 etapa 2 — identidade visual "prova impressa")
 
 ## Onde paramos
 - Fase 1 ("A Prova Impossível") jogável de ponta a ponta, com tutorial. Código no GitHub (privado):
@@ -17,11 +17,12 @@
 - **15** (10/11) colas novas: colinha (Q), bilhete (B), fone (F), garrafinha (G) + orçamento de colas da partida
   (`maxCheatAnswers`, vale para TODAS as colas). Playtest real até agora: 1 partida (Difícil, reprovado 5,0).
 - **16** (10/11) identidade visual dos menus: etapa 1 feita (3 direções + protótipos em `Captures/MenuOpcoes/`);
-  ESPERANDO o usuário escolher a direção antes da etapa 2.
+  Etapa 2 feita: direção A "prova impressa" (tema único `UITheme`, fontes Special Elite e Caveat).
 - **15b** (10/11) `partidas.csv` registra as colas novas (colunas no fim); ícone do Nerd com teto de tamanho;
   simulação com perfil arrojado e flagrantes/partida. Bug do flagrante com bilhete no ar (prendia 1 vaga do
   orçamento) corrigido.
-- Próximo: escolher a direção visual (Bloco 16) e PLAYTEST HUMANO com as colas novas (`partidas.csv`).
+- Próximo: jogar com o executável novo (menus e HUD de papel), decidir os ajustes da auditoria 15c e PLAYTEST
+  HUMANO com as colas novas (`partidas.csv`).
 
 ## Como rodar os testes
 - Batch (Unity FECHADO): `Unity.exe -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`.
@@ -376,6 +377,55 @@
   executável (não regenerado neste bloco).
 - Observação vista nas capturas (fora do escopo): o ícone "O_O" do Nerd fica enorme na tela porque a carteira dele é
   colada à do jogador. (Corrigido no Bloco 15b.)
+
+### Bloco 16 — etapa 2: identidade visual "prova impressa" (10/11)
+- Direção A (escolhida pelo usuário): folha creme, margem vermelha, texto datilografado, caneta azul, carimbos.
+  Só interface: nenhuma regra, número de equilíbrio ou teste de equilíbrio mudou.
+- Fontes em `Assets/Fonts/Resources/` (pasta Resources para carregar por código), cada uma com a licença ao lado:
+  Special Elite (`SpecialElite-Regular.ttf`, Apache 2.0, `SpecialElite-LICENSE.txt`) e Caveat (`Caveat-Regular.ttf`,
+  SIL Open Font License 1.1, `Caveat-OFL.txt`). Baixadas do repositório google/fonts (Special Elite) e
+  googlefonts/caveat (Caveat estática). Sem negrito sintético (era o que borrava nos protótipos). Se faltar uma, o
+  tema cai na fonte do sistema e avisa no log (`UITheme.UsingFallbackFont`).
+- `UI/UITheme.cs` (NOVO): o tema inteiro. Cores de papel/tinta, cores de SINAL (as antigas, para mundo, balões e
+  desafios), fontes, tamanhos, espaçamentos, transição (0,18 s), contraste WCAG (`Contrast`), `OnPaper` (cor de sinal
+  das mensagens vira tinta legível no papel), `StampFor` (carimbo azul aprovado / vermelho reprovado-expulso) e os
+  sprites gerados por código (folha, moldura, moldura dupla do carimbo, tecla).
+- `UI/UIFactory.cs`: componentes de papel `Paper`, `Ink`, `PaperButton` (normal/hover/clique/desabilitado, "( )" com
+  X à mão no hover), `PaperSlider`, `Stamp`, `Keycap`, `Frame`, `Line`. A família antiga (Box/Label/Button/Slider/Bar)
+  continua para MoodIcon, balões e desafios A/B, que NÃO mudaram. Nenhuma cor solta (teste lê o arquivo).
+- `UI/PaperButtonFeel.cs` (NOVO): hover/clique em tempo real (funciona pausado), não consome clique.
+- `UI/HUD.cs`:
+  - `ShowIntro` agora tem duas folhas: capa (`BuildMenuPage`: JOGAR, TUTORIAL, SAIR, "Pular tutorial" na 1ª vez) e
+    folha de prova (`BuildDifficultyPage`: 3 dificuldades com tempo e nota de `DifficultySettings` via
+    `DifficultyData`, frase engraçada, instruções com as colas Q/G/B/F, VOLTAR). `ShowDifficultyPage`/`ShowMenuPage`
+    com proteção de mesmo frame; Esc volta. As teclas 1/2/3/Enter/T continuam no GameManager (não mexido).
+  - `ShowPause`: 3 sliders de papel com valor à caneta. `ShowMatchResult`/`ShowResult`: carimbo + comentário do
+    professor à caneta vermelha + colunas "A PROVA" e "A FICHA CRIMINAL" pautadas.
+  - HUD: tempo, NOTA (nota à caneta, anotação "faltam X pra passar"/"já dá!", caixinhas-tecla, marca-texto amarelo
+    nas que sabe), COLAS com etiqueta de tecla por linha (`SetCheats` separa "[Q] ..." com `SplitKey`), prompt,
+    barra de segurar (cor meio transparente), ajuda com teclas em caneta azul (`KeysInPen`), tutorial com carimbo
+    TREINO, mensagens do topo em tiras de papel (importantes com moldura vermelha). Balões e ícones: iguais.
+- `MatchSummary`: linha nova "Colas de bolso (Q/G/B/F)" na ficha (usos de colinha/garrafinha/bilhete/fone do
+  `MatchLog`). `Falas`: textos novos do menu, dificuldade, instruções, pausa e HUD.
+- Testes: `IdentidadeVisualTests` (EditMode: fontes carregadas e licenças, acentos ã ç é õ ê etc. em 18/24/34 px,
+  contraste ≥ 4,5 de todas as tintas no papel, mensagens com cor de sinal legíveis, cores do mundo intactas, sem
+  `new Color(` no HUD/UIFactory, `SplitKey`, `KeysInPen`, flagrantes no teto, dados da dificuldade);
+  `IdentidadeVisualPlayTests` (capa/folha/voltar + mesmo frame, dados reais, sem sobreposição; HUD sem
+  sobreposição e dentro da tela; hover em tempo real com o jogo pausado). Ajustados: ficha com 6 linhas
+  (`AcabamentoTests`), painel das colas por etiquetas (`ColasNovasPlayTests`).
+- Capturas (teste PlayMode temporário, apagado): `Captures/AuditoriaVisual5/` 01–14 em 1920×1080 e 1280×720
+  (menu 1ª vez/normal/hover, dificuldade, HUD início/flagrante+segurando, pausa, reprovado, aprovado, sufoco,
+  expulso, passo do tutorial, mensagens do topo, fim do treino).
+- Visto nas capturas e corrigido: escurecimento atrás do menu fraco (0,62 em espaço linear quase não escurece →
+  0,82), texto pequeno claro demais (a fonte é "gasta": tamanho mínimo 23 e tinta secundária mais escura), números
+  das teclas pequenos, moldura grossa no carimbo pequeno, texto do carimbo alto, entrelinha das instruções.
+- Defeitos que sobraram (vistos): em 1280×720 o texto de 23 px vira ~15 px (legível, mas pequeno); folha da
+  dificuldade com espaço vazio acima do VOLTAR; o "( )" do botão TUTORIAL é menor que o dos outros (fonte menor);
+  o X do hover encosta nos parênteses.
+- NÃO verificado: hover/clique com mouse de verdade (testado chamando os eventos), Esc na folha com teclado real
+  (o teste chama `ShowMenuPage`), som do clique, outras proporções de tela (só 16:9).
+- Testes: EditMode 120/120 (+17), PlayMode 97/97 (+3). Build ok (103 MB); Player.log da abertura (menu): 0 exceções,
+  sem aviso de fonte reserva.
 
 ### Bloco 16 — identidade visual dos menus (10/11) — etapa 1
 - 3 direções (prova impressa, caderno pautado, lousa com giz) aplicadas por cima do menu atual por um teste PlayMode

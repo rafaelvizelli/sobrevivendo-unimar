@@ -302,5 +302,52 @@ namespace ProvaImpossivel
             "Eu vi, hein. Sorte sua que é treino.",
             "Anotado. Mentalmente. Pra semana que vem.",
         };
+
+        // ---------------------------------------------------------- interface "prova impressa" (Bloco 16)
+        public const string FolhaCabecalho = "UNIMAR — AVALIAÇÃO BIMESTRAL     Aluno: ____________________     Nota: _____";
+        public const string JogoTitulo = "SOBREVIVENDO À UNIMAR";
+        public const string JogoSubtitulo = "FASE 1 — A PROVA IMPOSSÍVEL";
+        public const string MenuHistoria = "Você não estudou. A prova é do Prof. Takanervoso, o homem que \"não nasceu ontem\".\n"
+                                         + "Tire a nota mínima antes do sinal: respondendo o que sabe, colando do Nerd, usando o\n"
+                                         + "celular ou aproveitando o caos da sala. Três flagrantes e você está fora.";
+        public const string MenuRecadoProfessor = "Não estudou, né? Tô de olho.\n— Prof. T.";
+        public const string MenuCarimbo = "NÃO ESTUDOU";
+        public const string BotaoJogar = "JOGAR";
+        public const string BotaoTutorialPrimeira = "TUTORIAL (1 min)  [T]";
+        public const string BotaoTutorialRever = "Rever tutorial  [T]";
+        public const string BotaoPularTutorial = "Pular tutorial";
+        public const string MenuDicaPrimeiraVez = "Primeira vez? Qualquer dificuldade começa pelo treino de 1 minuto.";
+        public const string MenuDica = "Dica: observe a sala. Professor, Nerd e Dorminhoco avisam antes, no corpo, não na tela.";
+        public const string MenuAtalhos = "(ou aperte 1, 2 ou 3 pra ir direto à prova)";
+
+        public const string DificuldadeTitulo = "QUESTÃO 1 (vale a sua vida acadêmica)";
+        public const string DificuldadeEnunciado = "Assinale a dificuldade. Clique, ou aperte 1, 2 ou 3.";
+        public const string DificuldadeFacilFrase = "Professor míope. Esqueceu os óculos e a vontade de dar aula.";
+        public const string DificuldadeNormalFrase = "O clássico. Ele não nasceu ontem, mas dorme cedo.";
+        public const string DificuldadeDificilFrase = "Professor com radar. Ele ouve você PENSAR em colar.";
+        /// <summary>"{0} min • nota mínima {1}": tempo e nota vêm das DifficultySettings.</summary>
+        public const string DificuldadeDados = "{0} min • nota mínima {1}";
+        public const string InstrucoesTitulo = "INSTRUÇÕES";
+        public const string InstrucoesControles =
+            "WASD andar • Mouse câmera • Shift correr • Esc pausar\n"
+          + "E interagir (alguns: segure) • Sentado: Espaço levanta\n"
+          + "1 responder o que sabe / chutar • 2 celular (segure)\n"
+          + "Colas: Q colinha • G garrafinha • B bilhete (mire) • F fone\n"
+          + "Cara de Paisagem: ESPAÇO com o ponteiro no verde";
+        public const string BotaoVoltar = "VOLTAR  [Esc]";
+
+        public const string PausaTitulo = "PAUSADO";
+        public const string PausaFrase = "O professor também congelou. Aproveite pra respirar.";
+        public const string BotaoContinuar = "CONTINUAR  [Esc]";
+        public const string BotaoReiniciar = "REINICIAR FASE  [R]";
+        public const string BotaoTentarDeNovo = "TENTAR DE NOVO  [R]";
+
+        public const string HudTempo = "TEMPO";
+        public const string HudNota = "NOTA";
+        public const string HudNotaJaDa = "já dá! Entregue na mesa (E)";
+        /// <summary>"faltam {0} pra passar" (anotação à mão no painel da NOTA).</summary>
+        public const string HudNotaFaltam = "faltam {0} pra passar";
+        public const string HudTreino = "TREINO";
+        public const string ResumoColasDeBolso = "Colas de bolso (Q/G/B/F)";
     }
 }

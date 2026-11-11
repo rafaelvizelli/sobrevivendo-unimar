@@ -15,11 +15,18 @@ namespace ProvaImpossivel
         public readonly int colasCelular, colasNerd, colasFundao, colasFundaoFuradas;
         public readonly int favoresGastos;
         public readonly int certas, erradas, emBranco;
+        /// <summary>Colas de bolso (Bloco 15) feitas: colinha, garrafinha, bilhete, fone (usos do MatchLog).</summary>
+        public readonly int colinha, garrafa, bilhete, fone;
 
         public MatchSummary(LevelResult result, string difficulty, float grade, float minGrade, float timeUsed,
                             int flagrantes, int maxFlagrantes, int colasCelular, int colasNerd, int colasFundao, int colasFundaoFuradas,
-                            int favoresGastos, int certas, int erradas, int emBranco)
+                            int favoresGastos, int certas, int erradas, int emBranco,
+                            int colinha = 0, int garrafa = 0, int bilhete = 0, int fone = 0)
         {
+            this.colinha = colinha;
+            this.garrafa = garrafa;
+            this.bilhete = bilhete;
+            this.fone = fone;
             this.result = result;
             this.difficulty = difficulty;
             this.grade = grade;
@@ -46,7 +53,8 @@ namespace ProvaImpossivel
                                     flagrantes, s.maxFlagrantes,
                                     MatchLog.Celular, MatchLog.NerdCopias,
                                     MatchLog.FundaoColaBoa + MatchLog.FundaoColaRuim, MatchLog.FundaoColaRuim,
-                                    Mathf.Max(0, s.favors - favorsLeft), certas, erradas, emBranco);
+                                    Mathf.Max(0, s.favors - favorsLeft), certas, erradas, emBranco,
+                                    MatchLog.ColinhaUsos, MatchLog.GarrafaUsos, MatchLog.BilheteUsos, MatchLog.FoneUsos);
         }
 
         public static string Title(LevelResult r) => r switch
@@ -73,6 +81,7 @@ namespace ProvaImpossivel
             (Falas.ResumoCelular, colasCelular.ToString()),
             (Falas.ResumoNerd, colasNerd.ToString()),
             (Falas.ResumoFundao, colasFundao + (colasFundaoFuradas > 0 ? " (" + colasFundaoFuradas + " " + Falas.ResumoFundaoFurada + ")" : "")),
+            (Falas.ResumoColasDeBolso, colinha + " / " + garrafa + " / " + bilhete + " / " + fone),
             (Falas.ResumoFavores, favoresGastos.ToString()),
         };
     }

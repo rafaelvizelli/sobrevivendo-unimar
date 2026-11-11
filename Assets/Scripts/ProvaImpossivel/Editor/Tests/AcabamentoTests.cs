@@ -106,12 +106,26 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual((Falas.ResumoTempo, "03:25"), prova[3]);
 
             var ficha = s.CrimeLines;
-            Assert.AreEqual(5, ficha.Length);
+            Assert.AreEqual(6, ficha.Length);
             Assert.AreEqual("3 de 3", ficha[0].value);
             Assert.AreEqual("0", ficha[1].value);
             Assert.AreEqual("0", ficha[2].value);
             Assert.AreEqual("1 (1 " + Falas.ResumoFundaoFurada + ")", ficha[3].value);
-            Assert.AreEqual("0", ficha[4].value, "restaram os 3 favores: nenhum gasto");
+            Assert.AreEqual((Falas.ResumoColasDeBolso, "0 / 0 / 0 / 0"), ficha[4], "colas de bolso (Bloco 16)");
+            Assert.AreEqual("0", ficha[5].value, "restaram os 3 favores: nenhum gasto");
+        }
+
+        [Test]
+        public void ResumoMostraAsColasDeBolso()
+        {
+            MatchLog.Reset();
+            MatchLog.ColinhaUsos = 2;
+            MatchLog.GarrafaUsos = 1;
+            MatchLog.BilheteUsos = 3;
+            MatchLog.FoneUsos = 1;
+            var s = MatchSummary.Build(Normal(), LevelResult.Aprovado, 7f, 100f, 0, 3, 7, 0, 3);
+            MatchLog.Reset();
+            Assert.AreEqual("2 / 1 / 3 / 1", s.CrimeLines[4].value, "colinha / garrafinha / bilhete / fone");
         }
 
         // ------------------------------------------------------------ etapa 3: opções (PlayerPrefs)

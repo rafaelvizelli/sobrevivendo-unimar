@@ -333,12 +333,9 @@ namespace ProvaImpossivel.Tests
             yield return null;
             var hud = HUD.I;
             Assert.IsTrue(hud.CheatsPanel.gameObject.activeInHierarchy, "o painel das colas não apareceu");
-            var texto = hud.CheatsPanel.GetComponentInChildren<UnityEngine.UI.Text>();
-            StringAssert.Contains("[Q]", texto.text);
-            StringAssert.Contains("[B]", texto.text);
-            StringAssert.Contains("[F]", texto.text);
-            StringAssert.Contains("[G]", texto.text);
-            Assert.LessOrEqual(texto.preferredHeight, hud.CheatsPanel.rect.height - 12f, "o texto não cabe no painel");
+            // Bloco 16: uma etiqueta de tecla por cola, na ordem do painel
+            CollectionAssert.AreEqual(new[] { "Q", "G", "B", "F" }, hud.CheatKeys());
+            Assert.IsTrue(hud.CheatsTextFits(), "o texto não cabe no painel");
 
             Rect R(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y); }
             Assert.IsFalse(R(hud.CheatsPanel).Overlaps(R(hud.GradePanel)), "o painel das colas cobre o painel da NOTA");
