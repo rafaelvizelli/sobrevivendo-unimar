@@ -2,450 +2,686 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Inter:wght@400;500;600&family=Special+Elite&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Special+Elite&display=swap">
 <style>
-  /* Layout: sala de projeção escura (lousa), a tela do trailer no topo e o roteiro sincronizado embaixo. Visual único, escuro de propósito. */
+  /* Sala de projeção escura (lousa); a tela do corte escolhido no topo, o roteiro sincronizado embaixo.
+     Só duas fontes, as do jogo: Special Elite (máquina de escrever) e Caveat (caneta). Visual escuro de propósito. */
   :root {
-    --bg: #0f1310;
-    --panel: #171d18;
-    --line: #29322b;
-    --fg: #ebe4d1;
-    --muted: #a39d8b;
-    --red: #d6534a;
-    --blue: #8ea6ec;
-    --paper: #efe8d6;
-    --ink: #2b2a28;
-    --f-display: "Special Elite", "Courier New", monospace;
-    --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --bg: #0f1310; --panel: #171d18; --line: #2a332c; --fg: #ebe4d1; --muted: #a8a290;
+    --red: #d6534a; --blue: #93aaf0; --paper: #efe8d6; --ink: #2b2a28;
+    --f-type: "Special Elite", "Courier New", monospace;
     --f-hand: "Caveat", "Segoe Print", cursive;
     color-scheme: dark;
   }
   html, body { background: var(--bg); color: var(--fg); }
-  body { font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
-  .wrap {
-    max-width: 1120px; margin: 0 auto;
-    padding-left: max(16px, env(safe-area-inset-left, 0px));
-    padding-right: max(16px, env(safe-area-inset-right, 0px));
-    padding-block: 28px 56px;
-    display: grid; gap: 28px;
-  }
+  body { font-family: var(--f-type); font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+          padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 26px 56px; display: grid; gap: 24px; }
   header { display: grid; gap: 6px; }
-  .eyebrow { font-family: var(--f-display); color: var(--red); letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
-  h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
-  header p { margin: 0; color: var(--muted); max-width: 64ch; }
-  h2 { font-family: var(--f-display); font-weight: 400; font-size: 20px; margin: 0 0 12px; letter-spacing: .02em; }
-
-  .player { display: grid; gap: 10px; }
-  .screen { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; border: 1px solid var(--line); overflow: hidden; }
-  .screen canvas { width: 100%; height: 100%; display: block; }
-  .big-play {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    font-family: var(--f-display); font-size: clamp(16px, 2.4vw, 22px);
-    background: var(--paper); color: var(--ink); border: 2px solid var(--ink);
-    padding: 12px 22px; cursor: pointer; box-shadow: 4px 4px 0 rgba(0,0,0,.5);
-  }
-  .big-play:hover { background: #fff8e6; }
-  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-  .controls input[type=range] { flex: 1 1 220px; min-width: 0; accent-color: var(--red); }
-  button.ctl {
-    font-family: var(--f-body); font-size: 14px; font-weight: 500;
-    background: var(--panel); color: var(--fg); border: 1px solid var(--line);
-    padding: 7px 12px; cursor: pointer;
-  }
-  button.ctl:hover { border-color: var(--muted); }
+  .eyebrow { color: var(--red); letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+  h1 { font-weight: 400; font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 70ch; }
+  h2 { font-weight: 400; font-size: 20px; margin: 0 0 12px; }
+  .cortes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cortes button, button.ctl { font: inherit; font-size: 14px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); padding: 7px 12px; cursor: pointer; }
+  .cortes button[aria-pressed="true"] { border-color: var(--red); color: #fff; }
+  button:hover { border-color: var(--muted); }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-  .tempo { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 92px; }
-  .secoes { display: flex; gap: 2px; font-size: 12px; }
-  .secoes button {
-    background: var(--panel); color: var(--muted); border: 0; border-top: 3px solid var(--line);
-    padding: 6px 6px 4px; text-align: left; cursor: pointer; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-    font: inherit;
-  }
-  .secoes button.ativa { color: var(--fg); border-top-color: var(--red); }
-
-  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
-  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .palco { display: grid; justify-items: center; background: #000; border: 1px solid var(--line); padding: 8px; }
+  .tela { position: relative; max-width: 100%; }
+  .tela canvas { display: block; width: 100%; height: 100%; }
+  .tela.h { aspect-ratio: 16 / 9; width: 100%; }
+  .tela.v { aspect-ratio: 9 / 16; height: min(78vh, 900px); }
+  .play-grande { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: inherit; font-size: clamp(16px, 2.2vw, 22px);
+                 background: var(--paper); color: var(--ink); border: 2px solid var(--ink); padding: 12px 22px; cursor: pointer; box-shadow: 4px 4px 0 rgba(0,0,0,.5); }
+  .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .controles input[type=range] { flex: 1 1 220px; min-width: 0; accent-color: var(--red); }
+  .tempo { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 96px; }
+  .grade { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 26px; align-items: start; }
+  @media (max-width: 880px) { .grade { grid-template-columns: minmax(0, 1fr); } }
   ol.planos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-  ol.planos li button {
-    width: 100%; display: grid; grid-template-columns: 34px 92px minmax(0, 1fr); gap: 10px; align-items: baseline;
-    background: transparent; color: var(--fg); border: 0; border-left: 3px solid transparent;
-    padding: 8px 10px; text-align: left; cursor: pointer; font: inherit;
-  }
-  ol.planos li button:hover { background: var(--panel); }
-  ol.planos li button.atual { background: var(--panel); border-left-color: var(--red); }
-  .num { font-family: var(--f-display); color: var(--muted); }
-  .tc { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  ol.planos button { width: 100%; display: grid; grid-template-columns: 30px 96px minmax(0, 1fr); gap: 10px; align-items: baseline;
+                     background: transparent; color: var(--fg); border: 0; border-left: 3px solid transparent; padding: 7px 10px; text-align: left; cursor: pointer; font: inherit; }
+  ol.planos button:hover, ol.planos button.atual { background: var(--panel); }
+  ol.planos button.atual { border-left-color: var(--red); }
+  .num, .tc { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
   .desc { min-width: 0; }
-  .desc small { display: block; color: var(--muted); font-size: 13px; }
-  .desc .fala { font-family: var(--f-hand); color: var(--blue); font-size: 19px; line-height: 1.2; display: block; }
-  .sec-titulo { font-family: var(--f-display); color: var(--red); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; padding: 14px 10px 4px; }
-  aside { display: grid; gap: 24px; }
+  .fala { font-family: var(--f-hand); color: var(--blue); font-size: 20px; line-height: 1.15; display: block; }
+  aside { display: grid; gap: 20px; }
   aside section { background: var(--panel); border: 1px solid var(--line); padding: 16px; }
-  aside ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--fg); }
-  aside ul li span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  aside ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
   .nota { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
   .status { font-family: var(--f-hand); color: var(--blue); font-size: 20px; margin: 8px 0 0; min-height: 1.2em; }
   code { font-size: 13px; background: var(--bg); padding: 1px 4px; }
-  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 </style>
 
 <main class="wrap">
   <header>
-    <span class="eyebrow">Prévia do trailer · animatic v1</span>
+    <span class="eyebrow">Trailer v2 · prévia</span>
     <h1>Sobrevivendo à UNIMAR</h1>
-    <p>Fase 1, A Prova Impossível. 65 segundos montados com capturas reais do jogo, letreiros no estilo dos menus e trilha original sintetizada no navegador. Serve para ver ritmo, ordem e clima antes de gravar o trailer de verdade.</p>
+    <p>Fase 1, A Prova Impossível. Planos gravados na cena real do jogo, letreiros "prova impressa" e trilha sintetizada (provisória). Três cortes: mestre (45 s + gag), 30 s horizontal e 30 s vertical.</p>
   </header>
 
-  <section class="player" aria-label="Player do trailer">
-    <div class="screen">
-      <canvas id="tela" width="1600" height="900" aria-label="Trailer"></canvas>
-      <button id="grande" class="big-play">▶ Assistir com som</button>
-    </div>
-    <div class="controls">
-      <button id="play" class="ctl">Reproduzir</button>
-      <button id="inicio" class="ctl">Do começo</button>
-      <span id="tempo" class="tempo">0:00 / 1:05</span>
-      <input id="scrub" type="range" min="0" max="65" step="0.01" value="0" aria-label="Posição no trailer">
-      <button id="mudo" class="ctl">Som: ligado</button>
-      <button id="cheia" class="ctl">Tela cheia</button>
-    </div>
-    <div id="secoes" class="secoes"></div>
-  </section>
+  <div class="cortes" role="group" aria-label="Corte">
+    <button data-corte="mestre" aria-pressed="true">Mestre 16:9</button>
+    <button data-corte="c30" aria-pressed="false">30 s 16:9</button>
+    <button data-corte="v30" aria-pressed="false">30 s 9:16</button>
+  </div>
 
-  <section class="grid">
+  <section class="palco" aria-label="Player do trailer">
+    <div id="tela" class="tela h">
+      <canvas id="cv" width="1920" height="1080" aria-label="Trailer"></canvas>
+      <button id="grande" class="play-grande">▶ Assistir com som</button>
+    </div>
+  </section>
+  <div class="controles">
+    <button id="play" class="ctl">Reproduzir</button>
+    <button id="inicio" class="ctl">Do começo</button>
+    <span id="tempo" class="tempo">0:00 / 0:00</span>
+    <input id="scrub" type="range" min="0" max="47.5" step="0.01" value="0" aria-label="Posição no trailer">
+    <button id="mudo" class="ctl">Som: ligado</button>
+  </div>
+
+  <section class="grade">
     <div>
       <h2>Plano a plano</h2>
       <ol id="lista" class="planos"></ol>
     </div>
     <aside>
       <section>
-        <h2>Trilha</h2>
+        <h2>Trilha (provisória)</h2>
         <ul>
-          <li><span>0:00</span> Silêncio tenso: relógio, máquina de escrever, murmúrio da sala</li>
-          <li><span>0:14</span> Tema "plano de assalto" em ré menor, 120 BPM: baixo caminhando, pizzicato, vassourinha</li>
-          <li><span>0:38</span> O tema tropeça (trombone descendo)</li>
-          <li><span>0:42</span> Perigo: pulso grave, passos, batimento, "hm?"</li>
-          <li><span>0:50</span> Carimbos: pancada seca, depois acorde maior</li>
-          <li><span>0:56</span> O tema volta e fecha com metais</li>
+          <li>Abertura: relógio, máquina de escrever, carimbo</li>
+          <li>O plano: tema em ré menor, 120 BPM, cortes na batida</li>
+          <li>O perigo: silêncio, pulso grave, "hm?", batimento</li>
+          <li>Flagrante: silêncio antes, pancada no clarão</li>
+          <li>Final: contagem com subida e o sinal, um instante de silêncio, impacto grave em cada carimbo, tema completo na capa, stinger no título e acorde final curto</li>
+          <li>A música abaixa sempre que alguém fala; um limitador segura os picos em −1 dBFS</li>
         </ul>
-        <p class="nota">Tudo sintetizado aqui, sem faixa de terceiros. É uma referência de clima e de tempo para a trilha final.</p>
+        <p class="nota">Sintetizada aqui, sem faixa de terceiros. Para trocar pela trilha definitiva, ponha <code>trilha_plano.mp3</code>, <code>trilha_perigo.mp3</code> e <code>LICENCAS.txt</code> em <code>Trailer/audio/</code>.</p>
       </section>
       <section>
         <h2>Exportar</h2>
-        <button id="gravar" class="ctl">Gravar vídeo (.webm)</button>
-        <p class="nota">Toca o trailer inteiro uma vez (65 s) e baixa o vídeo com som. Funciona abrindo o arquivo <code>Trailer_Previa.html</code> direto no Chrome. Dentro do claude.ai o navegador bloqueia o download. Deixe a aba visível enquanto grava.</p>
+        <button id="exportar" class="ctl">Exportar este corte (.webm e .mp4)</button>
+        <p class="nota">Monta quadro a quadro (não perde quadro) e baixa os arquivos. Funciona com a página servida pelo <code>servidor.mjs</code>. Para gerar tudo de uma vez: <code>node Trailer/previa/servidor.mjs --exportar</code>.</p>
         <p id="status" class="status" aria-live="polite"></p>
       </section>
     </aside>
   </section>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/webm-muxer@5.0.3/build/webm-muxer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
 <script>
-const IMG = /*IMAGENS*/{};
-
-const DUR = 65;
-const W = 1600, H = 900;
-const cv = document.getElementById('tela');
-const g = cv.getContext('2d');
-const C = { paper: '#efe8d6', ink: '#2b2a28', red: '#b8322a', blue: '#2c4a9a', cream: '#ebe4d1' };
+// ===================================================================== configuração
+const LINK = "{{LINK}}";                // trocado pelo montar_previa.ps1 (parâmetro -Link)
+const CREDITO = "{{CREDITO}}";          // crédito da trilha no quadro final (parâmetro -Credito); vazio = trilha sintetizada, sem crédito
+const CLIPS = '../clips/';              // planos gravados pela ferramenta do Unity
+const FPS = 30;
+const CLIP_LEN = { '00_folha': 3.5, '01_prof_anda': 4.5, '02_celular': 2.5, '03_nerd': 3.6, '04_fundao': 2.5, '05_fe': 2.5,
+  '06_colinha': 4.5, '07_garrafinha': 2.5, '08_bilhete': 3.5, '09_fone': 2.5, '10_dorminhoco': 3.6, '11_puxasaco': 3.6,
+  '12_prof_sinto': 3.2, '13_cone': 4.5, '14_flagrante': 3.2, '15_hud': 3.5, '16_aprovado': 3.5, '17_expulso': 3.5,
+  '18_nerd_final': 3.0, '19_sala': 4.5 };
+const C = { paper: '#efe8d6', paper2: '#e6dcc4', ink: '#2b2a28', red: '#b3261e', blue: '#23408f', cream: '#f3ecda', black: '#0b0b0a' };
 const F = { type: '"Special Elite", "Courier New", monospace', hand: '"Caveat", "Segoe Print", cursive' };
 
-const I = {};
-const imgReady = Promise.all(Object.entries(IMG).map(([k, src]) => new Promise(res => {
-  const im = new Image(); im.onload = () => { I[k] = im; res(); }; im.onerror = res; im.src = src;
-})));
-
-// ---------- utilidades de desenho ----------
+// ===================================================================== utilidades
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, p) => a + (b - a) * p;
+const ease = p => { p = clamp(p); return p * p * (3 - 2 * p); };
 const easeOut = p => 1 - Math.pow(1 - clamp(p), 3);
-const easeInOut = p => { p = clamp(p); return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
-function cover(name, z = 1, fx = .5, fy = .5, rot = 0) {
-  const im = I[name]; if (!im) { g.fillStyle = '#222'; g.fillRect(0, 0, W, H); return; }
-  const s = Math.max(W / im.width, H / im.height) * z;
-  const dw = im.width * s, dh = im.height * s;
-  let x = W / 2 - fx * dw + (dw / 2 - W / 2) * 0, y = H / 2 - fy * dh;
-  x = Math.min(0, Math.max(W - dw, W / 2 - fx * dw)); y = Math.min(0, Math.max(H - dh, y));
-  g.save();
-  if (rot) { g.translate(W / 2, H / 2); g.rotate(rot); g.translate(-W / 2, -H / 2); }
-  g.drawImage(im, x, y, dw, dh);
-  g.restore();
+// ===================================================================== registro do que é desenhado (só na verificação)
+// Cada peça (legenda, letreiro, cartão, carimbo...) avisa que foi desenhada neste instante, com a caixa e a tinta do texto.
+// A verificação avança o tempo à mão e confere: cada peça aparece uma vez, pelo tempo planejado, com o texto dentro da caixa.
+let REC = null, INK = null, NOW = 0, DRY = false;
+function inkStart() { if (REC) INK = []; }
+function inkAdd(s, x, y) {
+  if (!INK || !s || !s.trim()) return;
+  const m = g.measureText(s), t = g.getTransform();
+  for (const [px, py] of [[x - m.actualBoundingBoxLeft, y - m.actualBoundingBoxAscent], [x + m.actualBoundingBoxRight, y - m.actualBoundingBoxAscent],
+    [x - m.actualBoundingBoxLeft, y + m.actualBoundingBoxDescent], [x + m.actualBoundingBoxRight, y + m.actualBoundingBoxDescent]])
+    INK.push([t.a * px + t.c * py + t.e, t.b * px + t.d * py + t.f]);   // em pixels da tela; mark() traz de volta para o espaço da caixa
+}
+// box = [x, y, w, h] no espaço local (o mesmo do texto); plan = [início, fim] em segundos do corte
+function mark(kind, id, box, plan) {
+  if (!REC) { INK = null; return; }
+  const m = g.getTransform(), inv = m.inverse();
+  let ink = null;
+  if (INK && INK.length) {
+    const loc = INK.map(([X, Y]) => [inv.a * X + inv.c * Y + inv.e, inv.b * X + inv.d * Y + inv.f]);
+    ink = [Math.min(...loc.map(p => p[0])), Math.min(...loc.map(p => p[1])), Math.max(...loc.map(p => p[0])), Math.max(...loc.map(p => p[1]))];
+  }
+  INK = null;
+  const src = box || (ink ? [ink[0], ink[1], ink[2] - ink[0], ink[3] - ink[1]] : null), xs = [], ys = [];
+  if (src) for (const [px, py] of [[src[0], src[1]], [src[0] + src[2], src[1]], [src[0], src[1] + src[3]], [src[0] + src[2], src[1] + src[3]]]) { xs.push(m.a * px + m.c * py + m.e); ys.push(m.b * px + m.d * py + m.f); }
+  const folga = box && ink ? Math.min(ink[0] - box[0], ink[1] - box[1], box[0] + box[2] - ink[2], box[1] + box[3] - ink[3]) : null;
+  REC.push({ kind, id, plan: plan ? plan.map(v => Math.round(v * 1000) / 1000) : null, folga,
+    dev: src ? [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)].map(Math.round) : null });
+}
+
+// ===================================================================== texturas geradas uma vez
+function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+const TEX = {};
+function buildTextures() {
+  // papel: creme com fibras e manchas leves
+  const p = makeCanvas(512, 512), g = p.getContext('2d'), r = rng(7);
+  g.fillStyle = C.paper; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 9000; i++) { const v = r(); g.fillStyle = `rgba(${v < .5 ? '120,100,70' : '255,255,245'},${.03 + r() * .05})`; g.fillRect(r() * 512, r() * 512, 1 + r() * 2, 1); }
+  for (let i = 0; i < 220; i++) { g.strokeStyle = `rgba(140,120,90,${.04 + r() * .05})`; g.lineWidth = .6; g.beginPath(); const x = r() * 512, y = r() * 512; g.moveTo(x, y); g.lineTo(x + (r() - .5) * 26, y + (r() - .5) * 8); g.stroke(); }
+  TEX.paper = p;
+  // grão de filme: 4 quadros de ruído alternando
+  TEX.grain = [0, 1, 2, 3].map(k => {
+    const c = makeCanvas(256, 256), cg = c.getContext('2d'), id = cg.createImageData(256, 256), rr = rng(100 + k);
+    for (let i = 0; i < id.data.length; i += 4) { const v = rr() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+    cg.putImageData(id, 0, 0); return c;
+  });
+  // borrão de tinta do carimbo: máscara de falhas
+  const m = makeCanvas(512, 256), mg = m.getContext('2d'), mr = rng(42);
+  for (let i = 0; i < 420; i++) { mg.fillStyle = `rgba(0,0,0,${.3 + mr() * .7})`; mg.beginPath(); mg.arc(mr() * 512, mr() * 256, .6 + mr() * 2.6, 0, 7); mg.fill(); }
+  TEX.stampHoles = m;
+}
+
+// ===================================================================== fontes dos planos (vídeo ao vivo / PNG na exportação)
+const VIDEOS = {};
+function video(id) {
+  if (!VIDEOS[id]) {
+    const v = document.createElement('video');
+    v.src = CLIPS + id + '.mp4'; v.muted = true; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous';
+    VIDEOS[id] = v;
+  }
+  return VIDEOS[id];
+}
+let OFFLINE = false;           // exportação: usa os PNG quadro a quadro
+const FRAMEIMG = {};           // id -> Image do quadro atual (exportação)
+function frameIndex(id, lt) { return clamp(Math.round(lt * FPS), 0, Math.round(CLIP_LEN[id] * FPS) - 1); }
+function loadImage(src) { return new Promise((ok, err) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => ok(im); im.onerror = () => err(new Error('não carregou ' + src)); im.src = src; }); }
+
+// ===================================================================== estado do desenho
+let W = 1920, H = 1080, U = 1, VERT = false;
+const cv = document.getElementById('cv');
+const g = cv.getContext('2d');
+let SAFE = { l: 0, r: 0, t: 0, b: 0 };
+function setSize(vertical) {
+  VERT = vertical; W = vertical ? 1080 : 1920; H = vertical ? 1920 : 1080; U = 1080 / 1080 * (vertical ? 1 : 1);
+  cv.width = W; cv.height = H;
+  // margem segura: no vertical, topo e base ficam para a interface das redes
+  SAFE = vertical ? { l: W * .07, r: W * .93, t: H * .14, b: H * .76 } : { l: W * .06, r: W * .94, t: H * .08, b: H * .9 };
+}
+// escala tipográfica fixa (px em 1080 de referência)
+const T = { huge: 150, title: 96, big: 84, word: 132, hand: 88, cap: 52, sub: 46, name: 30, small: 28 };
+
+// ===================================================================== peças de desenho
+let COVER = { x: 0, y: 0, dw: 1920, dh: 1080 };   // onde o quadro do plano foi desenhado (para apontar coisas da cena e medir só o que aparece)
+function cover(src, z = 1, fx = .5, fy = .5) {
+  COVER = { x: 0, y: 0, dw: W, dh: H };
+  if (!src) { g.fillStyle = '#111'; g.fillRect(0, 0, W, H); return; }
+  const iw = src.videoWidth || src.width, ih = src.videoHeight || src.height;
+  if (!iw || !ih) { g.fillStyle = '#111'; g.fillRect(0, 0, W, H); return; }
+  const s = Math.max(W / iw, H / ih) * z, dw = iw * s, dh = ih * s;
+  const x = Math.min(0, Math.max(W - dw, W / 2 - fx * dw)), y = Math.min(0, Math.max(H - dh, H / 2 - fy * dh));
+  COVER = { x, y, dw, dh };
+  g.drawImage(src, x, y, dw, dh);
 }
 function black(a = 1) { if (a <= 0) return; g.fillStyle = `rgba(0,0,0,${clamp(a)})`; g.fillRect(0, 0, W, H); }
-function flash(rgb, a) { if (a <= 0) return; g.fillStyle = `rgba(${rgb},${clamp(a)})`; g.fillRect(0, 0, W, H); }
-function vignette(a) {
-  const gr = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H * .95);
-  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(0,0,0,${a})`);
-  g.fillStyle = gr; g.fillRect(0, 0, W, H);
-}
-function txt(s, x, y, size, font, color, align = 'left', base = 'alphabetic') {
-  g.font = `${size}px ${font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y);
-}
-function wrap(s, x, y, maxW, lh, size, font, color) {
-  g.font = `${size}px ${font}`; g.fillStyle = color; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-  let line = ''; for (const w of s.split(' ')) {
-    const t = line ? line + ' ' + w : w;
-    if (g.measureText(t).width > maxW && line) { g.fillText(line, x, y); y += lh; line = w; } else line = t;
-  } if (line) g.fillText(line, x, y); return y;
-}
-// folha de prova (creme, pauta azul, margem vermelha); "inner" desenha em coordenadas da folha
-function paper(cx, cy, w, h, rot, inner, header = true) {
-  g.save(); g.translate(cx, cy); g.rotate(rot); g.translate(-w / 2, -h / 2);
-  g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 40; g.shadowOffsetY = 14;
-  g.fillStyle = C.paper; g.fillRect(0, 0, w, h); g.shadowColor = 'transparent';
-  g.strokeStyle = 'rgba(60,90,140,.13)'; g.lineWidth = 1.5;
-  for (let ly = 118; ly < h - 16; ly += 40) { g.beginPath(); g.moveTo(0, ly); g.lineTo(w, ly); g.stroke(); }
-  g.strokeStyle = 'rgba(184,50,42,.7)'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(74, 0); g.lineTo(74, h); g.stroke();
-  if (header) txt('UNIMAR — AVALIAÇÃO BIMESTRAL      Aluno: ______________      Nota: _____', 96, 44, 17, F.type, 'rgba(43,42,40,.5)');
-  if (inner) inner(w, h);
+function vignette(a = .32) { const gr = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(20,10,0,${a})`); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+function grain(t, a = .06) { g.save(); g.globalAlpha = a; g.globalCompositeOperation = 'overlay'; g.fillStyle = g.createPattern(TEX.grain[Math.floor(t * 24) % 4], 'repeat'); g.fillRect(0, 0, W, H); g.restore(); }
+function font(size, fam) { return `${Math.round(size)}px ${fam}`; }
+function fit(text, size, fam, maxW) { g.font = font(size, fam); const w = g.measureText(text).width; return w > maxW ? size * maxW / w : size; }
+function txt(s, x, y, size, fam, color, align = 'left', base = 'alphabetic') { g.font = font(size, fam); g.fillStyle = color; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y); inkAdd(s, x, y); }
+function wrapLines(s, size, fam, maxW) { g.font = font(size, fam); const out = []; let line = ''; for (const w of s.split(' ')) { const t = line ? line + ' ' + w : w; if (g.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; } if (line) out.push(line); return out; }
+function shadowOn(b = 26, y = 8) { g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = b; g.shadowOffsetY = y; }
+function shadowOff() { g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0; }
+// papel (com textura, pauta e margem) num retângulo, já rotacionado pelo chamador
+function paperRect(x, y, w, h, lines = true, margin = true) {
+  shadowOn(); g.fillStyle = C.paper; g.fillRect(x, y, w, h); shadowOff();
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+  g.globalAlpha = .9; g.fillStyle = g.createPattern(TEX.paper, 'repeat'); g.fillRect(x, y, w, h); g.globalAlpha = 1;
+  if (lines) { g.strokeStyle = 'rgba(60,90,150,.16)'; g.lineWidth = 1.5; for (let ly = y + 70; ly < y + h - 10; ly += 46) { g.beginPath(); g.moveTo(x, ly); g.lineTo(x + w, ly); g.stroke(); } }
+  if (margin) { g.strokeStyle = 'rgba(179,38,30,.6)'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(x + 64, y); g.lineTo(x + 64, y + h); g.stroke(); }
   g.restore();
 }
-function paperFull(inner) { paper(W / 2, H / 2, W + 4, H + 4, 0, inner, true); }
-// carimbo: cai grande e "assenta"
-function stamp(text, color, cx, cy, size, tl, rot = -.1) {
+// carimbo: cai grande, assenta com rotação, tinta com falhas e borrão leve
+function stamp(text, color, cx, cy, size, tl, rot = -.09) {
   if (tl < 0) return;
-  const k = tl < .12 ? lerp(2.4, 1, tl / .12) : 1;
-  g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(k, k); g.globalAlpha = clamp(tl / .05) * .92;
-  g.font = `${size}px ${F.type}`; const tw = g.measureText(text).width;
-  const pw = tw + size * .9, ph = size * 1.55;
-  g.strokeStyle = color; g.lineWidth = size * .08; g.strokeRect(-pw / 2, -ph / 2, pw, ph);
-  g.lineWidth = size * .03; g.strokeRect(-pw / 2 + size * .16, -ph / 2 + size * .16, pw - size * .32, ph - size * .32);
-  g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 0, size * .06);
+  const k = tl < .1 ? lerp(2.3, 1, easeOut(tl / .1)) : 1 + Math.max(0, .03 * Math.sin((tl - .1) * 40) * (1 - (tl - .1) / .25));
+  const a = clamp(tl / .04);
+  g.font = font(size, F.type); const tw = g.measureText(text).width;
+  const pw = tw + size * .95, ph = size * 1.6;
+  const off = makeCanvas(Math.ceil(pw + 40), Math.ceil(ph + 40)), og = off.getContext('2d');
+  og.translate(off.width / 2, off.height / 2);
+  og.strokeStyle = color; og.fillStyle = color; og.shadowColor = color; og.shadowBlur = size * .05;
+  og.lineWidth = size * .085; og.strokeRect(-pw / 2, -ph / 2, pw, ph);
+  og.lineWidth = size * .03; og.strokeRect(-pw / 2 + size * .17, -ph / 2 + size * .17, pw - size * .34, ph - size * .34);
+  og.font = font(size, F.type); og.textAlign = 'center'; og.textBaseline = 'middle'; og.fillText(text, 0, size * .06);
+  og.setTransform(1, 0, 0, 1, 0, 0); og.globalCompositeOperation = 'destination-out'; og.drawImage(TEX.stampHoles, 0, 0, off.width, off.height);
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(k, k); g.globalAlpha = a * .93; g.globalCompositeOperation = 'multiply';
+  g.drawImage(off, -off.width / 2, -off.height / 2);
+  mark('carimbo', text, [-pw / 2, -ph / 2, pw, ph], [NOW - tl, Infinity]);
   g.restore();
 }
 function keycap(x, y, s, key) {
-  g.fillStyle = '#d9d1bd'; g.fillRect(x, y + 6, s, s);
-  g.fillStyle = '#fbf6e9'; g.fillRect(x, y, s, s - 4);
-  g.strokeStyle = C.ink; g.lineWidth = 3; g.strokeRect(x, y, s, s + 2);
-  txt(key, x + s / 2, y + s / 2 + 2, s * .55, F.type, C.ink, 'center', 'middle');
+  g.fillStyle = '#cfc6b0'; g.fillRect(x, y + s * .07, s, s);
+  g.fillStyle = '#fbf6e9'; g.fillRect(x, y, s, s * .94);
+  g.strokeStyle = C.ink; g.lineWidth = s * .035; g.strokeRect(x, y, s, s * 1.0);
+  txt(key, x + s / 2, y + s * .5, s * .56, F.type, C.ink, 'center', 'middle');
 }
-// etiqueta de papel que entra pela esquerda: [tecla] nome / nota à caneta
-function tag(tl, key, label, sub) {
+// legenda de fala: faixa de papel na base da margem segura, nome do personagem + fala (sempre legível sem som)
+// o.junto: as outras falas da mesma troca (a faixa fica da largura da maior, não muda de tamanho de uma fala para a outra)
+// o.cont: continuação da fala anterior (entra no mesmo quadro em que a outra sai, sem o "pulinho" de entrada)
+function subtitle(name, line, tl, dur, color = C.red, o = {}) {
+  if (tl < 0 || tl >= dur - 1e-6) return;      // o fim é exclusivo: a fala seguinte entra no mesmo quadro, nunca as duas juntas
+  const maxW = (SAFE.r - SAFE.l) * (VERT ? 1 : .78);
+  let size = T.sub * (VERT ? 1.05 : 1);
+  let lines = wrapLines(line, size, F.type, maxW - 60);
+  if (lines.length > 3) { size *= .85; lines = wrapLines(line, size, F.type, maxW - 60); }
+  g.font = font(size, F.type);
+  const todas = [...lines, ...(o.junto || []).flatMap(l => wrapLines(l, size, F.type, maxW - 60))];
+  const w = Math.min(maxW, Math.max(...todas.map(l => g.measureText(l).width)) + 60);
+  const lh = size * 1.3, h = T.name + 26 + lines.length * lh + 18;
+  const x = W / 2 - w / 2, y = SAFE.b - h;
+  const pop = !o.cont && tl < .08 ? lerp(.92, 1, tl / .08) : 1;
+  g.save(); g.translate(W / 2, y + h); g.scale(pop, pop); g.translate(-W / 2, -(y + h));
+  paperRect(x, y, w, h, false, false); inkStart();
+  g.fillStyle = color; g.fillRect(x, y, 8, h);
+  txt(name, x + 30, y + T.name + 10, T.name, F.type, color);
+  lines.forEach((l, i) => txt(l, x + 30, y + T.name + 26 + (i + 1) * lh - lh * .22, size, F.type, C.ink));
+  mark('legenda', name + ': ' + line, [x, y, w, h], [NOW - tl, NOW - tl + dur]);
+  g.restore();
+}
+// letreiro datilografado (o texto aparece letra a letra)
+function typeCaption(s, tl, cps = 26, y = null, size = T.cap, end = Infinity) {
   if (tl < 0) return;
-  const x = lerp(-760, 56, easeOut(tl / .35)), y = H - 196, h = 128;
-  g.font = `40px ${F.type}`; const lw = g.measureText(label).width;
-  g.font = `38px ${F.hand}`; const sw = g.measureText(sub).width;
-  const w = (key ? 120 : 34) + Math.max(lw, sw) + 40;
-  g.save(); g.translate(x, y); g.rotate(-.015);
-  g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = 24; g.shadowOffsetY = 8;
-  g.fillStyle = C.paper; g.fillRect(0, 0, w, h); g.shadowColor = 'transparent';
-  g.strokeStyle = 'rgba(184,50,42,.7)'; g.lineWidth = 2; g.beginPath(); g.moveTo(14, 0); g.lineTo(14, h); g.stroke();
-  const ox = key ? 120 : 34;
-  if (key) keycap(30, 26, 72, key);
-  txt(label, ox, 58, 40, F.type, C.ink);
-  txt(sub, ox, 104, 38, F.hand, C.blue);
-  g.restore();
+  const n = clamp(Math.floor(tl * cps), 0, s.length);
+  size = fit(s, size, F.type, (SAFE.r - SAFE.l) - 90);
+  g.font = font(size, F.type); const fw = g.measureText(s).width;
+  const w = fw + 90, h = size * 1.9, x = W / 2 - w / 2, yy = (y ?? SAFE.b - h);
+  paperRect(x, yy, w, h, false, false); inkStart();
+  txt(s.slice(0, n) + (n < s.length && Math.floor(tl * 6) % 2 ? '_' : ''), x + 45, yy + h * .66, size, F.type, C.ink);
+  mark('letreiro', s, [x, yy, w, h], [NOW - tl, end]);
 }
-// letreiro datilografado numa faixa de papel
-function caption(s, tl, y = H - 120) {
+// palavra grande (regra de três)
+function bigWord(s, tl, hand = false) {
   if (tl < 0) return;
-  const n = Math.min(s.length, Math.floor(tl / .045));
-  g.font = `48px ${F.type}`; const fw = g.measureText(s).width;
-  const w = fw + 90, h = 92, x = W / 2 - w / 2;
-  g.save(); g.globalAlpha = clamp(tl / .15);
-  g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 24; g.fillStyle = C.paper; g.fillRect(x, y - h / 2, w, h); g.shadowColor = 'transparent';
-  txt(s.slice(0, n), x + 45, y + 16, 48, F.type, C.ink);
+  const size = hand ? T.word * 1.25 : T.word;
+  const k = tl < .1 ? lerp(1.35, 1, easeOut(tl / .1)) : 1;
+  g.save(); g.translate(SAFE.l + 36, VERT ? SAFE.t + size * 1.1 : SAFE.b - size * .4); g.scale(k, k); g.rotate(-.03);
+  g.font = font(size, hand ? F.hand : F.type);
+  const w = g.measureText(s).width;
+  paperRect(-24, -size * .95, w + 48, size * 1.3, false, false); inkStart();
+  txt(s, 0, 0, size, hand ? F.hand : F.type, hand ? C.blue : C.ink);
+  mark('palavra', s, [-24, -size * .95, w + 48, size * 1.3], [NOW - tl, Infinity]);
   g.restore();
 }
-function typed(s, tl, cps) { return s.slice(0, clamp(Math.floor(tl * cps), 0, s.length)); }
-function shake(amount, t) {
-  if (amount <= 0) return;
-  g.translate(Math.sin(t * 91) * amount, Math.cos(t * 77) * amount * .7);
+// cartão de tecla (colas de bolso). Os quatro têm a mesma medida: a caixa é dimensionada pelo texto mais longo entre eles
+// (medido com a fonte já carregada) e, se nem assim couber na margem segura, a fonte encolhe até um mínimo legível.
+const CARD = {};
+const CARD_MIN = 34;                       // menor tamanho de fonte do nome (px em 1080)
+function cardLayout() {
+  const key = VERT ? 'v' : 'h'; if (CARD[key]) return CARD[key];
+  const s = VERT ? 150 : 130, x0 = 84, gap = 32, pad = 30, maxW = SAFE.r - SAFE.l - 28;
+  let nameSize = T.big * .7, noteSize = T.hand * .62, tw = 0;
+  const right = (t, size, fam) => { g.font = font(size, fam); g.textAlign = 'left'; return g.measureText(t).actualBoundingBoxRight; };
+  for (let i = 0; i < 60; i++) {
+    tw = Math.max(...COLAS.map(([, name, note]) => Math.max(right(name, nameSize, F.type), right(note, noteSize, F.hand))));
+    if (x0 + s + gap + tw + pad <= maxW || nameSize <= CARD_MIN) break;
+    nameSize *= .96; noteSize *= .96;
+  }
+  const lay = { s, x0, tx: x0 + s + gap, w: Math.min(maxW, Math.ceil(x0 + s + gap + tw + pad)), h: s + 50, nameSize, noteSize };
+  if (document.fonts.check(font(40, F.type)) && document.fonts.check(font(40, F.hand))) CARD[key] = lay;   // só guarda com as fontes certas
+  return lay;
 }
-
-// ---------- os planos (mesmos tempos do roteiro) ----------
-const QUESTOES = [
-  'Q1) Um boleto vence em 3 dias. O aluno tem R$ 4,50 e um pastel. Calcule a velocidade do desespero em m/s², sem o atrito da esperança.',
-  'Q2) Prove que "eu ia estudar ontem" não é uma demonstração válida.'
-];
-const COLAS = [
-  ['Q', 'Colinha', 'na manga'],
-  ['G', 'Garrafinha', 'o rótulo sabe tudo'],
-  ['B', 'Bilhete', 'mire bem!'],
-  ['F', 'Fone', 'reze pra não tocar'],
-];
-
-const SHOTS = [
-  { n: 1, t0: 0, t1: 4, sec: 0, img: 'Tela preta, frase datilografada', fala: 'Ontem à noite você ia estudar.', d(t) {
-      black(1);
-      const s = 'Ontem à noite você ia estudar.';
-      g.font = `60px ${F.type}`; const fw = g.measureText(s).width;
-      const shown = typed(s, t - .4, 1 / .085);
-      const cursor = (Math.floor(t * 2.5) % 2 === 0) ? '_' : '';
-      g.globalAlpha = t > 3.4 ? clamp(1 - (t - 3.4) / .5) : 1;
-      txt(shown + cursor, W / 2 - fw / 2, H / 2 + 20, 60, F.type, C.cream);
-      g.globalAlpha = 1;
-  } },
-  { n: 2, t0: 4, t1: 7, sec: 0, img: 'A folha da prova entra, o carimbo cai', fala: 'NÃO ESTUDOU', d(t) {
-      black(1);
-      const cy = lerp(H + 420, H / 2 + 10, easeOut((t - 4) / .6));
-      paper(W / 2, cy, 1060, 720, -.025, (w, h) => {
-        txt('PROVA FINAL — Prof. Takanervoso', 110, 132, 40, F.type, C.ink);
-        let y = 218; for (const q of QUESTOES) y = wrap(q, 110, y, 860, 40, 27, F.type, C.ink) + 62;
-        txt('Nota mínima: depende do meu humor.', 110, h - 92, 44, F.hand, C.red);
-        stamp('NÃO ESTUDOU', C.red, w - 250, h - 150, 58, t - 5.0, -.12);
-      });
-      black((t - 6.6) / .4);
-  } },
-  { n: 3, t0: 7, t1: 10, sec: 0, img: 'A sala inteira, da carteira do jogador', fala: 'A prova começou. Boa sorte. Vocês vão precisar.', d(t) {
-      const p = (t - 7) / 3; cover('s03', lerp(1, 1.12, easeInOut(p)), .5, .42); vignette(.35); black(1 - (t - 7) / .35);
-  } },
-  { n: 4, t0: 10, t1: 14, sec: 0, img: 'Close do Prof. Takanervoso, desconfiado', fala: 'Eu corrijo prova há 30 anos. Eu SINTO a cola.', d(t) {
-      const p = (t - 10) / 4; cover('s04', lerp(1.02, 1.16, p), .5, 0); vignette(lerp(.3, .6, p));
-  } },
-  { n: 5, t0: 14, t1: 17, sec: 1, img: 'Letreiro sobre a folha', fala: 'Você não estudou. → Você tem um PLANO.', d(t) {
-      paperFull(() => {
-        const s1 = 'Você não estudou.';
-        g.font = `64px ${F.type}`; const w1 = g.measureText(s1).width; const x1 = W / 2 - w1 / 2, y1 = H / 2 - 70;
-        txt(typed(s1, t - 14.1, 1 / .04), x1, y1, 64, F.type, C.ink);
-        const ps = clamp((t - 15.0) / .35);
-        if (ps > 0) {
-          g.strokeStyle = C.blue; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath();
-          for (let i = 0; i <= 30 * ps; i++) { const xx = x1 - 14 + (w1 + 28) * i / 30; const yy = y1 - 20 + Math.sin(i * 1.7) * 3; i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
-          g.stroke();
-        }
-        const tl = t - 15.6;
-        if (tl >= 0) {
-          const k = tl < .15 ? lerp(1.6, 1, tl / .15) : 1;
-          g.save(); g.translate(W / 2, H / 2 + 120); g.rotate(-.04); g.scale(k, k);
-          txt('Você tem um PLANO.', 0, 0, 132, F.hand, C.blue, 'center', 'middle'); g.restore();
-        }
-      });
-  } },
-  { n: 6, t0: 17, t1: 20, sec: 1, img: 'O jogador na carteira, suando', fala: 'Celular: se a bateria deixar', d(t) {
-      const p = (t - 17) / 3; cover('s06', lerp(1.04, 1.14, p), .5, .35); vignette(.3);
-      tag(t - 17.3, '2', 'Celular', 'se a bateria deixar');
-  } },
-  { n: 7, t0: 20, t1: 23, sec: 1, img: 'Close do Nerd, convencido', fala: 'Tão fácil que eu fiz duas vezes.', d(t) {
-      const p = (t - 20) / 3; cover('s07', lerp(1.0, 1.1, p), .5, 0); vignette(.3);
-      tag(t - 20.3, '', 'Copie do Nerd', 'se ele deixar');
-  } },
-  { n: 8, t0: 23, t1: 26, sec: 1, img: 'O Fundão, com cara de quem tem um plano', fala: 'Toma a cola. Confia no pai.', d(t) {
-      const p = (t - 23) / 3; cover('s08', lerp(1.0, 1.1, p), .5, 0); vignette(.3);
-      tag(t - 23.3, '', 'Peça ao Fundão', 'o que pode dar errado?');
-  } },
-  { n: 9, t0: 26, t1: 30, sec: 1, img: 'As quatro colas de bolso, uma por batida', fala: 'Q colinha · G garrafinha · B bilhete · F fone', d(t) {
-      paperFull(() => {
-        txt(typed('4 jeitos de colar sem levantar', t - 26, 40), 120, 190, 54, F.type, C.ink);
-        COLAS.forEach(([k, nome, nota], i) => {
-          const tl = t - (26.15 + i * .95); if (tl < 0) return;
-          const cw = 320, x = 120 + i * (cw + 34), y = 300;
-          const s = tl < .12 ? lerp(1.25, 1, tl / .12) : 1;
-          g.save(); g.translate(x + cw / 2, y + 190); g.scale(s, s); g.rotate((i % 2 ? .02 : -.02)); g.translate(-cw / 2, -190);
-          g.strokeStyle = C.ink; g.lineWidth = 3; g.strokeRect(0, 0, cw, 380);
-          keycap(cw / 2 - 66, 46, 132, k);
-          txt(nome, cw / 2, 262, 44, F.type, C.ink, 'center');
-          txt(nota, cw / 2, 326, 40, F.hand, C.blue, 'center');
-          g.restore();
-        });
-      });
-  } },
-  { n: 10, t0: 30, t1: 34, sec: 1, img: 'O Dorminhoco ronca; o professor atende o telefone', fala: 'ZZZzzz... resposta C... zzz / Alô? ... Pizza?', d(t) {
-      if (t < 32) { cover('s10a', lerp(1.0, 1.08, (t - 30) / 2), .5, 0); tag(t - 30.25, '', 'Ronco = distração', 'aproveite'); }
-      else { cover('s10b', lerp(1.0, 1.08, (t - 32) / 2), .5, 0); tag(t - 32.25, '', 'Professor no telefone', 'janela aberta'); }
-      vignette(.3);
-  } },
-  { n: 11, t0: 34, t1: 38, sec: 1, img: 'A HUD do jogo: nota, tempo, colas', fala: 'Tire a nota antes do sinal.', d(t) {
-      cover('s11', lerp(1.0, 1.05, (t - 34) / 4), .5, .5); caption('Tire a nota antes do sinal.', t - 34.4, H / 2 + 120);
-  } },
-  { n: 12, t0: 38, t1: 42, sec: 1, img: 'O Puxa-saco se vira', fala: 'PROFESSOOOR! Tem gente lendo minha prova com os olhos!', d(t) {
-      const p = easeOut((t - 38.25) / .25);
-      g.save(); shake(t > 38.25 && t < 38.7 ? 6 : 0, t);
-      cover('s12', lerp(1.0, 1.18, p), .5, 0, lerp(0, -.05, p)); g.restore(); vignette(.35);
-  } },
-  { n: 13, t0: 42, t1: 46, sec: 2, img: 'A sala vista de cima; o professor no corredor', fala: 'Ele não nasceu ontem.', d(t) {
-      const p = (t - 42) / 4;
-      g.filter = `saturate(${lerp(1, .55, p)})`; cover('s13', lerp(1.0, 1.22, easeInOut(p)), .57, .5); g.filter = 'none';
-      vignette(lerp(.4, .85, p)); caption('Ele não nasceu ontem.', t - 42.6, H - 110);
-  } },
-  { n: 14, t0: 46, t1: 50, sec: 2, img: 'Close do professor BRAVO; FLAGRANTE na HUD', fala: 'Achou que eu não ia ver?! Eu tenho olhos nas costas!', d(t) {
-      if (t < 48.2) {
-        g.save(); shake(t > 46.2 ? Math.max(0, 14 * (1 - (t - 46.2) / .6)) : 0, t);
-        cover('s14', lerp(1.12, 1.3, easeOut((t - 46.2) / .3)), .5, 0); g.restore();
-        flash('200,40,30', t > 46.2 ? .55 * (1 - (t - 46.2) / .6) : 0); vignette(.5);
-      } else {
-        cover('s14b', lerp(1.0, 1.06, (t - 48.2) / 1.8), .5, .2); vignette(.4);
-      }
-  } },
-  { n: 15, t0: 50, t1: 53, sec: 3, img: 'Tela final: EXPULSO!', fala: 'Sua cola agora é peça de museu.', d(t) {
-      if (t < 50.15) { black(1); return; }
-      g.save(); shake(Math.max(0, 10 * (1 - (t - 50.15) / .35)), t);
-      cover('fim_expulso', lerp(1.32, 1.4, (t - 50.15) / 2.6), .5, .2); g.restore();
-      if (t > 52.75) { black(1); txt('...ou', W / 2, H / 2, 72, F.hand, C.cream, 'center', 'middle'); }
-  } },
-  { n: 16, t0: 53, t1: 56, sec: 3, img: 'Tela final: APROVADO', fala: 'Passou! O professor ainda está tentando entender como.', d(t) {
-      if (t < 53.15) { black(1); txt('...ou', W / 2, H / 2, 72, F.hand, C.cream, 'center', 'middle'); return; }
-      g.save(); shake(Math.max(0, 8 * (1 - (t - 53.15) / .3)), t);
-      cover('fim_aprovado', lerp(1.32, 1.38, (t - 53.15) / 2.8), .5, .2); g.restore();
-      black((t - 55.7) / .3);
-  } },
-  { n: 17, t0: 56, t1: 62, sec: 4, img: 'Capa do jogo na folha de prova', fala: 'SOBREVIVENDO À UNIMAR · Em breve no PC', d(t) {
-      g.filter = 'blur(10px) brightness(0.38)'; cover('s13', 1.12, .5, .5); g.filter = 'none';
-      const a = easeOut((t - 56) / .6);
-      g.save(); g.globalAlpha = a;
-      paper(W / 2, lerp(H / 2 + 60, H / 2, a), 1180, 720, -.012, (w, h) => {
-        txt('SOBREVIVENDO À UNIMAR', w / 2 + 30, 205, 86, F.type, C.ink, 'center');
-        g.fillStyle = C.ink; g.fillRect(150, 238, w - 240, 3);
-        txt('FASE 1 — A PROVA IMPOSSÍVEL', w / 2 + 30, 300, 38, F.type, C.ink, 'center');
-        txt('Não estudou, né? Tô de olho. — Prof. T.', w / 2 + 30, 410, 50, F.hand, C.red, 'center');
-        txt('Estúdio Fundão', 110, h - 70, 30, F.type, 'rgba(43,42,40,.7)');
-        stamp('EM BREVE · PC', C.blue, w - 290, h - 120, 56, t - 60.0, -.1);
-      });
-      g.restore();
-      black((t - 61.6) / .4);
-  } },
-  { n: 18, t0: 62, t1: 65, sec: 4, img: 'Piada final: o Nerd', fala: 'Professor, a questão 7 tem um erro de digitação. Grave.', d(t) {
-      if (t < 62.3 || t > 64.6) { black(1); return; }
-      cover('s18', lerp(1.0, 1.05, (t - 62.3) / 2.3), .5, 0); vignette(.35);
-  } },
-];
-const SECOES = [['Abertura', 0, 14], ['O plano', 14, 42], ['O perigo', 42, 50], ['O desfecho', 50, 56], ['Encerramento', 56, 65]];
-
-function draw(t) {
-  g.save(); g.clearRect(0, 0, W, H);
-  const s = SHOTS.find(s => t >= s.t0 && t < s.t1) || SHOTS[SHOTS.length - 1];
-  g.globalAlpha = 1; g.filter = 'none'; s.d(t);
+function keyCard(key, name, note, tl) {
+  if (tl < 0) return;
+  const { s, x0, tx, w, h, nameSize, noteSize } = cardLayout(), k = tl < .1 ? lerp(1.3, 1, easeOut(tl / .1)) : 1;
+  const x = SAFE.l + 14, y = VERT ? SAFE.t + 20 : SAFE.b - h - 14;
+  g.save(); g.translate(x + w / 2, y + h / 2); g.scale(k, k); g.rotate(-.02); g.translate(-w / 2, -h / 2);
+  paperRect(0, 0, w, h, false, true); inkStart();
+  keycap(x0, 22, s, key);
+  txt(name, tx, h * .48, nameSize, F.type, C.ink);
+  txt(note, tx, h * .8, noteSize, F.hand, C.blue);
+  mark('cartao', key + ' ' + name + ' / ' + note, [0, 0, w, h], [NOW - tl, Infinity]);
   g.restore();
 }
 
-// ---------- som (tudo sintetizado) ----------
-let ac = null, mix, muteGain, recDest, out, NB;
-let muted = false;
-function ensureAudio() {
-  if (ac) return;
-  ac = new (window.AudioContext || window.webkitAudioContext)();
-  mix = ac.createGain(); mix.gain.value = .85;
-  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
-  muteGain = ac.createGain(); muteGain.gain.value = muted ? 0 : 1;
-  recDest = ac.createMediaStreamDestination();
-  mix.connect(comp); comp.connect(muteGain); muteGain.connect(ac.destination); comp.connect(recDest);
-  NB = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
-  const d = NB.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+// celular: elemento gráfico do trailer. O jogo não tem modelo do aparelho (segurar a tecla 2 só muda a pose dos braços e da
+// cabeça, e as mãos ficam atrás da carteira), então ele é desenhado por cima do plano, no estilo "prova impressa": recorte de
+// papel com contorno à caneta, tela acesa, a busca com o texto do próprio HUD ("Pesquisando no celular...") e uma notificação.
+function roundRect(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function penStroke(path, width) {   // caneta passada duas vezes, levemente desencontrada
+  g.save(); g.strokeStyle = C.blue; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.lineWidth = width; path(0, 0); g.stroke();
+  g.globalAlpha *= .5; g.lineWidth = width * .5; path(3, -2.5); g.stroke(); g.restore();
 }
-const nf = s => {
-  const m = s.match(/^([A-G])(#|b)?(-?\d)$/);
-  const st = { C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
-  return 440 * Math.pow(2, (st + (parseInt(m[3]) - 4) * 12) / 12);
+function phone(tl, dur) {
+  if (tl < 0) return;
+  const ph = VERT ? H * .27 : H * .56, pw = ph * .52;
+  const cx = VERT ? W * .66 : W * .735, cy = VERT ? H * .56 : H * .5;
+  const inn = easeOut(tl / .2), alpha = clamp(tl / .08), u = tl * 1.5 / dur;   // u: o que acontece na tela cabe na duração do plano
+  const ox = cx, oy = cy + lerp(ph * .45, 0, inn) + Math.sin(tl * 4) * 3, rot = lerp(.22, .07, inn);
+  // seta à caneta: do aparelho até as mãos do jogador, escondidas atrás da carteira
+  const pa = clamp((tl - .35) / .25);
+  if (pa > 0) {
+    const ax = ox - pw * .56, ay = oy + ph * .18;
+    const bx = Math.max(SAFE.l + 34, COVER.x + COVER.dw * .385), by = COVER.y + COVER.dh * .615;
+    const mx = (ax + bx) / 2, my = Math.max(ay, by) + ph * .16;
+    const q = u => [(1 - u) * (1 - u) * ax + 2 * u * (1 - u) * mx + u * u * bx, (1 - u) * (1 - u) * ay + 2 * u * (1 - u) * my + u * u * by];
+    g.save(); g.shadowColor = 'rgba(243,236,218,.9)'; g.shadowBlur = 6;
+    penStroke((dx, dy) => { g.beginPath(); for (let i = 0; i <= 24 * pa; i++) { const [x, y] = q(i / 24); i ? g.lineTo(x + dx, y + dy) : g.moveTo(x + dx, y + dy); } }, 7);
+    if (pa >= 1) { const [x1, y1] = q(.9), an = Math.atan2(by - y1, bx - x1);
+      penStroke((dx, dy) => { g.beginPath(); for (const d of [-.5, .5]) { g.moveTo(bx + dx, by + dy); g.lineTo(bx + dx - Math.cos(an + d) * 34, by + dy - Math.sin(an + d) * 34); } }, 7); }
+    g.restore();
+  }
+  g.save(); g.translate(ox, oy); g.rotate(rot); g.globalAlpha = alpha;
+  const x = -pw / 2, y = -ph / 2, r = pw * .12, m = pw * .09;
+  // tela acesa: clarão de papel em volta do aparelho e tracinhos de luz à caneta
+  g.save(); g.shadowColor = 'rgba(251,246,233,.9)'; g.shadowBlur = pw * .5; g.fillStyle = C.cream; roundRect(x, y, pw, ph, r); g.fill(); g.restore();
+  if (tl > .2) penStroke(() => { g.beginPath(); for (const a of [-2.45, -2.05, -1.57, -1.09, -.69]) { g.moveTo(Math.cos(a) * pw * .66, Math.sin(a) * ph * .56); g.lineTo(Math.cos(a) * pw * .8, Math.sin(a) * ph * .63); } }, pw * .022);
+  // corpo: papel com contorno à caneta
+  shadowOn(30, 12); g.fillStyle = C.paper; roundRect(x, y, pw, ph, r); g.fill(); shadowOff();
+  g.save(); roundRect(x, y, pw, ph, r); g.clip(); g.globalAlpha *= .9; g.fillStyle = g.createPattern(TEX.paper, 'repeat'); g.fillRect(x, y, pw, ph); g.restore();
+  penStroke((dx, dy) => roundRect(x + dx, y + dy, pw, ph, r), pw * .024);
+  g.fillStyle = C.ink; roundRect(-pw * .1, y + m * .72, pw * .2, m * .26, m * .13); g.fill();
+  g.strokeStyle = C.ink; g.lineWidth = pw * .012; g.beginPath(); g.arc(0, y + ph - m * .95, m * .48, 0, 7); g.stroke();
+  // tela
+  const sx = x + m, sy = y + m * 1.7, sw = pw - m * 2, sh = ph - m * 3.6;
+  g.fillStyle = '#fbf6e9'; roundRect(sx, sy, sw, sh, r * .45); g.fill();
+  g.strokeStyle = C.ink; g.lineWidth = pw * .012; roundRect(sx, sy, sw, sh, r * .45); g.stroke();
+  inkStart();
+  // a busca: o texto é o do HUD do jogo enquanto se segura a tecla 2
+  const s1 = 'Pesquisando', s2 = 'no celular...';
+  const fs = fit(s2, pw * .115, F.type, sw - m * 2.4);
+  const bx = sx + m * .6, bw = sw - m * 1.2, bh = fs * 3.2, by = sy + sh * .27;
+  g.strokeStyle = C.ink; g.lineWidth = pw * .01; roundRect(bx, by, bw, bh, fs * .4); g.stroke();
+  const n = Math.floor(clamp((u - .2) / .45) * (s1.length + s2.length));
+  txt(s1.slice(0, n), bx + m * .5, by + fs * 1.3, fs, F.type, C.ink);
+  txt(s2.slice(0, Math.max(0, n - s1.length)), bx + m * .5, by + fs * 2.55, fs, F.type, C.ink);
+  mark('celular', 'aparelho com a busca "Pesquisando no celular..."', [x, y, pw, ph], [NOW - tl, Infinity]);
+  // barra de "segure 2" enchendo e as linhas do resultado
+  const py = by + bh + fs * .8, p = clamp((tl - .2) / Math.max(.4, dur - .35));
+  g.strokeStyle = C.ink; g.lineWidth = pw * .01; g.strokeRect(bx, py, bw, fs * .7); g.fillStyle = C.blue; g.fillRect(bx + 3, py + 3, (bw - 6) * p, fs * .7 - 6);
+  g.strokeStyle = 'rgba(43,42,40,.5)'; g.lineWidth = pw * .016; g.lineCap = 'round';
+  for (let i = 0; i < 4; i++) { const a = clamp((u - .55 - i * .1) / .15); if (a <= 0) continue; const ly = py + fs * 2.3 + i * fs * 1.2; g.beginPath(); g.moveTo(bx, ly); g.lineTo(bx + bw * [.92, .7, .85, .5][i] * a, ly); g.stroke(); }
+  // notificação: a faixa desce do topo da tela e o selo vermelho aparece no canto do aparelho
+  const nt = (u - .7) * dur / 1.5;
+  if (nt > 0) {
+    const a = easeOut(nt / .15), nh = fs * 2, ny = sy + m * .35 + lerp(-nh * 1.3, 0, a);
+    g.save(); roundRect(sx, sy, sw, sh, r * .45); g.clip();
+    shadowOn(10, 4); g.fillStyle = C.paper2; roundRect(sx + m * .35, ny, sw - m * .7, nh, fs * .3); g.fill(); shadowOff();
+    g.fillStyle = C.red; g.fillRect(sx + m * .35, ny, pw * .03, nh);
+    g.strokeStyle = C.ink; g.lineWidth = pw * .014; g.lineCap = 'round';
+    for (let i = 0; i < 2; i++) { g.beginPath(); g.moveTo(sx + m * 1.1, ny + nh * (.36 + i * .32)); g.lineTo(sx + m * 1.1 + (sw - m * 2.6) * [.55, .85][i], ny + nh * (.36 + i * .32)); g.stroke(); }
+    g.restore();
+    const k = nt < .1 ? lerp(1.9, 1, easeOut(nt / .1)) : 1, rr = pw * .095 * k, qx = x + pw - m * .15, qy = y + m * .25;
+    g.fillStyle = C.red; g.beginPath(); g.arc(qx, qy, rr, 0, 7); g.fill();
+    txt('1', qx, qy + rr * .1, rr * 1.35, F.type, C.cream, 'center', 'middle');
+  }
+  // a tecla
+  const ks = pw * .34; keycap(x - ks * .42, y + ph - ks * .8, ks, '2');
+  g.restore();
+}
+
+// ===================================================================== os cortes
+// Cada plano: {t0, t1, clip?, from, speed, z:[z0,z1], fx, fy, fxV (foco no vertical), sat:[s0,s1], whipIn, draw(t, lt)}
+// Falas usadas (todas existem no jogo, exceto as marcadas como novas no roteiro).
+const L = {
+  semanas: 'Você tinha três semanas.',
+  sorte: 'Boa sorte. Vocês vão precisar.',
+  fundao: 'Toma a cola. Confia no pai.',
+  ronco: 'ZZZzzz... resposta C... zzz',
+  puxa: 'PROFESSOOOR! Ele tá respirando na direção da minha prova!',
+  sinto: 'Eu corrijo prova há 30 anos. Eu SINTO a cola.',
+  sinal: 'Tire a nota antes do sinal.',
+  arred: 'Professor, dá pra arredondar?',
+  baixo: 'Dá. Para baixo.',
+  q7: 'Professor, a questão 7 tem um erro de digitação. Grave.',
 };
-function env(gn, w, a, peak, dur, rel) {
-  gn.gain.setValueAtTime(.0001, w); gn.gain.exponentialRampToValueAtTime(Math.max(.0002, peak), w + a);
-  gn.gain.setTargetAtTime(.0001, w + a + dur, rel);
+const N = { prof: 'PROF. TAKANERVOSO', voce: 'VOCÊ', nerd: 'NERD', fundao: 'FUNDÃO', dorm: 'DORMINHOCO', puxa: 'PUXA-SACO' };
+const COLAS = [['Q', 'Colinha', 'na manga', '06_colinha', .2], ['G', 'Garrafinha', 'o rótulo sabe tudo', '07_garrafinha', .6],
+               ['B', 'Bilhete', 'mire bem!', '08_bilhete', .45], ['F', 'Fone', 'reze pra não tocar', '09_fone', .6]];
+const TRES = [['Celular.', '02_celular', .6, false], ['Nerd.', '03_nerd', 1.7, false], ['Fundão.', '04_fundao', .4, false], ['Fé.', '05_fe', .6, true]];
+
+function planoPapel(t0, t1, strikeAt, popAt) {
+  return { t0, t1, kind: 'papel', img: 'Letreiro: "Você não estudou." vira "Você tem um PLANO."', fala: 'Você não estudou. → Você tem um PLANO.',
+    draw(t) {
+      g.fillStyle = C.paper; g.fillRect(0, 0, W, H); paperRect(-4, -4, W + 8, H + 8, true, true);
+      const s1 = 'Você não estudou.'; const size = fit(s1, T.title * .8, F.type, SAFE.r - SAFE.l - 40);
+      g.font = font(size, F.type); const w1 = g.measureText(s1).width; const x1 = W / 2 - w1 / 2, y1 = H / 2 - (VERT ? 160 : 70);
+      txt(s1.slice(0, clamp(Math.floor((t - t0 - .05) * 30), 0, s1.length)), x1, y1, size, F.type, C.ink);
+      const ps = clamp((t - strikeAt) / .3);
+      if (ps > 0) { g.strokeStyle = C.blue; g.lineWidth = 8; g.lineCap = 'round'; g.beginPath(); for (let i = 0; i <= 30 * ps; i++) { const xx = x1 - 14 + (w1 + 28) * i / 30, yy = y1 - size * .32 + Math.sin(i * 1.7) * 3; i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); } g.stroke(); }
+      const tl = t - popAt;
+      if (tl >= 0) {
+        const k = tl < .12 ? lerp(1.7, 1, easeOut(tl / .12)) : 1;
+        const s2 = 'Você tem um PLANO.'; const sz = fit(s2, T.hand * 1.55, F.hand, SAFE.r - SAFE.l - 40);
+        g.save(); g.translate(W / 2, H / 2 + (VERT ? 120 : 110)); g.rotate(-.04); g.scale(k, k); txt(s2, 0, 0, sz, F.hand, C.blue, 'center', 'middle'); g.restore();
+      }
+    } };
 }
+// título batido à máquina: uma letra por vez, cada uma "bate" (entra maior e com a tinta carregada) e fica levemente
+// desalinhada, como numa máquina de escrever. Devolve quanto tempo a datilografia leva.
+const TYPE_PER = .028;
+function typedTitle(lines, cx, y, size, lh, tl) {
+  let i0 = 0;
+  lines.forEach((s, li) => {
+    g.font = font(size, F.type); g.textAlign = 'left';
+    const x0 = cx - g.measureText(s).width / 2, yy = y + li * lh;
+    for (let i = 0; i < s.length; i++) {
+      const age = tl - (i0 + i) * TYPE_PER; if (age < 0) break;
+      if (s[i] === ' ') continue;
+      g.font = font(size, F.type); g.textAlign = 'left';
+      const x = x0 + g.measureText(s.slice(0, i)).width, cw = g.measureText(s[i]).width;
+      const r = rng(1000 + (i0 + i) * 77), jx = (r() - .5) * size * .02, jy = (r() - .5) * size * .05, rot = (r() - .5) * .04;
+      const k = age < .07 ? lerp(1.6, 1, easeOut(age / .07)) : 1;
+      g.save(); g.translate(x + cw / 2 + jx, yy + jy); g.rotate(rot); g.scale(k, k);
+      txt(s[i], 0, 0, size, F.type, C.ink, 'center');
+      if (age < .1) { g.globalAlpha *= .5; txt(s[i], 2, 2, size, F.type, C.ink, 'center'); }
+      g.restore();
+    }
+    i0 += s.length;
+  });
+  return i0 * TYPE_PER;
+}
+const TITULO = 'SOBREVIVENDO À UNIMAR';
+// Quadro final: a folha cai, o título é batido à máquina, a régua é riscada, a fase é datilografada, o bilhete do professor é
+// escrito à caneta e o carimbo EM BREVE · PC fecha. Do carimbo em diante o quadro fica completo e parado: título, fase,
+// Estúdio Fundão, EM BREVE · PC e o link (e o crédito da trilha, se houver).
+function planoCapa(t0, t1, stampAt, speed = 1) {
+  return { t0, t1, clip: '19_sala', from: 0, speed, kind: 'capa', img: 'Quadro final: título batido à máquina; carimbo EM BREVE · PC', fala: TITULO + ' · Fase 1 — A Prova Impossível · Estúdio Fundão · ' + LINK,
+    draw(t, lt, src) {
+      g.filter = 'blur(16px) brightness(0.42) saturate(0.8)'; cover(src, 1.1, .5, .5); g.filter = 'none';
+      const a = easeOut(lt / .16), slam = 1 + .08 * (1 - a);
+      const pw = VERT ? W * .83 : W * .66, ph = VERT ? H * .56 : H * .72;
+      const x = W / 2 - pw / 2, y = H / 2 - ph / 2 - (VERT ? H * .03 : 0), cx = W / 2 + 30;
+      g.save(); g.globalAlpha = clamp(lt / .05); g.translate(W / 2, H / 2); g.rotate(-.012); g.scale(slam, slam); g.translate(-W / 2, -H / 2);
+      paperRect(x, y, pw, ph, true, true); inkStart();
+      txt('UNIMAR — AVALIAÇÃO BIMESTRAL', x + 90, y + 46, T.small * .8, F.type, 'rgba(43,42,40,.55)');
+      const tt = lt - .12;
+      let fimTitulo;
+      if (VERT) { const tsz = fit('SOBREVIVENDO', T.huge * .9, F.type, pw - 160); fimTitulo = typedTitle(['SOBREVIVENDO', 'À UNIMAR'], cx, y + ph * .2, tsz, tsz * 1.05, tt); }
+      else fimTitulo = typedTitle([TITULO], cx, y + ph * .27, fit(TITULO, T.huge * .62, F.type, pw - 180), 0, tt);
+      const u = tt - fimTitulo;                       // tempo desde a última letra do título
+      const ly = y + ph * (VERT ? .37 : .34);
+      if (u > 0) { g.fillStyle = C.ink; g.fillRect(x + 110, ly, (pw - 170) * easeOut(u / .12), 4); }
+      const s2 = 'FASE 1 — A PROVA IMPOSSÍVEL', n2 = clamp(Math.floor((u - .05) * 120), 0, s2.length);
+      if (n2 > 0) { const z2 = fit(s2, T.cap * .85, F.type, pw - 200); g.font = font(z2, F.type); txt(s2.slice(0, n2), cx - g.measureText(s2).width / 2, ly + T.cap * 1.25, z2, F.type, C.ink); }
+      const s3 = 'Não estudou, né? Tô de olho. — Prof. T.', p3 = clamp((u - .15) / .25);
+      if (p3 > 0) { const z3 = fit(s3, T.hand * .7, F.hand, pw - 200); g.font = font(z3, F.hand); const w3 = g.measureText(s3).width;
+        g.save(); g.beginPath(); g.rect(cx - w3 / 2 - 30, ly + T.cap * 2.9 - z3 * 1.3, (w3 + 60) * p3, z3 * 2); g.clip(); txt(s3, cx, ly + T.cap * 2.9, z3, F.hand, C.red, 'center'); g.restore(); }
+      const p4 = clamp((u - .2) / .2);
+      if (p4 > 0) {
+        g.save(); g.globalAlpha *= p4;
+        txt(LINK, cx, y + ph - (VERT ? 200 : 150), fit(LINK, T.cap * .78, F.type, pw - 200), F.type, C.blue, 'center');
+        txt('Estúdio Fundão', x + 100, y + ph - 48, T.small, F.type, 'rgba(43,42,40,.75)');
+        if (CREDITO) txt(CREDITO, x + pw - 50, y + ph - 48, fit(CREDITO, T.small * .8, F.type, pw * .55), F.type, 'rgba(43,42,40,.75)', 'right');
+        g.restore();
+      }
+      mark('capa', 'quadro final (título, fase, bilhete, link, estúdio)', [x, y, pw, ph], [t0, t1]);
+      stamp('EM BREVE · PC', C.blue, x + pw - (VERT ? 300 : 330), y + ph - (VERT ? 330 : 270), VERT ? 62 : 66, t - stampAt, -.1);
+      g.restore();
+    } };
+}
+
+function cutMestre() {
+  const S = [], CORTE_SECO = 37.85;
+  S.push({ t0: 0, t1: 3, clip: '00_folha', from: .3, img: 'A folha da prova na carteira; carimbo NÃO ESTUDOU', fala: L.semanas,
+    draw(t) { typeCaption(L.semanas, t - .25, 22, VERT ? SAFE.t + 40 : SAFE.t + 30, T.cap * 1.05); stamp('NÃO ESTUDOU', C.red, W * (VERT ? .5 : .62), H * (VERT ? .52 : .58), VERT ? 86 : 96, t - 1.9, -.13); } });
+  S.push({ t0: 3, t1: 6, clip: '01_prof_anda', from: 1.0, z: [1.0, 1.06], img: 'O professor andando entre as carteiras (câmera baixa)', fala: L.sorte,
+    draw(t) { subtitle(N.prof, L.sorte, t - 3.3, 2.5); } });
+  S.push(planoPapel(6, 9, 6.9, 7.5));
+  TRES.forEach(([w, clip, from, hand], i) => {
+    const t0 = 9 + i * 1.5;
+    S.push({ t0, t1: t0 + 1.5, clip, from, z: [1.02, 1.1], img: 'Regra de três: ' + w, fala: w,
+      draw(t) { if (clip === '02_celular') phone(t - t0 - .12, 1.5); bigWord(w, t - t0 - .05, hand); if (clip === '04_fundao') subtitle(N.fundao, L.fundao, t - t0 - .1, 1.4, '#9a6a00'); } });
+  });
+  COLAS.forEach(([k, nome, nota, clip, from], i) => {
+    const t0 = 15 + i * 1.5;
+    S.push({ t0, t1: t0 + 1.5, clip, from, whipIn: i > 0, img: `Cola de bolso ${k}: ${nome}`, fala: `${k} · ${nome} — ${nota}`,
+      draw(t) { keyCard(k, nome, nota, t - t0 - .05); } });
+  });
+  S.push({ t0: 21, t1: 23, clip: '10_dorminhoco', from: 1.2, z: [1, 1.08], img: 'O Dorminhoco cabeceando (zZZ) e roncando', fala: L.ronco,
+    draw(t) { subtitle(N.dorm, L.ronco, t - 21.9, 1.1, '#6b6b6b'); } });
+  S.push({ t0: 23, t1: 26, clip: '11_puxasaco', from: .6, z: [1, 1.1], img: 'O Puxa-saco se vira para delatar', fala: L.puxa + ' [NOVA]',
+    draw(t) { subtitle(N.puxa, L.puxa, t - 23.5, 2.5, '#a3326b'); } });
+  S.push({ t0: 26, t1: 30, clip: '12_prof_sinto', from: 0, speed: .8, z: [1, 1.12], img: 'Close do professor; silêncio, pulso grave, "hm?"', fala: L.sinto,
+    draw(t) { subtitle(N.prof, L.sinto, t - 26.2, 2.7); } });
+  S.push({ t0: 30, t1: 33, clip: '13_cone', from: 1.0, speed: .55, blend: true, sat: [1, .35], z: [1.25, 1.33], fy: .6, img: 'Vista de cima: o cone de visão passando pelo jogador', fala: '(perigo)',
+    draw(t) { vignette(lerp(.3, .7, (t - 30) / 3)); } });
+  S.push({ t0: 33, t1: 35, clip: '14_flagrante', from: .4, img: 'FLAGRANTE: professor bravo, "!!!", clarão vermelho', fala: 'FLAGRANTE! [1/3]', impact: 33.3,
+    draw(t) { stamp('FLAGRANTE! [1/3]', C.red, W / 2, VERT ? H * .66 : H * .74, VERT ? 70 : 84, t - 33.35, .06); } });
+  // contagem final: a HUD com inserções do professor, cortes na batida cada vez mais curtos (1,5 s · 0,5 · 0,5 · 0,25 · 0,25)
+  // e um instante de preto e silêncio antes do desfecho. O letreiro atravessa os cortes (está em overlays, abaixo).
+  const hud = (a, b, z, extra) => ({ t0: a, t1: b, clip: '15_hud', from: .3 + (a - 35), fxV: .5, z, img: 'A HUD real; o sinal toca', fala: L.sinal, draw() { }, ...extra });
+  const olho = (a, b, from, z) => ({ t0: a, t1: b, clip: '12_prof_sinto', from, z, fy: .42, img: 'Inserção na batida: o professor de olho', fala: '(contagem final)', draw() { } });
+  S.push(hud(35, 36.5, [1, 1.04]), olho(36.5, 37, 2.2, [1.15, 1.2]), hud(37, 37.5, [1.1, 1.14]), olho(37.5, 37.75, 2.75, [1.45, 1.5]),
+    hud(37.75, 38, [1.22, 1.25], { drawEnd: t => black(t >= CORTE_SECO ? 1 : 0) }));
+  S.push({ t0: 38, t1: 42, clip: '16_aprovado', from: 0, speed: .875, punch: [38], img: 'Tela final APROVADO; carimbo EXPULSO por cima', fala: L.arred + ' / ' + L.baixo + ' [NOVA]', impact: 41,
+    draw(t) { subtitle(N.voce, L.arred, t - 38.5, 1.4, '#c26a00', { junto: [L.baixo] }); subtitle(N.prof, L.baixo, t - 39.9, 1.1, C.red, { junto: [L.arred], cont: true }); stamp('EXPULSO!', C.red, W / 2, H * (VERT ? .45 : .5), VERT ? 120 : 150, t - 41, -.16); } });
+  S.push(planoCapa(42, 45, 43.2));
+  S.push({ t0: 45, t1: 47.5, clip: '18_nerd_final', from: .3, z: [1, 1.05], balaoDoJogo: true, img: 'Gag final: o Nerd', fala: L.q7,
+    draw(t) { subtitle(N.nerd, L.q7, t - 45.2, 2.0, '#2a6db0'); black((t - 47.15) / .05); } });
+  return { id: 'mestre', nome: 'Mestre 16:9', dur: 47.5, vert: false, shots: S,
+    dialog: [[3.3, 5.8], [12.1, 13.5], [21.9, 23], [23.5, 26], [26.2, 28.9], [38.5, 41], [45.2, 47.2]],
+    overlays: [t => { if (t >= 35 && t < CORTE_SECO) typeCaption(L.sinal, t - 35.3, 26, VERT ? SAFE.b - 140 : H * .52, T.cap, CORTE_SECO); }],
+    hits: [[38, 16, .22], [43.2, 8, .2]],                                   // tremor extra: [instante, força, duração]
+    flashes: [[38, C.cream, .5], [41, C.red, .3], [43.2, C.cream, .4]],     // clarão leve: [instante, cor, força]
+    meio: [9, 21], final: [38, 45],                                         // trechos comparados na medição de volume
+    music: musicaMestre };
+}
+
+function cut30(vert) {
+  const S = [];
+  S.push({ t0: 0, t1: 2.5, clip: '00_folha', from: .6, img: 'A folha da prova na carteira; carimbo NÃO ESTUDOU', fala: L.semanas,
+    draw(t) { typeCaption(L.semanas, t - .1, 30, VERT ? SAFE.t + 40 : SAFE.t + 30, T.cap * 1.05); stamp('NÃO ESTUDOU', C.red, W * (VERT ? .5 : .62), H * (VERT ? .52 : .58), VERT ? 86 : 96, t - 1.55, -.13); } });
+  S.push(planoPapel(2.5, 4.5, 2.95, 3.5));
+  TRES.forEach(([w, clip, from, hand], i) => {
+    const t0 = 4.5 + i;
+    S.push({ t0, t1: t0 + 1, clip, from: from + .1, z: [1.02, 1.08], img: 'Regra de três: ' + w, fala: w, draw(t) { if (clip === '02_celular') phone(t - t0 - .08, 1); bigWord(w, t - t0 - .03, hand); } });
+  });
+  COLAS.forEach(([k, nome, nota, clip, from], i) => {
+    const t0 = 8.5 + i;
+    S.push({ t0, t1: t0 + 1, clip, from: from + (clip === '08_bilhete' ? .05 : .2), whipIn: i > 0, img: `Cola de bolso ${k}: ${nome}`, fala: `${k} · ${nome}`, draw(t) { keyCard(k, nome, nota, t - t0 - .03); } });
+  });
+  S.push({ t0: 12.5, t1: 15, clip: '11_puxasaco', from: .9, z: [1, 1.08], img: 'O Puxa-saco se vira para delatar', fala: L.puxa + ' [NOVA]', draw(t) { subtitle(N.puxa, L.puxa, t - 12.6, 2.4, '#a3326b'); } });
+  S.push({ t0: 15, t1: 18, clip: '12_prof_sinto', from: 0, speed: 1, z: [1, 1.1], img: 'Close do professor; silêncio', fala: L.sinto, draw(t) { subtitle(N.prof, L.sinto, t - 15.1, 2.6); } });
+  S.push({ t0: 18, t1: 20, clip: '13_cone', from: 1.0, speed: .8, blend: true, sat: [.9, .35], z: [1.25, 1.31], fy: .6, img: 'Vista de cima: o cone de visão', fala: '(perigo)', draw(t) { vignette(lerp(.3, .7, (t - 18) / 2)); } });
+  // no último segundo do flagrante, cortes secos de aproximação na batida (0,5 · 0,25 · 0,13) e um instante de preto e silêncio
+  S.push({ t0: 20, t1: 22, clip: '14_flagrante', from: .4, steps: [[21, 1.14], [21.5, 1.3], [21.75, 1.48]], stepFocus: [.6, .44], drawEnd: t => black(t >= 21.88 ? 1 : 0),
+    img: 'FLAGRANTE: "!!!" e clarão', fala: 'FLAGRANTE! [1/3]', impact: 20.3,
+    draw(t) { stamp('FLAGRANTE! [1/3]', C.red, W / 2, VERT ? H * .66 : H * .74, VERT ? 70 : 84, t - 20.35, .06); } });
+  S.push({ t0: 22, t1: 25.5, clip: '16_aprovado', from: .2, punch: [22], img: 'APROVADO; carimbo EXPULSO por cima', fala: L.arred + ' / ' + L.baixo + ' [NOVA]', impact: 24.75,
+    draw(t) { subtitle(N.voce, L.arred, t - 22.2, 1.2, '#c26a00', { junto: [L.baixo] }); subtitle(N.prof, L.baixo, t - 23.4, 1.2, C.red, { junto: [L.arred], cont: true }); stamp('EXPULSO!', C.red, W / 2, H * (VERT ? .45 : .5), VERT ? 120 : 150, t - 24.75, -.16); } });
+  S.push(planoCapa(25.5, 30, 26.8, .75));
+  S[S.length - 1].drawEnd = t => black((t - 29.75) / .25);
+  return { id: vert ? 'v30' : 'c30', nome: vert ? '30 s 9:16' : '30 s 16:9', dur: 30, vert, shots: S,
+    dialog: [[12.6, 15], [15.1, 17.7], [22.2, 24.6]],
+    hits: [[22, 16, .22], [26.8, 8, .2]], flashes: [[22, C.cream, .5], [24.75, C.red, .3], [26.8, C.cream, .4]],
+    meio: [4.5, 12.5], final: [22, 28.5], music: musica30 };
+}
+const CUTS = { mestre: cutMestre(), c30: cut30(false), v30: cut30(true) };
+let CUT = CUTS.mestre;
+
+// ===================================================================== desenhar um instante
+function shotAt(t) { const s = CUT.shots; for (let i = 0; i < s.length; i++) if (t >= s[i].t0 && t < s[i].t1) return s[i]; return s[s.length - 1]; }
+function clipTime(s, t) { return s.from + (t - s.t0) * (s.speed || 1); }
+function sourceFor(s) { if (!s.clip || DRY) return null; return OFFLINE ? FRAMEIMG[s.clip] : video(s.clip); }
+function shakeAt(t) {
+  let a = 0;
+  for (const s of CUT.shots) {
+    for (const ti of [s.impact, s.kind === 'capa' ? null : null]) if (ti != null && t >= ti) a += 18 * Math.max(0, 1 - (t - ti) / .22);
+  }
+  for (const st of STAMPS[CUT.id] || []) if (t >= st) a += 9 * Math.max(0, 1 - (t - st) / .16);
+  for (const [ti, amp, d] of CUT.hits || []) if (t >= ti) a += amp * Math.max(0, 1 - (t - ti) / d);
+  return a;
+}
+const STAMPS = { mestre: [1.9, 43.2], c30: [1.55, 26.8], v30: [1.55, 26.8] };
+
+function drawShot(s, t) {
+  const lt = t - s.t0, p = clamp(lt / (s.t1 - s.t0));
+  const src = sourceFor(s);
+  if (s.kind === 'papel') { s.draw(t, lt); return; }
+  if (s.kind === 'capa') { s.draw(t, lt, src); if (s.drawEnd) s.drawEnd(t); return; }
+  let z = s.z ? lerp(s.z[0], s.z[1], ease(p)) : 1, fx = VERT ? (s.fxV ?? .5) : (s.fx ?? .5), fy = s.fy ?? .5;
+  for (const tp of s.punch || []) if (t >= tp && t < tp + .16) z *= 1 + .09 * (1 - easeOut((t - tp) / .16));     // soco de zoom no impacto
+  for (const [ts, m] of s.steps || []) if (t >= ts) { z = m; if (s.stepFocus) [fx, fy] = s.stepFocus; }          // corte seco de aproximação
+  const sat = s.sat ? lerp(s.sat[0], s.sat[1], p) : 1;
+  if (sat !== 1) g.filter = `saturate(${sat})`;
+  cover(src, z, fx, fy);
+  // câmera lenta sem trancos: mistura o quadro atual com o seguinte (só na exportação; ao vivo o vídeo já roda devagar)
+  if (OFFLINE && !DRY && s.blend && BLEND) { g.globalAlpha = BLEND.a; cover(BLEND.img, z, fx, fy); g.globalAlpha = 1; }
+  g.filter = 'none';
+  vignette(.28);
+  s.draw(t, lt);
+  if (s.drawEnd) s.drawEnd(t);
+}
+function render(t) {
+  NOW = t;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.filter = 'none';
+  g.fillStyle = C.black; g.fillRect(0, 0, W, H);
+  const s = shotAt(t);
+  const sh = shakeAt(t);
+  if (sh > 0) g.translate(Math.sin(t * 97) * sh, Math.cos(t * 83) * sh * .7);
+  // chicote (whip pan) na entrada do plano: o quadro chega borrado, de lado
+  const wt = s.whipIn ? t - s.t0 : 9;
+  if (wt < .12) { g.filter = `blur(${lerp(18, 0, wt / .12)}px)`; g.translate(lerp(-W * .18, 0, easeOut(wt / .12)), 0); }
+  drawShot(s, t);
+  for (const o of CUT.overlays || []) o(t);        // peças que atravessam cortes
+  g.restore();
+  for (const [ti, cor, a0] of CUT.flashes || []) if (t >= ti && t < ti + .22) { g.globalAlpha = a0 * Math.pow(1 - (t - ti) / .22, 2); g.fillStyle = cor; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+  grain(t, .07);
+}
+
+// ===================================================================== som (sintetizado, provisório)
+let ac = null, master, musicBus, sfxBus, muteGain, NB;
+let muted = false;
+function makeGraph(ctx, toDestination) {
+  ac = ctx;
+  master = ac.createGain(); master.gain.value = .9;
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 3.5;
+  musicBus = ac.createGain(); sfxBus = ac.createGain();
+  musicBus.connect(master); sfxBus.connect(master); master.connect(comp);
+  muteGain = ac.createGain(); muteGain.gain.value = (muted && toDestination) ? 0 : 1;
+  comp.connect(muteGain); muteGain.connect(ac.destination);
+  NB = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+  const d = NB.getChannelData(0), r = rng(9); for (let i = 0; i < d.length; i++) d[i] = r() * 2 - 1;
+}
+const nf = s => { const m = s.match(/^([A-G])(#|b)?(-?\d)$/); const st = { C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); return 440 * Math.pow(2, (st + (parseInt(m[3]) - 4) * 12) / 12); };
+let OUT = null; // bus atual de quem está tocando
+function env(gn, w, a, peak, dur, rel) { gn.gain.setValueAtTime(.0001, w); gn.gain.exponentialRampToValueAtTime(Math.max(.0002, peak), w + a); gn.gain.setTargetAtTime(.0001, w + a + dur, rel); }
 function tone(w, f, o = {}) {
   const { type = 'sine', vol = .2, a = .005, dur = .2, rel = .08, lp = 0, glide = 0 } = o;
-  const os = ac.createOscillator(); os.type = type; os.frequency.setValueAtTime(f, w);
-  if (glide) os.frequency.exponentialRampToValueAtTime(glide, w + a + dur);
+  const os = ac.createOscillator(); os.type = type; os.frequency.setValueAtTime(f, w); if (glide) os.frequency.exponentialRampToValueAtTime(glide, w + a + dur);
   const gn = ac.createGain(); env(gn, w, a, vol, dur, rel);
   let node = os; if (lp) { const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = lp; os.connect(fl); node = fl; }
-  node.connect(gn); gn.connect(out); os.start(w); os.stop(w + a + dur + rel * 7);
+  node.connect(gn); gn.connect(OUT); os.start(w); os.stop(w + a + dur + rel * 7);
 }
 function noise(w, o = {}) {
   const { dur = .1, vol = .2, type = 'bandpass', f = 1000, q = 1, a = .002, rel = .05 } = o;
   const s = ac.createBufferSource(); s.buffer = NB; s.loop = true;
   const fl = ac.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
   const gn = ac.createGain(); env(gn, w, a, vol, dur, rel);
-  s.connect(fl); fl.connect(gn); gn.connect(out); s.start(w, Math.random() * 1.5); s.stop(w + a + dur + rel * 7);
+  s.connect(fl); fl.connect(gn); gn.connect(OUT); s.start(w, (w * 7.31) % 1.5); s.stop(w + a + dur + rel * 7);
 }
 const S = {
   kick: w => tone(w, 130, { glide: 42, dur: .12, vol: .7, rel: .08 }),
@@ -456,41 +692,42 @@ const S = {
   brass: (w, fs, dur, vol = .045) => fs.forEach(f => {
     const fl = ac.createBiquadFilter(); fl.type = 'lowpass';
     fl.frequency.setValueAtTime(500, w); fl.frequency.exponentialRampToValueAtTime(2600, w + .06); fl.frequency.exponentialRampToValueAtTime(1100, w + dur);
-    const gn = ac.createGain(); env(gn, w, .03, vol, dur, .12); fl.connect(gn); gn.connect(out);
+    const gn = ac.createGain(); env(gn, w, .03, vol, dur, .12); fl.connect(gn); gn.connect(OUT);
     for (const det of [1, 1.006]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * det; o.connect(fl); o.start(w); o.stop(w + dur + 1); }
   }),
   crash: w => noise(w, { type: 'highpass', f: 5000, dur: .05, vol: .14, rel: .6 }),
   tick: (w, hi) => noise(w, { type: 'bandpass', f: hi ? 3300 : 2400, q: 7, dur: .006, vol: .5, rel: .012 }),
-  key: w => { noise(w, { type: 'bandpass', f: 1400 + Math.random() * 900, q: 3, dur: .01, vol: .35, rel: .02 }); tone(w, 170, { vol: .08, dur: .01, rel: .02 }); },
-  ding: w => { tone(w, 2093, { vol: .06, dur: .01, rel: .3 }); },
-  thump: w => { tone(w, 110, { glide: 38, dur: .18, vol: .95, rel: .12 }); noise(w, { type: 'lowpass', f: 900, dur: .04, vol: .55, rel: .08 }); },
+  key: w => { noise(w, { type: 'bandpass', f: 1500 + (w * 977 % 800), q: 3, dur: .01, vol: .35, rel: .02 }); tone(w, 170, { vol: .08, dur: .01, rel: .02 }); },
+  ding: w => tone(w, 2093, { vol: .06, dur: .01, rel: .3 }),
+  paper: w => { noise(w, { type: 'bandpass', f: 3000, q: .5, a: .02, dur: .12, vol: .12, rel: .08 }); noise(w + .1, { type: 'bandpass', f: 1800, q: .7, dur: .08, vol: .08, rel: .06 }); },
+  scratch: (w, d) => noise(w, { type: 'highpass', f: 2600, dur: d, vol: .06, rel: .03 }),
+  stamp: w => { tone(w, 95, { glide: 34, dur: .2, vol: 1, rel: .14 }); noise(w, { type: 'lowpass', f: 700, dur: .05, vol: .7, rel: .1 }); noise(w + .01, { type: 'bandpass', f: 1200, q: 1, dur: .02, vol: .3, rel: .04 }); },
   heart: w => { tone(w, 62, { glide: 45, dur: .07, vol: .65, rel: .07 }); tone(w + .2, 58, { glide: 42, dur: .06, vol: .45, rel: .07 }); },
   step: w => { noise(w, { type: 'lowpass', f: 350, dur: .03, vol: .5, rel: .05 }); tone(w, 80, { glide: 50, dur: .04, vol: .22, rel: .04 }); },
   hm: w => { tone(w, 150, { type: 'sawtooth', vol: .1, a: .04, dur: .1, rel: .05, lp: 900 }); tone(w + .2, 160, { type: 'sawtooth', vol: .13, a: .03, dur: .2, rel: .06, lp: 900, glide: 250 }); },
-  vibe: w => { for (let i = 0; i < 2; i++) tone(w + i * .45, 70, { type: 'square', vol: .07, dur: .28, rel: .03, lp: 300 }); },
-  ring: w => { for (let r = 0; r < 2; r++) for (let i = 0; i < 8; i++) tone(w + r * .7 + i * .05, i % 2 ? 480 : 440, { vol: .06, dur: .035, rel: .01 }); },
-  snore: w => { noise(w, { type: 'lowpass', f: 500, q: 2, a: .6, dur: .4, vol: .2, rel: .2 }); tone(w, 75, { type: 'sawtooth', a: .6, dur: .4, vol: .05, rel: .2, lp: 400 }); },
-  scratch: (w, d) => noise(w, { type: 'highpass', f: 2600, dur: d, vol: .05, rel: .03 }),
-  murmur: (w, d) => noise(w, { type: 'bandpass', f: 420, q: .6, a: .8, dur: d, vol: .07, rel: .4 }),
-  drone: (w, d) => { tone(w, nf('D1'), { a: 2, dur: d, vol: .3, rel: .3 }); tone(w, nf('Eb2'), { type: 'sawtooth', a: 3, dur: d, vol: .025, rel: .3, lp: 380 }); },
+  vibe: w => { for (let i = 0; i < 2; i++) tone(w + i * .4, 70, { type: 'square', vol: .07, dur: .25, rel: .03, lp: 300 }); },
+  snore: w => { noise(w, { type: 'lowpass', f: 500, q: 2, a: .5, dur: .35, vol: .22, rel: .2 }); tone(w, 75, { type: 'sawtooth', a: .5, dur: .35, vol: .05, rel: .2, lp: 400 }); },
+  murmur: (w, d) => noise(w, { type: 'bandpass', f: 420, q: .6, a: .6, dur: d, vol: .06, rel: .3 }),
+  pulse: (w, d) => { tone(w, nf('D1'), { a: .4, dur: d, vol: .35, rel: .3 }); tone(w, nf('Eb2'), { type: 'sawtooth', a: 1.5, dur: d, vol: .025, rel: .3, lp: 380 }); },
+  boom: w => { S.stamp(w); S.crash(w); noise(w, { type: 'lowpass', f: 200, dur: .3, vol: .55, rel: .4 }); S.brass(w, ['D3', 'Eb3', 'A3'].map(nf), .25, .06); },
+  bell: w => { for (let i = 0; i < 10; i++) { tone(w + i * .09, 1320, { type: 'square', vol: .04, dur: .05, rel: .02, lp: 3000 }); tone(w + i * .09, 660, { vol: .05, dur: .05, rel: .02 }); } },
+  whoosh: w => noise(w, { type: 'bandpass', f: 900, q: .8, a: .06, dur: .06, vol: .12, rel: .05 }),
   plim: w => { tone(w, 1568, { vol: .13, dur: .01, rel: .35 }); tone(w, 2349, { vol: .06, dur: .01, rel: .25 }); },
-  wah: w => {
-    ['Bb3', 'A3', 'Ab3', 'G3'].forEach((n, i) => {
-      const d = i === 3 ? .9 : .32, ww = w + i * .4;
-      const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = 6;
-      fl.frequency.setValueAtTime(350, ww); fl.frequency.linearRampToValueAtTime(1500, ww + d * .4); fl.frequency.linearRampToValueAtTime(380, ww + d);
-      const gn = ac.createGain(); env(gn, ww, .03, .16, d, .08); fl.connect(gn); gn.connect(out);
-      const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = nf(n);
-      if (i === 3) o.frequency.linearRampToValueAtTime(nf(n) * .94, ww + d);
-      o.connect(fl); o.start(ww); o.stop(ww + d + .6);
-    });
+  // subida (riser): ruído varrendo para o agudo e uma nota subindo; corta seco em w + dur (o silêncio antes do carimbo)
+  riser: (w, dur, vol = .2) => {
+    const n = ac.createBufferSource(); n.buffer = NB; n.loop = true;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(350, w); bp.frequency.exponentialRampToValueAtTime(7500, w + dur);
+    const gn = ac.createGain(); gn.gain.setValueAtTime(.0001, w); gn.gain.exponentialRampToValueAtTime(vol, w + dur); gn.gain.linearRampToValueAtTime(0, w + dur + .012);
+    n.connect(bp); bp.connect(gn); gn.connect(OUT); n.start(w); n.stop(w + dur + .05);
+    const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(nf('D3'), w); o.frequency.exponentialRampToValueAtTime(nf('D5'), w + dur);
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, w); lp.frequency.exponentialRampToValueAtTime(3200, w + dur);
+    const og = ac.createGain(); og.gain.setValueAtTime(.0001, w); og.gain.exponentialRampToValueAtTime(vol * .4, w + dur); og.gain.linearRampToValueAtTime(0, w + dur + .012);
+    o.connect(lp); lp.connect(og); og.connect(OUT); o.start(w); o.stop(w + dur + .05);
   },
+  // impacto grave: queda de sub + a pancada do carimbo + prato
+  impact: (w, vol = 1) => { tone(w, 120, { glide: 30, dur: .45, vol: .6 * vol, rel: .18 }); tone(w, 60, { type: 'triangle', glide: 36, dur: .3, vol: .25 * vol, rel: .15 }); noise(w, { type: 'lowpass', f: 700, dur: .05, vol: .45 * vol, rel: .1 }); noise(w + .01, { type: 'bandpass', f: 1200, q: 1, dur: .02, vol: .25 * vol, rel: .04 }); S.crash(w); noise(w, { type: 'lowpass', f: 180, dur: .25, vol: .3 * vol, rel: .3 }); },
+  snare: (w, v = .2) => { noise(w, { type: 'bandpass', f: 1900, q: .7, dur: .035, vol: v, rel: .05 }); tone(w, 190, { glide: 150, dur: .03, vol: v * .5, rel: .03 }); },
 };
-S.boom = w => { S.thump(w); S.crash(w); noise(w, { type: 'lowpass', f: 200, dur: .3, vol: .5, rel: .4 }); S.brass(w, ['D3', 'Eb3', 'A3'].map(nf), .25, .06); };
-
-// --- a partitura: lista de eventos {t, fn} ---
-const EV = [];
-const ev = (t, fn) => EV.push({ t, fn });
 const BEAT = .5;
 const PROG = [
   { bass: ['D2', 'E2', 'F2', 'A2'], mel: ['D5', 0, 'F5', 0, 'A5', 'G#5', 'A5', 0], chord: ['D4', 'F4', 'A4'] },
@@ -498,175 +735,482 @@ const PROG = [
   { bass: ['G1', 'Bb1', 'D2', 'C#2'], mel: ['G5', 0, 'Bb5', 0, 'D6', 'C#6', 'D6', 0], chord: ['D4', 'G4', 'Bb4'] },
   { bass: ['A1', 'C#2', 'E2', 'C#2'], mel: ['E6', 0, 'C#6', 0, 'A5', 'G5', 'E5', 'C#5'], chord: ['C#4', 'E4', 'G4', 'A4'] },
 ];
-const eighth = (t, i) => t + Math.floor(i / 2) * BEAT + (i % 2 ? BEAT * .62 : 0); // swing
-function bar(t, k, o) {
-  const P = PROG[k % 4];
-  if (o.bass) P.bass.forEach((n, i) => ev(t + i * BEAT, w => S.bass(w, nf(n))));
-  if (o.kick) { ev(t, S.kick); ev(t + 2 * BEAT, S.kick); }
-  if (o.hat) for (let i = 0; i < 8; i++) ev(eighth(t, i), w => S.hat(w, i % 2 ? .05 : .085));
-  if (o.snare) { ev(t + BEAT, S.brush); ev(t + 3 * BEAT, S.brush); }
-  if (o.mel) P.mel.forEach((n, i) => n && ev(eighth(t, i), w => S.pluck(w, nf(n))));
-  if (o.brass) ev(t, w => S.brass(w, P.chord.map(nf), .3));
-}
-(function compor() {
-  // abertura: relógio, máquina de escrever, carimbo, sala
-  for (let t = 0; t < 13.2; t += 1) ev(t + .05, w => S.tick(w, Math.round(t) % 2 === 0));
-  const frase = 'Ontem à noite você ia estudar.';
-  for (let i = 0; i < frase.length; i++) if (frase[i] !== ' ') ev(.4 + i * .085, S.key);
-  ev(.4 + frase.length * .085 + .05, S.ding);
-  ev(4.05, w => S.scratch(w, .3));
-  ev(5.0, S.thump);
-  ev(7.0, w => S.murmur(w, 5.6));
-  ev(8.4, w => S.scratch(w, .25)); ev(9.3, w => S.scratch(w, .4)); ev(11.1, w => S.scratch(w, .2));
-  // o plano: tema
-  ev(14.0, S.kick); ev(14.0, S.crash);
-  for (let i = 0; i < 17; i++) if ('Você não estudou.'[i] !== ' ') ev(14.1 + i * .04, S.key);
-  ev(15.0, w => S.scratch(w, .35));
-  ev(15.6, w => S.brass(w, ['D4', 'F4', 'A4', 'D5'].map(nf), .4, .06)); ev(15.6, S.crash);
-  for (let b = 0; b < 12; b++) {
-    const t = 14 + b * 2;
-    bar(t, b, { bass: true, kick: true, hat: true, snare: b >= 2, mel: b >= 4, brass: b >= 8 });
-  }
-  ev(17.25, S.vibe);
-  ev(20.4, w => S.scratch(w, .5));
-  for (let i = 0; i < 4; i++) ev(26.15 + i * .95, w => { S.tick(w, true); S.pluck(w, nf(['D6', 'F6', 'A6', 'D7'][i])); });
-  ev(30.2, S.snore); ev(31.3, S.snore);
-  ev(32.1, S.ring);
-  for (let i = 0; i < 28; i++) if ('Tire a nota antes do sinal.'[i] !== ' ') ev(34.4 + i * .045, S.key);
-  // o tema tropeça
-  ev(38.0, w => S.bass(w, nf('D2'))); ev(38.0, S.kick);
-  ev(38.25, w => S.brass(w, ['Eb4', 'A4'].map(nf), .2, .05));
-  ev(38.6, S.wah);
-  for (let i = 0; i < 4; i++) ev(40 + i * .5, w => S.bass(w, nf('D1')));
-  // o perigo
-  ev(42.0, w => S.drone(w, 7.2));
-  for (let t = 42.1; t < 46; t += .8) ev(t, S.heart);
-  for (let t = 46.6; t < 49.4; t += .55) ev(t, S.heart);
-  for (let t = 42.3; t < 45.9; t += .62) ev(t, S.step);
-  for (let i = 0; i < 21; i++) if ('Ele não nasceu ontem.'[i] !== ' ') ev(42.6 + i * .045, S.key);
-  ev(44.7, S.hm);
-  ev(46.2, S.boom);
-  // o desfecho
-  ev(50.15, S.thump); ev(50.15, w => S.brass(w, ['D3', 'Ab3'].map(nf), .3, .05));
-  ev(53.15, S.thump); ev(53.2, w => S.brass(w, ['D4', 'F#4', 'A4', 'D5'].map(nf), 2.2, .05));
-  // encerramento
-  bar(56, 0, { bass: true, kick: true, hat: true, snare: true, mel: true, brass: true });
-  bar(58, 1, { bass: true, kick: true, hat: true, snare: true, mel: true, brass: true });
-  ev(60.0, S.kick); ev(60.0, S.crash); ev(60.0, S.thump);
-  ev(60.0, w => S.brass(w, ['D3', 'A3', 'D4', 'F#4', 'A4'].map(nf), 1.3, .055));
-  ev(60.0, w => S.bass(w, nf('D2')));
-  ev(62.35, S.plim);
-  EV.sort((a, b) => a.t - b.t);
-})();
-
-// ---------- transporte ----------
-let playing = false, s0 = 0, a0 = 0, pos = 0, idx = 0, timer = null, bus = null, onEnd = null;
-const now = () => playing ? s0 + (ac.currentTime - a0) : pos;
-function startAudio(from) {
-  bus = ac.createGain(); bus.connect(mix); out = bus;
-  s0 = from; a0 = ac.currentTime + .06;
-  idx = EV.findIndex(e => e.t >= from - .001); if (idx < 0) idx = EV.length;
-  const pump = () => {
-    const horizon = now() + .35;
-    while (idx < EV.length && EV[idx].t <= horizon) {
-      const w = a0 + (EV[idx].t - s0);
-      if (w >= ac.currentTime - .02) { out = bus; EV[idx].fn(Math.max(w, ac.currentTime)); }
-      idx++;
-    }
+function score() {
+  const E = [];
+  const ev = (t, fn, bus = 'm') => E.push({ t, fn, bus });
+  const eighth = (t, i) => t + Math.floor(i / 2) * BEAT + (i % 2 ? BEAT * .62 : 0);
+  const bar = (t, k, o) => {
+    const P = PROG[k % 4];
+    if (o.bass) P.bass.forEach((n, i) => ev(t + i * BEAT, w => S.bass(w, nf(n))));
+    if (o.kick) { ev(t, S.kick); ev(t + 2 * BEAT, S.kick); }
+    if (o.hat) for (let i = 0; i < 8; i++) ev(eighth(t, i), w => S.hat(w, i % 2 ? .05 : .085));
+    if (o.snare) { ev(t + BEAT, S.brush); ev(t + 3 * BEAT, S.brush); }
+    if (o.mel) P.mel.forEach((n, i) => n && ev(eighth(t, i), w => S.pluck(w, nf(n))));
+    if (o.brass) ev(t, w => S.brass(w, P.chord.map(nf), .3));
   };
-  pump(); timer = setInterval(pump, 40);
+  const typing = (t0, s, cps) => { for (let i = 0; i < s.length; i++) if (s[i] !== ' ') ev(t0 + i / cps, S.key, 's'); };
+  return { E, ev, bar, typing, eighth };
+}
+function musicaMestre() {
+  const { E, ev, bar, typing, eighth } = score();
+  for (let t = 0; t < 6; t += 1) ev(t + .02, w => S.tick(w, Math.round(t) % 2 === 0), 's');
+  ev(0, w => S.murmur(w, 5.5), 's'); ev(0, S.paper, 's');
+  typing(.25, L.semanas, 22); ev(1.9, S.stamp, 's');
+  typing(6.1, 'Você não estudou.', 30); ev(6.9, w => S.scratch(w, .3), 's');
+  ev(7.5, w => S.brass(w, ['D4', 'F4', 'A4', 'D5'].map(nf), .4, .06)); ev(7.5, S.crash);
+  for (let b = 0; b < 10; b++) bar(6 + b * 2, b, { bass: true, kick: b >= 1, hat: true, snare: b >= 1, mel: b >= 2, brass: b >= 6 });
+  [9, 10.5, 12, 13.5].forEach(t => ev(t, S.crash));
+  ev(9.05, S.vibe, 's');
+  [16.5, 18, 19.5].forEach(t => ev(t - .06, S.whoosh, 's'));
+  [15, 16.5, 18, 19.5].forEach((t, i) => ev(t, w => { S.tick(w, true); S.pluck(w, nf(['D6', 'F6', 'A6', 'D7'][i])); }, 's'));
+  ev(21.15, S.snore, 's'); ev(21.9, S.snore, 's');
+  // 0:26 corte seco para o silêncio; pulso grave; "hm?"
+  ev(28.8, w => S.pulse(w, 3.6), 's'); ev(29.3, S.hm, 's');
+  for (let t = 30.1; t < 32.5; t += .7) ev(t, S.heart, 's');
+  for (let t = 30.3; t < 32.5; t += .6) ev(t, S.step, 's');
+  ev(33.3, S.boom, 's');
+  // ---- o final (0:35 em diante) ----
+  // contagem: baixo e bumbo na batida e depois dobrando, caixa acelerando, subida, o sinal; corte seco para o silêncio em 37,85
+  typing(35.3, L.sinal, 26);
+  [35, 35.5, 36, 36.5, 37, 37.25, 37.5, 37.625].forEach(t => { ev(t, w => S.bass(w, nf('D2'))); ev(t, S.kick); });
+  for (let i = 0; i < 4; i++) ev(35.25 + i * BEAT, w => S.hat(w, .06));
+  for (let t = 36.5; t < 37.82; t += t < 37.25 ? .125 : .0625) { const v = .05 + .17 * (t - 36.5) / 1.3; ev(t, w => S.snare(w, v)); }
+  ev(36.0, w => S.riser(w, 1.85, .2), 's');
+  ev(36.9, S.bell, 's');
+  // 38,0: o desfecho cai (impacto grave, metais em ré maior)
+  ev(38, w => S.impact(w), 's'); ev(38, w => S.brass(w, ['D3', 'F#3', 'A3', 'D4'].map(nf), .5, .07));
+  bar(38, 0, { bass: true, hat: true });
+  ev(40, w => S.bass(w, nf('D2'))); ev(40.5, w => S.bass(w, nf('C#2')));
+  ev(40.45, w => S.riser(w, .5, .07), 's');
+  // 41,0: EXPULSO! (um instante de silêncio antes; impacto e metais dissonantes)
+  ev(41, w => S.impact(w), 's'); ev(41, w => S.brass(w, ['D3', 'Ab3', 'D4'].map(nf), .45, .075));
+  [41.5, 41.625, 41.75, 41.875].forEach((t, i) => ev(t, w => S.snare(w, .1 + i * .05)));
+  // 42,0: a capa entra com o tema completo; o título é batido à máquina; stinger de metais na última letra
+  ev(42, S.crash); ev(42, w => tone(w, 110, { glide: 34, dur: .4, vol: .8, rel: .15 }), 's');
+  bar(42, 0, { bass: true, kick: true, hat: true, snare: true, mel: true, brass: true });
+  PROG[0].mel.forEach((n, i) => n && ev(eighth(42, i), w => S.pluck(w, nf(n) / 2)));
+  typing(42.12, TITULO, 1 / TYPE_PER);
+  ev(42.75, w => S.brass(w, ['A3', 'D4', 'F4', 'A4'].map(nf), .16, .075)); ev(42.75, S.ding, 's');
+  // 43,2: carimbo EM BREVE · PC e o acorde final (ré maior), com cauda curta
+  ev(43.2, w => S.impact(w, .9), 's'); ev(43.2, w => S.brass(w, ['D3', 'A3', 'D4', 'F#4', 'A4', 'D5'].map(nf), 1.1, .07));
+  ev(43.2, w => S.bass(w, nf('D2'))); ev(43.2, w => tone(w, nf('D1'), { dur: .9, vol: .4, rel: .2 }));
+  ev(47.0, S.plim, 's');
+  return E;
+}
+function musica30() {
+  const { E, ev, bar, typing, eighth } = score();
+  for (let t = 0; t < 2.5; t += 1) ev(t + .02, w => S.tick(w, t % 2 === 0), 's');
+  ev(0, S.paper, 's'); typing(.1, L.semanas, 30); ev(1.55, S.stamp, 's');
+  typing(2.55, 'Você não estudou.', 30); ev(2.95, w => S.scratch(w, .3), 's');
+  ev(3.5, w => S.brass(w, ['D4', 'F4', 'A4', 'D5'].map(nf), .4, .06)); ev(3.5, S.crash);
+  for (let b = 0; b < 6; b++) bar(2.5 + b * 2, b, { bass: true, kick: true, hat: true, snare: b >= 1, mel: b >= 1, brass: b >= 3 });
+  [4.5, 5.5, 6.5, 7.5].forEach(t => ev(t, S.crash));
+  [9.5, 10.5, 11.5].forEach(t => ev(t - .06, S.whoosh, 's'));
+  [8.5, 9.5, 10.5, 11.5].forEach((t, i) => ev(t, w => { S.tick(w, true); S.pluck(w, nf(['D6', 'F6', 'A6', 'D7'][i])); }, 's'));
+  ev(17.4, w => S.pulse(w, 2.6), 's'); ev(17.8, S.hm, 's');
+  for (let t = 18.1; t < 19.9; t += .6) ev(t, S.heart, 's');
+  ev(20.3, S.boom, 's');
+  // contagem (21,0 a 21,88): caixa acelerando e subida, corte seco para o silêncio
+  for (let t = 21; t < 21.86; t += t < 21.5 ? .125 : .0625) { const v = .05 + .17 * (t - 21) / .86; ev(t, w => S.snare(w, v)); }
+  ev(21.0, w => S.riser(w, .87, .18), 's');
+  // 22,0: o desfecho cai
+  ev(22, w => S.impact(w), 's'); ev(22, w => S.brass(w, ['D3', 'F#3', 'A3', 'D4'].map(nf), .5, .07));
+  bar(22, 0, { bass: true, hat: true });
+  ev(24.2, w => S.riser(w, .5, .07), 's');
+  // 24,75: EXPULSO!
+  ev(24.75, w => S.impact(w), 's'); ev(24.75, w => S.brass(w, ['D3', 'Ab3', 'D4'].map(nf), .45, .075));
+  [25.125, 25.25, 25.375].forEach((t, i) => ev(t, w => S.snare(w, .1 + i * .06)));
+  // 25,5: a capa entra com o tema completo; título batido à máquina; stinger
+  ev(25.5, S.crash); ev(25.5, w => tone(w, 110, { glide: 34, dur: .4, vol: .8, rel: .15 }), 's');
+  bar(25.5, 0, { bass: true, kick: true, hat: true, snare: true, mel: true, brass: true });
+  PROG[0].mel.forEach((n, i) => n && ev(eighth(25.5, i), w => S.pluck(w, nf(n) / 2)));
+  typing(25.62, TITULO, 1 / TYPE_PER);
+  ev(26.25, w => S.brass(w, ['A3', 'D4', 'F4', 'A4'].map(nf), .16, .075)); ev(26.25, S.ding, 's');
+  // 26,8: carimbo EM BREVE · PC e o acorde final, com cauda curta
+  ev(26.8, w => S.impact(w, .9), 's'); ev(26.8, w => S.brass(w, ['D3', 'A3', 'D4', 'F#4', 'A4', 'D5'].map(nf), 1.3, .07));
+  ev(26.8, w => S.bass(w, nf('D2'))); ev(26.8, w => tone(w, nf('D1'), { dur: 1, vol: .4, rel: .2 }));
+  return E;
+}
+// ducking: a música abaixa enquanto alguém fala
+function applyDucking(cut) {
+  const gp = musicBus.gain; gp.setValueAtTime(1, 0);
+  for (const [a, b] of cut.dialog) { gp.setTargetAtTime(.38, a, .06); gp.setTargetAtTime(1, b, .12); }
+}
+
+// ===================================================================== reprodução ao vivo
+// A prévia toca exatamente a trilha que vai para o arquivo: sintetizada de uma vez (offline), limitada e medida.
+let playing = false, s0 = 0, a0 = 0, pos = 0, live = null, liveSrc = null;
+const AUDIO = {};
+const getAudio = cut => (AUDIO[cut.id] ||= renderAudio(cut));
+const now = () => playing ? s0 + (live.ctx.currentTime - a0) : pos;
+function ensureLiveAudio() {
+  if (live) return;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)(), gain = ctx.createGain();
+  gain.gain.value = muted ? 0 : 1; gain.connect(ctx.destination); live = { ctx, gain };
+}
+function startAudio(from, buf) {
+  liveSrc = live.ctx.createBufferSource(); liveSrc.buffer = buf; liveSrc.connect(live.gain);
+  s0 = from; a0 = live.ctx.currentTime + .06; liveSrc.start(a0, from);
 }
 function stopAudio() {
-  clearInterval(timer); timer = null;
-  if (bus) { const b = bus; b.gain.setTargetAtTime(0, ac.currentTime, .015); setTimeout(() => b.disconnect(), 250); bus = null; }
+  if (liveSrc) { try { liveSrc.stop(); } catch { } liveSrc.disconnect(); liveSrc = null; }
+  for (const v of Object.values(VIDEOS)) v.pause();
 }
 async function play() {
-  ensureAudio(); await ac.resume();
-  if (pos >= DUR - .05) pos = 0;
-  playing = true; startAudio(pos);
-  ui();
+  ensureLiveAudio(); await live.ctx.resume();
+  const cut = CUT, buf = await getAudio(cut);
+  if (cut !== CUT || playing) return;
+  if (pos >= CUT.dur - .05) pos = 0;
+  startAudio(pos, buf); playing = true; ui();
 }
 function pause() { if (!playing) return; pos = now(); playing = false; stopAudio(); ui(); }
 function seek(t) {
   const was = playing; if (was) { playing = false; stopAudio(); }
-  pos = clamp(t, 0, DUR); if (was) { playing = true; startAudio(pos); }
-  draw(pos); ui();
+  pos = clamp(t, 0, CUT.dur); syncVideos(pos, false);
+  if (was) play();
+  ui();
 }
-
-// ---------- interface ----------
-const $ = id => document.getElementById(id);
-const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-const lista = $('lista'), secoesEl = $('secoes');
-let secAtual = -1;
-SECOES.forEach(([nome, a, b], i) => {
-  const bt = document.createElement('button'); bt.textContent = nome; bt.style.flex = String(b - a);
-  bt.onclick = () => seek(a); secoesEl.appendChild(bt);
-});
-SHOTS.forEach(s => {
-  if (s.sec !== secAtual) {
-    secAtual = s.sec; const li = document.createElement('li'); li.className = 'sec-titulo'; li.textContent = SECOES[s.sec][0]; lista.appendChild(li);
-  }
-  const li = document.createElement('li'); const bt = document.createElement('button'); bt.dataset.n = s.n;
-  bt.innerHTML = `<span class="num">${s.n}</span><span class="tc">${fmt(s.t0)}–${fmt(s.t1)}</span><span class="desc"></span>`;
-  const d = bt.querySelector('.desc'); d.textContent = s.img;
-  const f = document.createElement('span'); f.className = 'fala'; f.textContent = s.fala; d.appendChild(f);
-  bt.onclick = () => seek(s.t0 + .01); li.appendChild(bt); lista.appendChild(li);
-});
-let ultimoN = 0, ultimaSec = -1;
-function ui() {
-  const t = now();
-  $('play').textContent = playing ? 'Pausar' : 'Reproduzir';
-  $('grande').hidden = playing || t > 0.01;
-  $('tempo').textContent = `${fmt(t)} / ${fmt(DUR)}`;
-  if (document.activeElement !== $('scrub')) $('scrub').value = t.toFixed(2);
-  const s = SHOTS.find(s => t >= s.t0 && t < s.t1) || SHOTS[SHOTS.length - 1];
-  if (s.n !== ultimoN) {
-    lista.querySelectorAll('button').forEach(b => b.classList.toggle('atual', +b.dataset.n === s.n));
-    ultimoN = s.n;
-  }
-  if (s.sec !== ultimaSec) { [...secoesEl.children].forEach((b, i) => b.classList.toggle('ativa', i === s.sec)); ultimaSec = s.sec; }
+let lastShot = null;
+function syncVideos(t, live) {
+  const s = shotAt(t);
+  if (s !== lastShot) { for (const v of Object.values(VIDEOS)) if (!s.clip || v !== video(s.clip)) v.pause(); lastShot = s; }
+  if (!s.clip) return;
+  const v = video(s.clip), want = clipTime(s, t);
+  v.playbackRate = s.speed || 1;
+  if (Math.abs(v.currentTime - want) > (live ? .15 : .03)) v.currentTime = Math.min(want, CLIP_LEN[s.clip] - .04);
+  if (live && v.paused) v.play().catch(() => { });
+  if (!live && !v.paused) v.pause();
+  // aquece o próximo
+  const nxt = CUT.shots[CUT.shots.indexOf(s) + 1];
+  if (nxt && nxt.clip && nxt.t0 - t < .6) { const nv = video(nxt.clip); const nw = nxt.from; if (nv.paused && Math.abs(nv.currentTime - nw) > .05) nv.currentTime = nw; }
 }
 function frame() {
-  if (playing) {
+  if (!OFFLINE) {
     let t = now();
-    if (t >= DUR) { t = DUR; pos = DUR - .001; playing = false; stopAudio(); if (onEnd) onEnd(); }
-    draw(Math.min(t, DUR - .001)); ui();
+    if (playing && t >= CUT.dur) { t = CUT.dur - .001; pos = t; playing = false; stopAudio(); }
+    syncVideos(t, playing);
+    render(Math.min(t, CUT.dur - .001));
+    if (playing) ui();
   }
   requestAnimationFrame(frame);
 }
+
+// ===================================================================== interface
+const $ = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function buildList() {
+  const ol = $('lista'); ol.innerHTML = '';
+  CUT.shots.forEach((s, i) => {
+    const li = document.createElement('li'), bt = document.createElement('button');
+    bt.dataset.i = i;
+    bt.innerHTML = `<span class="num">${i + 1}</span><span class="tc">${fmt(s.t0)}–${s.t1.toFixed(1)}s</span><span class="desc"></span>`;
+    const d = bt.querySelector('.desc'); d.textContent = s.img;
+    const f = document.createElement('span'); f.className = 'fala'; f.textContent = s.fala; d.appendChild(f);
+    bt.onclick = () => seek(s.t0 + .01); li.appendChild(bt); ol.appendChild(li);
+  });
+}
+let lastIdx = -1;
+function ui() {
+  const t = now();
+  $('play').textContent = playing ? 'Pausar' : 'Reproduzir';
+  $('grande').hidden = playing || t > .01;
+  $('tempo').textContent = `${fmt(t)} / ${fmt(CUT.dur)}`;
+  $('scrub').max = CUT.dur;
+  if (document.activeElement !== $('scrub')) $('scrub').value = t.toFixed(2);
+  const i = CUT.shots.indexOf(shotAt(t));
+  if (i !== lastIdx) { document.querySelectorAll('#lista button').forEach(b => b.classList.toggle('atual', +b.dataset.i === i)); lastIdx = i; }
+}
+function chooseCut(id) {
+  pause(); CUT = CUTS[id]; setSize(CUT.vert);
+  $('tela').className = 'tela ' + (CUT.vert ? 'v' : 'h');
+  document.querySelectorAll('.cortes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.corte === id)));
+  buildList(); pos = 0; lastIdx = -1; lastShot = null; ui();
+}
+document.querySelectorAll('.cortes button').forEach(b => b.onclick = () => chooseCut(b.dataset.corte));
 $('play').onclick = () => playing ? pause() : play();
 $('grande').onclick = () => { seek(0); play(); };
 $('inicio').onclick = () => { seek(0); if (!playing) play(); };
 $('scrub').oninput = e => seek(parseFloat(e.target.value));
-$('mudo').onclick = () => { muted = !muted; if (muteGain) muteGain.gain.value = muted ? 0 : 1; $('mudo').textContent = muted ? 'Som: desligado' : 'Som: ligado'; };
-$('cheia').onclick = () => { const el = cv.parentElement; if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); };
+$('mudo').onclick = () => { muted = !muted; if (live) live.gain.gain.value = muted ? 0 : 1; $('mudo').textContent = muted ? 'Som: desligado' : 'Som: ligado'; };
 document.addEventListener('keydown', e => { if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); playing ? pause() : play(); } });
 
-$('gravar').onclick = async () => {
-  const st = $('status');
+// ===================================================================== exportação quadro a quadro (WebCodecs)
+const FCACHE = new Map();
+async function frameImg(clip, n) {
+  const key = clip + '/' + n; let im = FCACHE.get(key);
+  if (!im) { im = await loadImage(CLIPS + clip + '/' + String(n).padStart(4, '0') + '.png'); FCACHE.set(key, im); if (FCACHE.size > 6) FCACHE.delete(FCACHE.keys().next().value); }
+  return im;
+}
+let BLEND = null;
+async function prepareFrame(t) {
+  const s = shotAt(t); BLEND = null;
+  if (!s.clip) return;
+  const ct = clipTime(s, t), last = Math.round(CLIP_LEN[s.clip] * FPS) - 1;
+  const n = s.blend ? clamp(Math.floor(ct * FPS + 1e-6), 0, last) : frameIndex(s.clip, ct);
+  FRAMEIMG[s.clip] = await frameImg(s.clip, n);
+  if (s.blend && n < last) { const a = ct * FPS - n; if (a > .02) BLEND = { img: await frameImg(s.clip, n + 1), a }; }
+}
+const CEIL = .891;                         // teto de pico (−1 dBFS), o mesmo do começo ao fim
+// limitador com antecipação: nenhum pico passa do teto (sem clipping), e o que está abaixo do teto não é tocado
+function limitar(buf) {
+  const n = buf.length, ch = [buf.getChannelData(0), buf.getChannelData(1)], sr = buf.sampleRate;
+  const look = Math.round(sr * .004), aAtt = Math.exp(-1 / (sr * .0008)), aRel = Math.exp(-1 / (sr * .09));
+  const need = new Float32Array(n); let picoAntes = 0, acima = 0, onde = 0;
+  for (let i = 0; i < n; i++) { const a = Math.max(Math.abs(ch[0][i]), Math.abs(ch[1][i])); if (a > picoAntes) { picoAntes = a; onde = i / sr; } if (a > 1) acima++; need[i] = a > CEIL ? CEIL / a : 1; }
+  const dq = new Int32Array(n); let h = 0, tl = 0, j = 0, gcur = 1;
+  for (let i = 0; i < n; i++) {
+    const fim = Math.min(n - 1, i + look);
+    while (j <= fim) { while (tl > h && need[dq[tl - 1]] >= need[j]) tl--; dq[tl++] = j++; }
+    while (dq[h] < i) h++;
+    const alvo = need[dq[h]];
+    gcur = alvo + (gcur - alvo) * (alvo < gcur ? aAtt : aRel);
+    ch[0][i] *= gcur; ch[1][i] *= gcur;
+  }
+  const fade = Math.round(sr * .06);          // fade curto no fim
+  for (let i = 0; i < fade; i++) { const k = i / fade; ch[0][n - 1 - i] *= k; ch[1][n - 1 - i] *= k; }
+  let pico = 0; for (let i = 0; i < n; i++) pico = Math.max(pico, Math.abs(ch[0][i]), Math.abs(ch[1][i]));
+  if (pico > CEIL) { const k = CEIL / pico; for (let i = 0; i < n; i++) { ch[0][i] *= k; ch[1][i] *= k; } pico = CEIL; }
+  return { picoAntes, estourando: acima / sr, pico, onde };
+}
+function rmsDe(buf, a, b) { const L = buf.getChannelData(0), R = buf.getChannelData(1), i0 = Math.floor(a * buf.sampleRate), i1 = Math.min(buf.length, Math.floor(b * buf.sampleRate)); let q = 0; for (let i = i0; i < i1; i++) q += L[i] * L[i] + R[i] * R[i]; return Math.sqrt(q / (2 * Math.max(1, i1 - i0))); }
+function picoDe(buf, a, b) { const L = buf.getChannelData(0), R = buf.getChannelData(1), i0 = Math.floor(a * buf.sampleRate), i1 = Math.min(buf.length, Math.floor(b * buf.sampleRate)); let p = 0; for (let i = i0; i < i1; i++) p = Math.max(p, Math.abs(L[i]), Math.abs(R[i])); return p; }
+const dB = v => (20 * Math.log10(Math.max(v, 1e-9))).toFixed(1);
+async function renderAudio(cut) {
+  const sr = 48000, off = new OfflineAudioContext(2, Math.ceil(cut.dur * sr), sr);
+  makeGraph(off, false);
+  applyDucking(cut);
+  const buses = { m: musicBus, s: sfxBus };
+  for (const e of cut.music()) { OUT = buses[e.bus]; e.fn(Math.max(0, e.t)); }
+  const buf = await off.startRendering();
+  buf.info = limitar(buf);
+  return buf;
+}
+// confere o arquivo gravado: abre como vídeo e tem áudio que não é silêncio
+async function checkFile(name, dur) {
+  const url = '/export/' + name + '?' + Date.now();
+  const v = document.createElement('video'); v.muted = true; v.preload = 'metadata'; v.src = url;
+  await new Promise((ok, err) => { v.onloadedmetadata = ok; v.onerror = () => err(new Error(name + ': o navegador não abriu o arquivo')); });
+  const dec = await new OfflineAudioContext(2, 48000, 48000).decodeAudioData(await (await fetch(url)).arrayBuffer());
+  const pico = picoDe(dec, 0, dec.duration), rms = rmsDe(dec, 0, dec.duration);
+  log(`${name}: abre (${v.videoWidth}×${v.videoHeight}, ${v.duration.toFixed(2)} s) e tem áudio (${dec.numberOfChannels} canais, ${dec.duration.toFixed(2)} s, pico ${dB(pico)} dBFS, RMS ${dB(rms)} dBFS)`);
+  if (!(pico > .05) || Math.abs(dec.duration - dur) > .5 || !v.videoWidth) throw new Error(name + ': arquivo sem áudio ou com duração errada');
+}
+async function post(path, body) { const r = await fetch(path, { method: 'POST', body }); if (!r.ok) throw new Error(path + ': ' + r.status); }
+const log = msg => { $('status').textContent = msg; fetch('/log', { method: 'POST', body: msg }).catch(() => { }); };
+async function exportCut(id, { save = 'download', verify = false } = {}) {
+  const cut = CUTS[id];
+  chooseCut(id); OFFLINE = true;
   try {
-    ensureAudio(); await ac.resume();
-    const tracks = [...cv.captureStream(30).getVideoTracks(), ...recDest.stream.getAudioTracks()];
-    const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
-    if (!mime) { st.textContent = 'Este navegador não grava vídeo. Use o Chrome.'; return; }
-    const rec = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: 8e6 });
-    const partes = [];
-    rec.ondataavailable = e => { if (e.data.size) partes.push(e.data); };
-    rec.onstop = () => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob(partes, { type: 'video/webm' }));
-      a.download = 'trailer_sobrevivendo_unimar_previa.webm';
-      document.body.appendChild(a); a.click(); a.remove();
-      st.textContent = 'Pronto: o vídeo foi para a pasta de downloads.';
-    };
-    seek(0); rec.start(500); st.textContent = 'Gravando... deixe a aba visível (65 s).';
-    onEnd = () => { onEnd = null; setTimeout(() => rec.stop(), 300); };
-    await play();
-  } catch (err) { st.textContent = 'Não deu para gravar aqui: ' + err.message; }
+    await document.fonts.ready;
+    const w = W, h = H, total = Math.round(cut.dur * FPS);
+    // verificação: 6 quadros espalhados (com legenda, carimbo e cartões)
+    if (verify) {
+      const vt = id === 'mestre' ? [1.4, 7.9, 16.0, 24.5, 39.4, 43.6] : [1.9, 3.8, 9.0, 13.6, 23.0, 27.4];
+      for (let i = 0; i < vt.length; i++) {
+        await prepareFrame(vt[i]); render(vt[i]);
+        const png = await new Promise(r => cv.toBlob(r, 'image/png'));
+        await post(`/salvar?arquivo=verificacao/${id}_${i + 1}_${vt[i].toFixed(1)}s.png`, png);
+      }
+      log(id + ': verificação salva');
+    }
+    const audio = await getAudio(cut);
+    const targets = [];
+    const webm = new WebMMuxer.Muxer({ target: new WebMMuxer.ArrayBufferTarget(), video: { codec: 'V_VP9', width: w, height: h, frameRate: FPS },
+      audio: { codec: 'A_OPUS', sampleRate: 48000, numberOfChannels: 2 }, firstTimestampBehavior: 'offset' });
+    const aacOk = (await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 })).supported;
+    const mp4 = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: w, height: h, frameRate: FPS },
+      audio: { codec: aacOk ? 'aac' : 'opus', sampleRate: 48000, numberOfChannels: 2 }, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
+    const fail = e => { throw e; };
+    const vWebm = new VideoEncoder({ output: (c, m) => webm.addVideoChunk(c, m), error: fail });
+    vWebm.configure({ codec: 'vp09.00.41.08', width: w, height: h, bitrate: 12e6, framerate: FPS });
+    const vMp4 = new VideoEncoder({ output: (c, m) => mp4.addVideoChunk(c, m), error: fail });
+    vMp4.configure({ codec: h > 1080 || w > 1920 ? 'avc1.640033' : 'avc1.640032', width: w, height: h, bitrate: 12e6, framerate: FPS, avc: { format: 'avc' } });
+    const aWebm = new AudioEncoder({ output: (c, m) => webm.addAudioChunk(c, m), error: fail });
+    aWebm.configure({ codec: 'opus', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 });
+    const aMp4 = new AudioEncoder({ output: (c, m) => mp4.addAudioChunk(c, m), error: fail });
+    aMp4.configure({ codec: aacOk ? 'mp4a.40.2' : 'opus', sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 });
+    // áudio em blocos de 20 ms
+    const L0 = audio.getChannelData(0), R0 = audio.getChannelData(1), block = 960;
+    for (let i = 0; i < audio.length; i += block) {
+      const n = Math.min(block, audio.length - i), data = new Float32Array(n * 2);
+      data.set(L0.subarray(i, i + n), 0); data.set(R0.subarray(i, i + n), n);
+      const mk = () => new AudioData({ format: 'f32-planar', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(i / 48000 * 1e6), data });
+      const a1 = mk(); aWebm.encode(a1); a1.close(); const a2 = mk(); aMp4.encode(a2); a2.close();
+    }
+    for (let f = 0; f < total; f++) {
+      const t = f / FPS;
+      await prepareFrame(t); render(t);
+      const vf = new VideoFrame(cv, { timestamp: Math.round(t * 1e6), duration: Math.round(1e6 / FPS) });
+      const key = f % (FPS * 2) === 0;
+      vWebm.encode(vf, { keyFrame: key }); vMp4.encode(vf, { keyFrame: key }); vf.close();
+      if (vWebm.encodeQueueSize > 8 || vMp4.encodeQueueSize > 8) await new Promise(r => setTimeout(r, 5));
+      if (f % 60 === 0) log(`${cut.nome}: quadro ${f}/${total}`);
+    }
+    await Promise.all([vWebm.flush(), vMp4.flush(), aWebm.flush(), aMp4.flush()]);
+    webm.finalize(); mp4.finalize();
+    const files = [[`trailer_${id}.webm`, new Blob([webm.target.buffer], { type: 'video/webm' })], [`trailer_${id}.mp4`, new Blob([mp4.target.buffer], { type: 'video/mp4' })]];
+    for (const [name, blob] of files) {
+      if (save === 'server') { await post('/salvar?arquivo=export/' + name, blob); await checkFile(name, cut.dur); }
+      else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+    }
+    log(`${cut.nome}: exportado (${aacOk ? 'mp4 com AAC' : 'mp4 com Opus'})`);
+  } finally { OFFLINE = false; }
+}
+$('exportar').onclick = async () => {
+  try { await exportCut(CUT.id, { save: location.protocol.startsWith('http') && location.hostname === '127.0.0.1' ? 'server' : 'download' }); }
+  catch (e) { log('Não deu para exportar: ' + e.message); }
 };
 
-Promise.all([imgReady, document.fonts ? Promise.all([
-  document.fonts.load(`40px "Special Elite"`), document.fonts.load(`40px "Caveat"`)]).catch(() => {}) : null])
-  .then(() => { draw(61.2); ui(); requestAnimationFrame(frame); });
-draw(0.01);
+// ===================================================================== verificação determinística
+// node servidor.mjs --verificar[=nome]  ->  Trailer/verificacao/<nome>/  (capturas, folhas de contato e relatorio_<corte>.txt)
+// O tempo é avançado à mão (quadro a quadro, 30 fps): não depende do relógio.
+const PAD_MIN = 12;                       // margem interna mínima (px) entre o texto e a borda da caixa
+const KIND_BOX = ['legenda', 'letreiro', 'palavra', 'cartao', 'capa', 'celular'];
+const f2 = v => v.toFixed(2);
+async function savePng(canvas, name, type = 'image/png', q) { const b = await new Promise(r => canvas.toBlob(r, type, q)); await post('/salvar?arquivo=' + name, b); }
+// quanto de "papel de balão" (claro e sem cor) existe no quadro bruto do plano: denuncia balão do jogo entrando e saindo
+function paperish(img) {   // só a parte do quadro que aparece na tela (COVER)
+  const c = makeCanvas(160, 90), cg = c.getContext('2d', { willReadFrequently: true });
+  cg.drawImage(img, -COVER.x / COVER.dw * img.width, -COVER.y / COVER.dh * img.height, W / COVER.dw * img.width, H / COVER.dh * img.height, 0, 0, 160, 90);
+  const d = cg.getImageData(0, 0, 160, 90).data; let n = 0;
+  for (let i = 0; i < d.length; i += 4) { const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); if (mn > 222 && mx - mn < 26) n++; }
+  return n;
+}
+async function verifyCut(id, tag) {
+  chooseCut(id); OFFLINE = true;
+  const cut = CUT, total = Math.round(cut.dur * FPS), pasta = `verificacao/${tag}/`, out = [], bad = [];
+  try {
+    await document.fonts.ready;
+    // 1) passada seca no corte inteiro: quem foi desenhado em cada quadro
+    const el = new Map(), porQuadro = [];
+    DRY = true;
+    for (let f = 0; f < total; f++) {
+      REC = []; render(f / FPS);
+      const vistos = new Set();
+      for (const r of REC) {
+        const k = r.kind + ' | ' + r.id;
+        let e = el.get(k); if (!e) el.set(k, e = { k, kind: r.kind, id: r.id, on: [], dup: 0, folga: Infinity, dev: {}, plan: r.plan });
+        if (vistos.has(k)) { e.dup++; continue; }
+        vistos.add(k); e.on.push(f); e.dev[f] = r.dev; if (r.folga != null) e.folga = Math.min(e.folga, r.folga);
+      }
+      porQuadro.push([...vistos]);
+    }
+    DRY = false; REC = null;
+    const runsOf = on => { const r = []; for (const f of on) { const l = r[r.length - 1]; if (l && f === l[1] + 1) l[1] = f; else r.push([f, f]); } return r; };
+    const shotEnd = t => { const s = cut.shots.find(s => t >= s.t0 - 1e-6 && t < s.t1 - 1e-6); return s ? s.t1 : cut.dur; };
+    out.push(`CORTE ${cut.nome} (${id}) — ${W}×${H}, ${cut.dur} s, margem segura x ${Math.round(SAFE.l)}–${Math.round(SAFE.r)}, y ${Math.round(SAFE.t)}–${Math.round(SAFE.b)}`, '');
+    out.push('PEÇAS (corte inteiro): quando aparece → quando some | planejado | folga do texto até a borda | margem segura');
+    for (const e of el.values()) {
+      const rs = runsOf(e.on), tr = rs.map(([a, b]) => `${f2(a / FPS)}→${f2((b + 1) / FPS)}`).join('  +  ');
+      let planTxt = '—';
+      if (e.plan) {
+        const p0 = Math.max(0, e.plan[0]), p1 = Number.isFinite(e.plan[1]) ? e.plan[1] : shotEnd(p0); planTxt = `${f2(p0)}→${f2(p1)}`;
+        const a = rs[0][0] / FPS, b = (rs[0][1] + 1) / FPS;
+        if (Math.abs(a - p0) > 1.5 / FPS || Math.abs(b - p1) > 1.5 / FPS) bad.push(`${e.k}: planejado ${planTxt}, visto ${f2(a)}→${f2(b)}`);
+      }
+      if (rs.length > 1) bad.push(`${e.k}: aparece ${rs.length} vezes (${tr})`);
+      if (e.dup) bad.push(`${e.k}: desenhado mais de uma vez no mesmo quadro (${e.dup} quadros)`);
+      let folgaTxt = '—';
+      if (e.folga !== Infinity) { folgaTxt = e.folga.toFixed(0) + ' px'; if (KIND_BOX.includes(e.kind) && e.folga < PAD_MIN) bad.push(`${e.k}: texto a ${e.folga.toFixed(0)} px da borda da caixa (mínimo ${PAD_MIN})`); }
+      // margem segura: caixa assentada (um quadro do meio da aparição)
+      let safeTxt = '—';
+      if (KIND_BOX.includes(e.kind) || e.kind === 'carimbo') {
+        const mid = rs[0][0] + Math.floor((rs[0][1] - rs[0][0]) * .6), d = e.dev[mid];
+        if (d) { const o = Math.max(SAFE.l - d[0], d[2] - SAFE.r, SAFE.t - d[1], d[3] - SAFE.b); safeTxt = o <= 2 ? 'ok' : `FORA ${Math.round(o)} px`; if (o > 2) bad.push(`${e.k}: ${Math.round(o)} px fora da margem segura (caixa ${d.join(',')})`); }
+      }
+      out.push(`  ${e.k}\n      ${tr} | ${planTxt} | ${folgaTxt} | ${safeTxt}`);
+    }
+    // caixas de fala como classe: some e volta em menos de 0,3 s dentro do mesmo plano = pisca (num corte, tudo muda junto)
+    const fala = porQuadro.map(v => v.some(k => k.startsWith('legenda')));
+    const duas = porQuadro.findIndex(v => v.filter(k => k.startsWith('legenda')).length > 1);
+    if (duas >= 0) bad.push(`duas caixas de fala ao mesmo tempo em ${f2(duas / FPS)} s (${porQuadro[duas].filter(k => k.startsWith('legenda')).join(' + ')})`);
+    for (let f = 1, off = -1; f < total; f++) {
+      if (fala[f - 1] && !fala[f]) off = f;
+      if (!fala[f - 1] && fala[f] && off > 0 && (f - off) / FPS < .3 && shotAt((off - 1) / FPS) === shotAt(f / FPS)) bad.push(`caixa de fala some em ${f2(off / FPS)} e outra entra em ${f2(f / FPS)} (intervalo de ${f2((f - off) / FPS)} s: lê-se como piscada)`);
+    }
+    // 2) últimos 15 s, a cada 0,1 s: plano, peças e papel de balão no quadro bruto
+    const ini = Math.max(0, Math.round((cut.dur - 15) * 10)), fimI = Math.round(cut.dur * 10), tl = [];
+    const tw = VERT ? 150 : 240, th = Math.round(tw * H / W), cols = VERT ? 16 : 10, nSheet = cols * (VERT ? 2 : 5);
+    let sheetC = null, sheetN = 0, sheetI = 0;
+    const flush = async () => { if (sheetC && sheetI) await savePng(sheetC, `${pasta}${id}_folha01s_${++sheetN}.jpg`, 'image/jpeg', .9); sheetC = null; sheetI = 0; };
+    for (let i = ini; i < fimI; i++) {
+      const t = Math.min(i / 10, cut.dur - 1 / FPS), s = shotAt(t), f = Math.round(t * FPS);
+      await prepareFrame(t); render(t);
+      const bruto = s.clip && FRAMEIMG[s.clip] ? paperish(FRAMEIMG[s.clip]) : 0;
+      tl.push({ t, fixo: !!s.balaoDoJogo, clip: s.clip || s.kind, q: s.clip ? frameIndex(s.clip, clipTime(s, t)) : -1, pecas: porQuadro[Math.min(f, total - 1)], bruto });
+      if (!sheetC) sheetC = makeCanvas(cols * tw, Math.ceil(nSheet / cols) * th);
+      const sg = sheetC.getContext('2d'), x = (sheetI % cols) * tw, y = Math.floor(sheetI / cols) * th;
+      sg.drawImage(cv, x, y, tw, th); sg.fillStyle = '#000'; sg.fillRect(x, y, 46, 16); sg.fillStyle = '#fff'; sg.font = '13px monospace'; sg.textBaseline = 'top'; sg.fillText(t.toFixed(1), x + 3, y + 2);
+      if (++sheetI === nSheet) await flush();
+      if (i % 5 === 0) await savePng(cv, `${pasta}${id}_fim_${t.toFixed(1)}s.jpg`, 'image/jpeg', .9);
+    }
+    await flush();
+    out.push('', 'ÚLTIMOS 15 s, A CADA 0,1 s (instantes iguais agrupados): plano[quadros] | peças do trailer | papel de balão no quadro bruto (px de 160×90)');
+    const lin = e => `${e.clip} | ${e.pecas.join(' ; ')}`;
+    for (let i = 0; i < tl.length;) {
+      let j = i; while (j + 1 < tl.length && lin(tl[j + 1]) === lin(tl[i])) j++;
+      const br = tl.slice(i, j + 1).map(e => e.bruto);
+      out.push(`  ${tl[i].t.toFixed(1)}–${tl[j].t.toFixed(1)}  ${tl[i].clip}[${tl[i].q}–${tl[j].q}] | ${tl[i].pecas.join(' ; ') || '(nenhuma)'} | bruto ${Math.min(...br)}…${Math.max(...br)}`);
+      i = j + 1;
+    }
+    // balão do próprio jogo gravado no plano: salto de papel claro de um instante para o outro, dentro do mesmo plano
+    // (fora os planos marcados com balaoDoJogo: ali o balão é de propósito e fica o plano inteiro)
+    for (let i = 1; i < tl.length; i++) if (tl[i].clip === tl[i - 1].clip && !tl[i].fixo && Math.abs(tl[i].bruto - tl[i - 1].bruto) > 60) bad.push(`balão do jogo gravado no plano ${tl[i].clip}: papel claro salta de ${tl[i - 1].bruto} para ${tl[i].bruto} px em ${tl[i].t.toFixed(1)} s`);
+    // 3) capturas dos instantes pedidos
+    const cap = async (t, nome) => { await prepareFrame(t); render(t); await savePng(cv, `${pasta}${id}_${nome}.png`); };
+    const sc = cut.shots.find(s => s.clip === '02_celular'); if (sc) await cap(sc.t0 + (sc.t1 - sc.t0) * .75, 'celular');
+    for (const [k, , , clip] of COLAS) { const s = cut.shots.find(s => s.clip === clip); if (s) await cap(s.t0 + (s.t1 - s.t0) * .7, 'cartao_' + k); }
+    const capa = cut.shots.filter(s => s.kind === 'capa').pop(); if (capa) await cap(Math.min(capa.t1 - .1, cut.dur - .4), 'quadro_final');
+    // 4) som: pico, volume do meio × final e a música abaixando em toda fala
+    const buf = await getAudio(cut), inf = buf.info;
+    const rmsM = rmsDe(buf, ...cut.meio), rmsF = rmsDe(buf, ...cut.final), pkM = picoDe(buf, ...cut.meio), pkF = picoDe(buf, ...cut.final);
+    out.push('', 'SOM (trilha sintetizada, provisória)',
+      `  antes do limitador: pico ${dB(inf.picoAntes)} dBFS em ${inf.onde.toFixed(2)} s (${inf.estourando.toFixed(3)} s de amostras acima de 0 dBFS)`,
+      `  depois: pico ${dB(inf.pico)} dBFS (teto ${dB(CEIL)})`,
+      `  meio  (${cut.meio.join('–')} s): RMS ${dB(rmsM)} dBFS, pico ${dB(pkM)} dBFS`,
+      `  final (${cut.final.join('–')} s): RMS ${dB(rmsF)} dBFS, pico ${dB(pkF)} dBFS`);
+    if (inf.pico > CEIL + .002) bad.push('som: pico acima do teto');
+    if (!(rmsF > rmsM)) bad.push('som: o final não está mais cheio que o meio');
+    if (pkF > CEIL + .002) bad.push('som: o final passa do teto do restante');
+    for (const e of el.values()) if (e.kind === 'legenda' && e.plan && !cut.dialog.some(([a, b]) => a <= e.plan[0] + .05 && b >= e.plan[1] - .25)) bad.push(e.k + ': a música não abaixa nesta fala (falta em dialog)');
+    // 5) autoteste do cartão com um texto bem mais longo que os quatro: a fonte encolhe e o texto continua dentro
+    {
+      const nota = VERT ? 'com a matéria inteira do semestre e as provas antigas' : 'com a matéria inteira do semestre, as provas antigas, a lista de presença e o gabarito do ano passado';
+      COLAS.push(['X', 'Calculadora programável', nota, '', 0]); delete CARD.h; delete CARD.v;
+      const lay = cardLayout(); REC = []; g.save(); keyCard('X', 'Calculadora programável', nota, 1); g.restore(); const r = REC[0]; REC = null;
+      await savePng(cv, `${pasta}${id}_autoteste_cartao.jpg`, 'image/jpeg', .9);
+      COLAS.pop(); delete CARD.h; delete CARD.v;
+      const fora = Math.max(SAFE.l - r.dev[0], r.dev[2] - SAFE.r, SAFE.t - r.dev[1], r.dev[3] - SAFE.b);
+      out.push('', `AUTOTESTE DO CARTÃO (nota de ${nota.length} letras): fonte do nome ${lay.nameSize.toFixed(0)} px (normal ${(T.big * .7).toFixed(0)}, mínimo ${CARD_MIN}), caixa ${lay.w} px, folga ${r.folga.toFixed(0)} px, ${fora <= 2 ? 'dentro' : 'FORA'} da margem segura`);
+      if (r.folga < PAD_MIN || fora > 2 || lay.nameSize >= T.big * .7) bad.push('autoteste do cartão: o texto longo não coube ou a fonte não encolheu');
+    }
+    out.push('', bad.length ? 'PROBLEMAS (' + bad.length + '):' : 'CHECAGEM: OK (cada peça aparece uma vez, pelo tempo planejado, com o texto dentro da caixa e da margem segura).');
+    for (const b of bad) out.push('  ✗ ' + b);
+    await post('/salvar?arquivo=' + `${pasta}relatorio_${id}.txt`, new Blob([out.join('\n') + '\n'], { type: 'text/plain' }));
+    log(`${id}: verificação ${bad.length ? 'com ' + bad.length + ' problema(s)' : 'ok'}`);
+    return bad.length;
+  } finally { OFFLINE = false; DRY = false; REC = null; }
+}
+
+// ===================================================================== início
+buildTextures(); setSize(false); buildList();
+document.fonts.ready.then(async () => {
+  render(43.6); ui();
+  if (location.hash.startsWith('#verificar')) {
+    try {
+      const tag = location.hash.split('=')[1] || 'atual'; let n = 0;
+      for (const id of ['mestre', 'c30', 'v30']) n += await verifyCut(id, tag);
+      await post('/fim', n ? 'problemas: ' + n : 'ok');
+    } catch (e) { await post('/fim', 'erro: ' + (e && e.stack || e)); }
+    return;
+  }
+  if (location.hash === '#exportar') {
+    try {
+      for (const id of ['mestre', 'c30', 'v30']) await exportCut(id, { save: 'server', verify: true });
+      await post('/fim', 'ok');
+    } catch (e) { await post('/fim', 'erro: ' + (e && e.stack || e)); }
+    return;
+  }
+  requestAnimationFrame(frame);
+});
 </script>

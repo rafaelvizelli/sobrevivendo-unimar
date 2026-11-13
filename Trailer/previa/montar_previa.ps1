@@ -1,44 +1,53 @@
-# Monta Trailer_Previa.html: converte as capturas em JPEG 1600x900 e embute no HTML (arquivo único, abre offline).
-# Uso: powershell -ExecutionPolicy Bypass -File Trailer\previa\montar_previa.ps1
-Add-Type -AssemblyName System.Drawing
+# Monta a prévia do trailer v2 e (opcional) exporta os 3 cortes.
+#
+#   powershell -ExecutionPolicy Bypass -File Trailer\previa\montar_previa.ps1
+#       -> gera Trailer\previa\Trailer_Previa.html a partir do trailer_template.html
+#   powershell -ExecutionPolicy Bypass -File Trailer\previa\montar_previa.ps1 -Exportar
+#       -> também exporta mestre, 30 s 16:9 e 30 s 9:16 (.webm e .mp4) em Trailer\export\
+#          e 6 quadros de verificação por corte em Trailer\verificacao\ (precisa de Node e Chrome)
+#   powershell -ExecutionPolicy Bypass -File Trailer\previa\montar_previa.ps1 -Verificar
+#       -> checagem determinística dos 3 cortes (peças que piscam, texto fora da caixa, margem segura, som):
+#          capturas e relatório em Trailer\verificacao\atual\; falha se achar problema
+#
+# O LINK do quadro final se troca aqui (parâmetro -Link) ou no padrão abaixo.
+# -Credito põe o crédito da trilha no quadro final (use quando houver faixa de terceiros; veja Trailer\audio\LICENCAS.txt).
+param(
+  [string]$Link = 'Lista de desejos: link em breve',
+  [string]$Credito = '',
+  [switch]$Exportar,
+  [switch]$Verificar
+)
+$ErrorActionPreference = 'Stop'
 $aqui = Split-Path -Parent $MyInvocation.MyCommand.Path
 $trailer = Split-Path -Parent $aqui
-$proj = Split-Path -Parent $trailer
-$cap = Join-Path $trailer 'capturas'
-$fim = Join-Path $proj 'Captures\AuditoriaVisual5'
-
-$imagens = [ordered]@{
-  s03 = "$cap\03_sala.png";            s04 = "$cap\04_prof_desconfiado.png"
-  s06 = "$cap\06_jogador_celular.png"; s07 = "$cap\07_nerd.png"
-  s08 = "$cap\08_fundao.png";          s10a = "$cap\10a_dorminhoco.png"
-  s10b = "$cap\10b_prof_telefone.png"; s11 = "$cap\11_hud_jogo.png"
-  s12 = "$cap\12_puxasaco.png";        s13 = "$cap\13_sala_cima.png"
-  s14 = "$cap\14_prof_bravo.png";      s14b = "$cap\14b_hud_flagrante.png"
-  s18 = "$cap\18_nerd_stinger.png"
-  fim_expulso = "$fim\11_fim_expulso_1920x1080.png"
-  fim_aprovado = "$fim\09_fim_aprovado_1920x1080.png"
-}
-
-$codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
-$params = New-Object System.Drawing.Imaging.EncoderParameters 1
-$params.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality), 82L
-
-$partes = @()
-foreach ($k in $imagens.Keys) {
-  $src = [System.Drawing.Image]::FromFile($imagens[$k])
-  $bmp = New-Object System.Drawing.Bitmap 1600, 900
-  $gr = [System.Drawing.Graphics]::FromImage($bmp)
-  $gr.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-  $gr.DrawImage($src, 0, 0, 1600, 900)
-  $ms = New-Object System.IO.MemoryStream
-  $bmp.Save($ms, $codec, $params)
-  $partes += "`"$k`":`"data:image/jpeg;base64,$([Convert]::ToBase64String($ms.ToArray()))`""
-  $gr.Dispose(); $bmp.Dispose(); $src.Dispose(); $ms.Dispose()
-}
-
 $utf8 = New-Object System.Text.UTF8Encoding $false
+
+$clips = Join-Path $trailer 'clips'
+if (-not (Test-Path (Join-Path $clips '00_folha.mp4'))) {
+  Write-Warning "Faltam os planos em $clips. Gere no Unity: Prova Impossível > Trailer > Gerar planos."
+}
+
 $modelo = [System.IO.File]::ReadAllText((Join-Path $aqui 'trailer_template.html'), $utf8)
-$saida = $modelo.Replace('/*IMAGENS*/{}', '{' + ($partes -join ',') + '}')
+$linkJs = $Link.Replace('\', '\\').Replace('"', '\"')
+$licencas = Join-Path $trailer 'audio\LICENCAS.txt'
+if ((Test-Path $licencas) -and -not $Credito) { Write-Warning "Existe $licencas mas -Credito está vazio: confira se a licença exige crédito no quadro final." }
+$creditoJs = $Credito.Replace('\', '\\').Replace('"', '\"')
+$saida = $modelo.Replace('{{LINK}}', $linkJs).Replace('{{CREDITO}}', $creditoJs)
 $destino = Join-Path $aqui 'Trailer_Previa.html'
 [System.IO.File]::WriteAllText($destino, $saida, $utf8)
-"OK: $destino ($([math]::Round((Get-Item $destino).Length / 1MB, 1)) MB)"
+"OK: $destino"
+"Para assistir: node `"$aqui\servidor.mjs`" e abra http://127.0.0.1:8765/previa/Trailer_Previa.html"
+
+if ($Verificar) {
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node não encontrado (precisa para verificar).' }
+  & node (Join-Path $aqui 'servidor.mjs') --verificar
+  if ($LASTEXITCODE -ne 0) { throw "A verificação achou problemas (veja o relatório acima e em Trailer\verificacao\atual\)." }
+}
+
+if ($Exportar) {
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node não encontrado (precisa para exportar).' }
+  & node (Join-Path $aqui 'servidor.mjs') --exportar
+  if ($LASTEXITCODE -ne 0) { throw "A exportação falhou (código $LASTEXITCODE)." }
+  if (Get-Command ffmpeg -ErrorAction SilentlyContinue) { 'ffmpeg encontrado (não é necessário: o .mp4 já sai da página).' }
+  Get-ChildItem (Join-Path $trailer 'export') | ForEach-Object { '{0}  {1:N1} MB' -f $_.Name, ($_.Length / 1MB) }
+}

@@ -533,6 +533,53 @@
   terceiros). `montar_previa.ps1` embute as capturas e gera `Trailer_Previa.html`; o botão Gravar exporta .webm.
 - Visto: folha de contato com 20 quadros renderizada no Chrome headless. Não visto: o som (só ouvindo).
 
+### Trailer v2 — planos em movimento, 3 cortes (13/11)
+- Fora do jogo: nenhum código do jogo, cena, regra ou equilíbrio mudou. Novos: `Editor/Trailer/` (asmdef próprio, só
+  editor) e `Trailer/`. Piadas removidas do trailer: a do boleto (folha da abertura v1; no quadro da cena é tirada só na
+  memória durante a captura) e a da pizza (plano 10 da v1). `Trailer/capturas/` (fotos da v1) apagada.
+- Ferramenta: menu *Prova Impossível > Trailer > Gerar planos* ou batch `-executeMethod
+  ProvaImpossivel.EditorTools.TrailerShots.Batch [-trailerOnly id,id]`. Recarrega a cena por plano, começa no Fácil,
+  aciona as mecânicas reais (teclado virtual para Q/G/F/2; `ThrowAt`, `GlanceSoon`, `SnoreWarning`, `ForceWatch`,
+  `WalkTo`, `Alert`, `CatchRedHanded`, `ShowMatchResult`) e grava PNG 1920×1080 30 fps + .mp4 (MediaEncoder do Unity,
+  sem ffmpeg) em `Trailer/clips/`. Mundo com Volume temporário (vinheta, DoF, cor quente); a interface é desenhada
+  por uma câmera própria sem pós e composta por cima (o URP limpa a imagem numa câmera base com Clear Nothing).
+- Edição: `Trailer/previa/trailer_template.html` (3 cortes: mestre 47,5 s, 30 s 16:9, 30 s 9:16). Exporta .webm
+  (VP9+Opus) e .mp4 (H.264) quadro a quadro com WebCodecs; `montar_previa.ps1 -Exportar` roda tudo via
+  `servidor.mjs` + Chrome sem janela. Trilha sintetizada (provisória), com ducking nas falas.
+- Limites: o jogo não desenha o bilhete voando nem mira (o plano mostra o arremesso real); 5,9 APROVADO não existe nas
+  regras (a tela real mostra 6,0/6,0 no Fácil); cone de visão discreto no estado tranquilo.
+- Correção (13/11, pedido do usuário: "ele fica mexendo muito a cabeça de um lado pro outro"): no jogo a cabeça do
+  jogador sentado segue a câmera (`PlayerController.UpdateLook`); nos planos a câmera fica na frente dele e o
+  enquadramento (`Rig.Rel`) usa a direção da cabeça, então os dois se perseguiam. `Rig.Capture` agora fixa
+  `headYaw` do jogador em `Rig.PlayerHeadYaw` (0) a cada quadro, entre o Update e o LateUpdate. Só a ferramenta do
+  trailer mudou; o jogo não. Sem teste automatizado novo (só editor, depende do Play): conferido nos quadros.
+
+### Trailer — correções e novo final (13/11)
+- Só `Trailer/` mudou (template, `montar_previa.ps1`, `servidor.mjs`, roteiro). Jogo, cena, regras, equilíbrio e a
+  ferramenta de captura (`Editor/Trailer/`) não foram tocados; os planos em `clips/` são os mesmos.
+- Celular: o jogo não tem modelo do aparelho (`CharacterVisual.phone` só muda a pose dos braços e da cabeça) e, no
+  plano `02_celular`, as mãos ficam atrás da carteira. O aparelho agora é desenhado pelo trailer (`phone()`): recorte de
+  papel com contorno à caneta, tela acesa, "Pesquisando no celular..." (texto do HUD), notificação, tecla 2 e uma seta
+  até as mãos do jogador.
+- Cartões Q/G/B/F: a largura reservava 16 px a menos do que a posição do texto e nenhuma margem direita.
+  `cardLayout()` mede o texto mais longo dos quatro, dá a mesma caixa a todos e encolhe a fonte (mínimo 34 px) se não
+  couber na margem segura.
+- Caixas piscando: (1) o plano `13_cone` tem balões do próprio jogo gravados na imagem, pulando de um canto para o
+  outro com a câmera em movimento; o corte agora usa só o trecho em que eles ficam na faixa de cima (quadros 30 a 80),
+  reenquadrado sem essa faixa e em câmera lenta com mistura de quadros. (2) Entre "dá pra arredondar?" e "Dá. Para
+  baixo." a faixa da legenda sumia por 2 quadros e voltava com outro tamanho; agora é uma faixa só, da largura da
+  maior fala. A correção de verdade do (1) é regravar o plano com `ShowBubbles = false` na ferramenta do Unity.
+- Final novo (do 0:35 em diante no mestre; do 0:21 nos de 30 s): cortes na batida, subida, um instante de preto e
+  silêncio, impacto com tremor e clarão em cada carimbo, título batido à máquina, tema completo na capa.
+- Som: a prévia toca a mesma trilha do arquivo (sintetizada de uma vez, `renderAudio`), com limitador em −1 dBFS.
+  Continua provisória (não existe `Trailer/audio/`).
+- Checagem automática: `montar_previa.ps1 -Verificar` (ou `node Trailer/previa/servidor.mjs --verificar`) avança o
+  tempo quadro a quadro e confere, nos 3 cortes: cada peça aparece uma vez e pelo tempo planejado, nenhuma caixa de
+  fala pisca ou se sobrepõe, texto dentro da caixa (12 px) e da margem segura, balão do jogo entrando/saindo no plano,
+  pico e volume do som, música abaixando em toda fala. Capturas e relatórios em `Trailer/verificacao/atual/`.
+- Visto em captura: celular, os 4 cartões, quadro final e os últimos 15 s (a cada 0,1 s) nos 3 cortes. Não visto:
+  o som de ouvido, o ritmo dos cortes em movimento e a prévia tocando ao vivo no navegador.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

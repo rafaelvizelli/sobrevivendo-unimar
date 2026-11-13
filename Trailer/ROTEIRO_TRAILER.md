@@ -1,76 +1,96 @@
-# Trailer — Sobrevivendo à UNIMAR (Fase 1: A Prova Impossível)
+# Trailer v2.1 — Sobrevivendo à UNIMAR (Fase 1: A Prova Impossível)
 
-Roteiro de trabalho: serve para organizar a produção. A prévia (animatic) segue estes tempos.
+- **Conceito:** a prova é o cofre, a cola é o plano. Comédia de assalto.
+- **Cortes:** mestre de 45 s + gag de 2,5 s (16:9), 30 s 16:9 e 30 s 9:16 (vertical, para redes).
+- **Imagem:** planos em movimento gravados na cena real (`Prova Impossível > Trailer > Gerar planos`), com câmera de cinema,
+  vinheta leve, profundidade de campo e cor quente. Nada de objeto falso: as ações são as mecânicas do jogo.
+- **Identidade:** "prova impressa": papel creme com textura, azul-caneta, vermelho-carimbo, grão leve. Só duas fontes:
+  Special Elite (máquina de escrever) e Caveat (caneta). Carimbos sempre com impacto (tremor curto, rotação, tinta falhada).
+- **Legendas:** toda fala tem legenda embutida (nome + fala, numa faixa de papel na base da margem segura), além do balão
+  do próprio jogo, maior na captura.
+- **Falas:** todas existem no jogo (`Falas.cs`), exceto as marcadas **[NOVA]**, que só existem no trailer.
 
-- **Duração:** ~65 s
-- **Tom:** comédia de assalto ("heist"): a prova é o cofre, a cola é o plano, o Prof. Takanervoso é o segurança.
-- **Ideia central:** *"Você não estudou. Mas você tem um plano."*
-- **Identidade visual:** a mesma dos menus ("prova impressa"): folha creme, margem vermelha, letra de máquina
-  (Special Elite), caneta azul à mão (Caveat), carimbos vermelho/azul.
-- **Falas:** o jogo não tem dublagem. As falas aparecem como balões do próprio jogo, ou como letreiro datilografado.
+## Mestre (16:9)
 
-## Trilha sonora
+| Tempo | Plano (clip) | Texto / legenda | Som |
+|---|---|---|---|
+| 0:00 | Folha da prova na carteira, câmera descendo (`00_folha`) | Datilografado: "Você tinha três semanas." **[NOVA]** · carimbo vermelho NÃO ESTUDOU (1,9 s) | Relógio, papel, máquina de escrever, carimbo grave |
+| 0:03 | Professor andando entre as carteiras, câmera baixa atrás das cadeiras (`01_prof_anda`) | PROF.: "Boa sorte. Vocês vão precisar." | Murmúrio da sala |
+| 0:06 | Letreiro na folha | "Você não estudou." riscado à caneta → "Você tem um PLANO." | Entra o tema do plano (120 BPM) |
+| 0:09 | Regra de três, uma por batida (1,5 s cada): `02_celular`, `03_nerd` (com "O_O"), `04_fundao`, `05_fe` | Celular. (com o aparelho desenhado por cima do plano: tela acesa, "Pesquisando no celular...", notificação, tecla 2) / Nerd. / Fundão. / Fé. **["Fé" é piada de texto]** · FUNDÃO: "Toma a cola. Confia no pai." | Prato a cada corte |
+| 0:15 | Colas de bolso, cartão de tecla + plano curto, entradas em chicote: `06_colinha`, `07_garrafinha`, `08_bilhete`, `09_fone` | Q Colinha "na manga" · G Garrafinha "o rótulo sabe tudo" · B Bilhete "mire bem!" · F Fone "reze pra não tocar" | "Tic" + nota a cada cartão, "whoosh" no chicote |
+| 0:21 | Dorminhoco cabeceando (zZZ crescendo) e roncando (`10_dorminhoco`) | DORMINHOCO: "ZZZzzz... resposta C... zzz" | Ronco |
+| 0:23 | Puxa-saco se vira para delatar (`11_puxasaco`) | PUXA-SACO: "PROFESSOOOR! Ele tá respirando na direção da minha prova!" **[NOVA]** | |
+| 0:26 | Close do professor (`12_prof_sinto`) | PROF.: "Eu corrijo prova há 30 anos. Eu SINTO a cola." | Corte seco para o silêncio; pulso grave; "hm?" |
+| 0:30 | Vista de cima, a imagem perde a cor (`13_cone`, quadros 30 a 80, reenquadrado e em câmera lenta) | | Batimento, passos |
+| 0:33 | Flagrante: professor bravo, "!!!", clarão vermelho (`14_flagrante`) | Carimbo FLAGRANTE! [1/3] + tremor | Silêncio antes, pancada no clarão |
+| 0:35 | Contagem final: a HUD real (`15_hud`) com inserções do professor (`12_prof_sinto`), cortes na batida: 1,5 s · 0,5 · 0,5 · 0,25 · 0,25; preto em 0:37,85 | Datilografado: "Tire a nota antes do sinal." (atravessa os cortes) | Baixo e bumbo dobrando, caixa acelerando, subida, sinal da escola (0:36,9), silêncio de 0,15 s |
+| 0:38 | Tela final real APROVADO cai com soco de zoom, tremor e clarão (`16_aprovado`) | VOCÊ: "Professor, dá pra arredondar?" · PROF.: "Dá. Para baixo." **[NOVA]** (uma faixa só, sem piscar) · carimbo EXPULSO! por cima (0:41), com tremor e clarão vermelho | Impacto grave + metais em ré maior; silêncio antes do EXPULSO; impacto + metais dissonantes |
+| 0:42 | Quadro final sobre a sala desfocada (`19_sala`): a folha cai, o título é batido à máquina letra a letra (0:42,1 a 0:42,7), a régua é riscada, a fase é datilografada, o bilhete é escrito à caneta | SOBREVIVENDO À UNIMAR / Fase 1 — A Prova Impossível / "Não estudou, né? Tô de olho. — Prof. T." / {LINK} / Estúdio Fundão · carimbo azul EM BREVE · PC (0:43,2), com tremor e clarão. Completo e parado de 0:43,2 a 0:45 | Tema completo na entrada, teclas da máquina, stinger de metais na última letra, impacto e acorde final curto no carimbo |
+| 0:45 | Gag final: Nerd levanta a mão (`18_nerd_final`) | NERD: "Professor, a questão 7 tem um erro de digitação. Grave." · preto | "Plim" |
 
-| Trecho | Clima | O que toca |
+## 30 s (16:9 e 9:16)
+
+| Tempo | Plano | Texto |
 |---|---|---|
-| 0:00–0:14 | Silêncio tenso | Tique-taque do relógio da sala, lápis riscando, uma tosse. Sem música. |
-| 0:14–0:42 | "Plano de assalto" | Tema original em ré menor, ~120 BPM: contrabaixo caminhando, pizzicato, chimbal e caixa com vassourinha. Cresce a cada cola nova. |
-| 0:42–0:50 | Perigo | A música vira só um pulso grave e o batimento cardíaco do jogo. Passos do professor. "hm?". |
-| 0:50–0:56 | Desfecho | Corte seco no carimbo EXPULSO! (pancada), depois uma virada rápida e o carimbo APROVADO (acorde maior). |
-| 0:56–1:05 | Encerramento | O tema volta, completo, e fecha com um acorde de metais. Na piada final, silêncio e um "plim" curto. |
+| 0:00 | `00_folha` | "Você tinha três semanas." · NÃO ESTUDOU (1,55 s) |
+| 0:02,5 | Letreiro | "Você não estudou." → "Você tem um PLANO." |
+| 0:04,5 | Regra de três, 1 s cada | Celular. / Nerd. / Fundão. / Fé. |
+| 0:08,5 | Colas de bolso, 1 s cada | Q / G / B / F |
+| 0:12,5 | `11_puxasaco` | PUXA-SACO **[NOVA]** |
+| 0:15 | `12_prof_sinto` | "Eu SINTO a cola." (silêncio) |
+| 0:18 | `13_cone` → 0:20 `14_flagrante` (no último segundo, cortes secos de aproximação em 0:21 · 0:21,5 · 0:21,75 e preto em 0:21,88) | FLAGRANTE! [1/3] |
+| 0:22 | `16_aprovado` (cai com impacto) | "Dá pra arredondar?" / "Dá. Para baixo." · EXPULSO! (0:24,75) |
+| 0:25,5 | Quadro final (título batido à máquina) | EM BREVE · PC (0:26,8) · {LINK} |
 
-Na prévia a trilha é **sintetizada no navegador** (original, sem direito autoral de terceiros). Para o trailer final,
-o caminho é um tema composto para o jogo ou uma faixa de biblioteca livre de royalties, nos estilos "comedy heist",
-"sneaky" ou "caper". Nesse caso, guardar a licença junto do projeto, como já é feito com as fontes.
+No vertical, cada plano é reenquadrado no centro da ação. Letreiros e legendas ficam dentro da margem segura
+(14% de cima e 24% de baixo livres para a interface das redes).
 
-## Roteiro plano a plano
+## Observações
 
-| # | Tempo | Imagem | Texto na tela / balão | Som |
-|---|---|---|---|---|
-| **ABERTURA** |||||
-| 1 | 0:00–0:04 | Tela preta. Uma linha datilografada letra por letra. | "Ontem à noite você ia estudar." | Teclas da máquina de escrever, relógio |
-| 2 | 0:04–0:07 | A folha da prova desliza para dentro do quadro. O carimbo cai. | Carimbo vermelho: **NÃO ESTUDOU** | Pancada do carimbo |
-| 3 | 0:07–0:10 | Sala inteira, vista da carteira do jogador. A câmera avança devagar. | Balão do professor: "A prova começou. Boa sorte. Vocês vão precisar." | Murmúrio da sala, relógio |
-| 4 | 0:10–0:14 | Close do Prof. Takanervoso, desconfiado. | "Eu corrijo prova há 30 anos. Eu SINTO a cola." | Silêncio total no fim da frase |
-| **O PLANO** (a música entra) |||||
-| 5 | 0:14–0:17 | Letreiro sobre a folha. | "Você não estudou." → riscado à caneta → "Você tem um PLANO." | Batida de entrada do tema |
-| 6 | 0:17–0:20 | O jogador na carteira, suando, com o celular. | Etiqueta: "[2] Celular — se a bateria deixar" | Vibração do celular |
-| 7 | 0:20–0:23 | Close do Nerd, convencido. | "Tão fácil que eu fiz duas vezes." / etiqueta: "Copie do Nerd. Se ele deixar." | Lápis riscando |
-| 8 | 0:23–0:26 | O Fundão, com cara de quem tem um plano. | "Toma a cola. Confia no pai." | |
-| 9 | 0:26–0:30 | Montagem rápida das colas de bolso: quatro cartões de tecla em sequência. | **Q** colinha na manga · **G** garrafinha · **B** bilhete (mire!) · **F** fone | Um "tic" a cada cartão, no tempo |
-| 10 | 0:30–0:34 | O Dorminhoco ronca. O professor atende o telefone. | "ZZZzzz... resposta C... zzz" / "Alô? ... Pizza? Não, eu não pedi pizza." | Ronco, toque de telefone |
-| 11 | 0:34–0:38 | A HUD do jogo de verdade: nota, tempo, colas restantes. | Letreiro: "Tire a nota antes do sinal." | Tema no auge |
-| 12 | 0:38–0:42 | O Puxa-saco se vira. | "PROFESSOOOR! Tem gente lendo minha prova com os olhos!" | O tema "tropeça" |
-| **O PERIGO** |||||
-| 13 | 0:42–0:46 | A sala vista de cima; o professor no meio do corredor. | Letreiro: "Ele não nasceu ontem." | Passos, "hm?", batimento |
-| 14 | 0:46–0:50 | Close do professor BRAVO. A tela pisca em vermelho. | "Achou que eu não ia ver?! Eu tenho olhos nas costas!" + HUD **FLAGRANTE!** | Pancada, batimento parando |
-| **O DESFECHO** |||||
-| 15 | 0:50–0:53 | A tela final real do jogo. | Carimbo **EXPULSO!** — "Sua cola agora é peça de museu." | Pancada seca, silêncio |
-| 16 | 0:53–0:56 | ...ou a outra tela final. | Carimbo azul **APROVADO** (no sufoco) | Acorde maior |
-| **ENCERRAMENTO** |||||
-| 17 | 0:56–1:02 | A capa do jogo, a folha da prova centralizada. | **SOBREVIVENDO À UNIMAR** / Fase 1 — A Prova Impossível / "Em breve no PC" / Estúdio Fundão | Tema completo, acorde final |
-| 18 | 1:02–1:05 | Piada final (o "stinger"): depois do preto, close do Nerd com o balão. | Nerd: "Professor, a questão 7 tem um erro de digitação. Grave." | Silêncio, "plim" |
+- **APROVADO com nota 5,9:** pelas regras do jogo, 5,9 é reprovado em qualquer dificuldade (o mínimo do Fácil é 6,0).
+  A tela final capturada é a real e mostra 6,0 de 6,0 no Fácil. A piada do "arredondar" segue nas legendas.
+- **Bilhete:** o jogo não desenha o papel voando nem uma mira. O plano mostra o arremesso real (som, a câmera chicoteando
+  do jogador até a mesa do Nerd).
+- **Quadro-negro:** a primeira questão do quadro da cena é uma das piadas removidas. Durante a captura, a ferramenta tira essa questão só na
+  memória. A cena no disco não muda.
+- **{LINK}:** troque em `previa/montar_previa.ps1` (parâmetro `-Link`, ou o valor padrão na linha `[string]$Link = ...`). O padrão é "Lista de desejos: link em breve".
+- **Celular:** o jogo não tem modelo do aparelho (só a pose dos braços), e no plano as mãos ficam atrás da carteira. O aparelho
+  é um elemento gráfico do trailer (`phone()` no template), no estilo "prova impressa". O texto da tela é o do HUD do jogo.
+- **Balões do jogo no `13_cone`:** o plano foi gravado com os balões ligados e, com a câmera em movimento, eles pulam de um
+  canto para o outro. O corte usa só os quadros 30 a 80 (em que eles ficam na faixa de cima) e reenquadra sem essa faixa.
+  O certo é regravar o plano com `ShowBubbles = false` na ferramenta do Unity; aí o enquadramento original pode voltar.
+- **Gag do Nerd:** o balão de cima é o do próprio jogo (gravado no plano) e a faixa de baixo é a legenda do trailer. Mantido.
 
-## Regras para a produção
+## Trilha
 
-- Toda imagem vem do jogo de verdade (capturas da cena real). Nada de promessa que o jogo não cumpre.
-- Toda fala vem de `Falas.cs`, o texto que o jogador vai ver no jogo.
-- No máximo 3 segundos por plano na parte do plano. A partir do perigo, os planos ficam mais longos.
-- Os letreiros usam o mesmo tema dos menus, para o trailer e o jogo parecerem a mesma coisa.
+Provisória, sintetizada na própria prévia (sem faixa de terceiros; não existe `Trailer/audio/`). A página sintetiza a
+trilha inteira de uma vez e toca na prévia exatamente o que vai para o arquivo.
 
-## Para o trailer final (depois da prévia)
-
-1. Gravar trechos de jogo de verdade (com o Unity Recorder ou o OBS) no lugar das imagens paradas da prévia:
-   o professor andando, o celular na mão, o bilhete voando, o Nerd cobrindo a prova.
-2. Escolher a trilha definitiva (composta para o jogo ou de biblioteca livre de royalties) e guardar a licença.
-3. Editar num editor de vídeo (DaVinci Resolve, CapCut ou Shotcut) seguindo os tempos acima.
-4. Exportar em 1920×1080, 30 ou 60 fps, H.264, e uma versão vertical de 15 s para redes sociais (planos 5, 9, 14, 17).
+- Final: contagem com subida, silêncio de um instante, impacto grave em cada carimbo, tema completo na capa, stinger de
+  metais no título, acorde final com cauda curta e o "plim" no gag do Nerd.
+- Ducking: a música abaixa para ~38% enquanto há legenda de fala (a verificação confere que toda fala está coberta).
+- Sem clipping: um limitador segura os picos em −1 dBFS do começo ao fim. O final fica mais cheio que o meio
+  (RMS −11,9 contra −13,0 dBFS no mestre) sem passar desse teto.
+- Faixa de terceiros: ainda não há suporte a `audio/trilha_final.mp3`. Quando houver uma, o crédito entra no quadro
+  final pelo parâmetro `-Credito` do `montar_previa.ps1`.
 
 ## Arquivos
 
-- `capturas/`: planos tirados da cena real (teste PlayMode temporário em batch, já apagado). As telas finais
-  EXPULSO/APROVADO vêm de `Captures/AuditoriaVisual5/`.
-- `previa/trailer_template.html`: a prévia (planos, letreiros e trilha sintetizada, tudo em código).
-- `previa/montar_previa.ps1`: converte as capturas em JPEG e gera `previa/Trailer_Previa.html` (arquivo único).
-  Rodar de novo depois de mexer no modelo ou trocar uma captura.
-- `previa/Trailer_Previa.html`: abrir no Chrome. O botão "Gravar vídeo" exporta um .webm de 65 s com som.
+- `../Assets/Scripts/ProvaImpossivel/Editor/Trailer/`: a ferramenta de captura (só editor, fora do build).
+- `clips/NN_nome/` (PNG 1920×1080, 30 fps) e `clips/NN_nome.mp4`: os planos. Gerados, fora do git.
+- `previa/trailer_template.html`: a edição (os 3 cortes, letreiros, carimbos, legendas, trilha e exportação).
+- `previa/montar_previa.ps1`: gera `previa/Trailer_Previa.html`. Com `-Exportar`, gera também os vídeos (e confere que cada
+  arquivo abre e tem áudio). Com `-Verificar`, roda a checagem automática dos 3 cortes.
+- `previa/servidor.mjs`: serve a prévia (http://127.0.0.1:8765/previa/Trailer_Previa.html) e recebe a exportação.
+- `export/`: `trailer_mestre`, `trailer_c30` e `trailer_v30`, em `.webm` (VP9 + Opus) e `.mp4` (H.264). Fora do git.
+- `verificacao/`: 6 quadros por corte (da exportação) e `verificacao/atual/` (da checagem: celular, cartões, quadro final,
+  os últimos 15 s a cada 0,5 s, folhas de contato a cada 0,1 s e `relatorio_<corte>.txt`). Fora do git.
+
+## Checagem automática
+
+`node Trailer/previa/servidor.mjs --verificar` avança o tempo quadro a quadro (sem depender do relógio) e falha se:
+uma peça (legenda, letreiro, cartão, carimbo, celular, quadro final) aparecer mais de uma vez ou fora do tempo planejado;
+duas caixas de fala aparecerem juntas ou uma sumir e outra entrar em menos de 0,3 s no mesmo plano; o texto ficar a
+menos de 12 px da borda da caixa ou a caixa sair da margem segura; um balão do jogo entrar ou sair no meio de um plano
+dos últimos 15 s; o som passar do teto, o final não ficar mais cheio que o meio, ou uma fala ficar sem ducking.
