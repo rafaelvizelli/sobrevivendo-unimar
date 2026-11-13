@@ -1,0 +1,672 @@
+<title>Trailer Sobrevivendo à UNIMAR</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Inter:wght@400;500;600&family=Special+Elite&display=swap">
+<style>
+  /* Layout: sala de projeção escura (lousa), a tela do trailer no topo e o roteiro sincronizado embaixo. Visual único, escuro de propósito. */
+  :root {
+    --bg: #0f1310;
+    --panel: #171d18;
+    --line: #29322b;
+    --fg: #ebe4d1;
+    --muted: #a39d8b;
+    --red: #d6534a;
+    --blue: #8ea6ec;
+    --paper: #efe8d6;
+    --ink: #2b2a28;
+    --f-display: "Special Elite", "Courier New", monospace;
+    --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-hand: "Caveat", "Segoe Print", cursive;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+  .wrap {
+    max-width: 1120px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 56px;
+    display: grid; gap: 28px;
+  }
+  header { display: grid; gap: 6px; }
+  .eyebrow { font-family: var(--f-display); color: var(--red); letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+  h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 64ch; }
+  h2 { font-family: var(--f-display); font-weight: 400; font-size: 20px; margin: 0 0 12px; letter-spacing: .02em; }
+
+  .player { display: grid; gap: 10px; }
+  .screen { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; border: 1px solid var(--line); overflow: hidden; }
+  .screen canvas { width: 100%; height: 100%; display: block; }
+  .big-play {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-family: var(--f-display); font-size: clamp(16px, 2.4vw, 22px);
+    background: var(--paper); color: var(--ink); border: 2px solid var(--ink);
+    padding: 12px 22px; cursor: pointer; box-shadow: 4px 4px 0 rgba(0,0,0,.5);
+  }
+  .big-play:hover { background: #fff8e6; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .controls input[type=range] { flex: 1 1 220px; min-width: 0; accent-color: var(--red); }
+  button.ctl {
+    font-family: var(--f-body); font-size: 14px; font-weight: 500;
+    background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+    padding: 7px 12px; cursor: pointer;
+  }
+  button.ctl:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .tempo { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 92px; }
+  .secoes { display: flex; gap: 2px; font-size: 12px; }
+  .secoes button {
+    background: var(--panel); color: var(--muted); border: 0; border-top: 3px solid var(--line);
+    padding: 6px 6px 4px; text-align: left; cursor: pointer; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    font: inherit;
+  }
+  .secoes button.ativa { color: var(--fg); border-top-color: var(--red); }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  ol.planos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  ol.planos li button {
+    width: 100%; display: grid; grid-template-columns: 34px 92px minmax(0, 1fr); gap: 10px; align-items: baseline;
+    background: transparent; color: var(--fg); border: 0; border-left: 3px solid transparent;
+    padding: 8px 10px; text-align: left; cursor: pointer; font: inherit;
+  }
+  ol.planos li button:hover { background: var(--panel); }
+  ol.planos li button.atual { background: var(--panel); border-left-color: var(--red); }
+  .num { font-family: var(--f-display); color: var(--muted); }
+  .tc { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  .desc { min-width: 0; }
+  .desc small { display: block; color: var(--muted); font-size: 13px; }
+  .desc .fala { font-family: var(--f-hand); color: var(--blue); font-size: 19px; line-height: 1.2; display: block; }
+  .sec-titulo { font-family: var(--f-display); color: var(--red); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; padding: 14px 10px 4px; }
+  aside { display: grid; gap: 24px; }
+  aside section { background: var(--panel); border: 1px solid var(--line); padding: 16px; }
+  aside ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--fg); }
+  aside ul li span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .nota { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .status { font-family: var(--f-hand); color: var(--blue); font-size: 20px; margin: 8px 0 0; min-height: 1.2em; }
+  code { font-size: 13px; background: var(--bg); padding: 1px 4px; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<main class="wrap">
+  <header>
+    <span class="eyebrow">Prévia do trailer · animatic v1</span>
+    <h1>Sobrevivendo à UNIMAR</h1>
+    <p>Fase 1, A Prova Impossível. 65 segundos montados com capturas reais do jogo, letreiros no estilo dos menus e trilha original sintetizada no navegador. Serve para ver ritmo, ordem e clima antes de gravar o trailer de verdade.</p>
+  </header>
+
+  <section class="player" aria-label="Player do trailer">
+    <div class="screen">
+      <canvas id="tela" width="1600" height="900" aria-label="Trailer"></canvas>
+      <button id="grande" class="big-play">▶ Assistir com som</button>
+    </div>
+    <div class="controls">
+      <button id="play" class="ctl">Reproduzir</button>
+      <button id="inicio" class="ctl">Do começo</button>
+      <span id="tempo" class="tempo">0:00 / 1:05</span>
+      <input id="scrub" type="range" min="0" max="65" step="0.01" value="0" aria-label="Posição no trailer">
+      <button id="mudo" class="ctl">Som: ligado</button>
+      <button id="cheia" class="ctl">Tela cheia</button>
+    </div>
+    <div id="secoes" class="secoes"></div>
+  </section>
+
+  <section class="grid">
+    <div>
+      <h2>Plano a plano</h2>
+      <ol id="lista" class="planos"></ol>
+    </div>
+    <aside>
+      <section>
+        <h2>Trilha</h2>
+        <ul>
+          <li><span>0:00</span> Silêncio tenso: relógio, máquina de escrever, murmúrio da sala</li>
+          <li><span>0:14</span> Tema "plano de assalto" em ré menor, 120 BPM: baixo caminhando, pizzicato, vassourinha</li>
+          <li><span>0:38</span> O tema tropeça (trombone descendo)</li>
+          <li><span>0:42</span> Perigo: pulso grave, passos, batimento, "hm?"</li>
+          <li><span>0:50</span> Carimbos: pancada seca, depois acorde maior</li>
+          <li><span>0:56</span> O tema volta e fecha com metais</li>
+        </ul>
+        <p class="nota">Tudo sintetizado aqui, sem faixa de terceiros. É uma referência de clima e de tempo para a trilha final.</p>
+      </section>
+      <section>
+        <h2>Exportar</h2>
+        <button id="gravar" class="ctl">Gravar vídeo (.webm)</button>
+        <p class="nota">Toca o trailer inteiro uma vez (65 s) e baixa o vídeo com som. Funciona abrindo o arquivo <code>Trailer_Previa.html</code> direto no Chrome. Dentro do claude.ai o navegador bloqueia o download. Deixe a aba visível enquanto grava.</p>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+    </aside>
+  </section>
+</main>
+
+<script>
+const IMG = /*IMAGENS*/{};
+
+const DUR = 65;
+const W = 1600, H = 900;
+const cv = document.getElementById('tela');
+const g = cv.getContext('2d');
+const C = { paper: '#efe8d6', ink: '#2b2a28', red: '#b8322a', blue: '#2c4a9a', cream: '#ebe4d1' };
+const F = { type: '"Special Elite", "Courier New", monospace', hand: '"Caveat", "Segoe Print", cursive' };
+
+const I = {};
+const imgReady = Promise.all(Object.entries(IMG).map(([k, src]) => new Promise(res => {
+  const im = new Image(); im.onload = () => { I[k] = im; res(); }; im.onerror = res; im.src = src;
+})));
+
+// ---------- utilidades de desenho ----------
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const easeOut = p => 1 - Math.pow(1 - clamp(p), 3);
+const easeInOut = p => { p = clamp(p); return p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
+
+function cover(name, z = 1, fx = .5, fy = .5, rot = 0) {
+  const im = I[name]; if (!im) { g.fillStyle = '#222'; g.fillRect(0, 0, W, H); return; }
+  const s = Math.max(W / im.width, H / im.height) * z;
+  const dw = im.width * s, dh = im.height * s;
+  let x = W / 2 - fx * dw + (dw / 2 - W / 2) * 0, y = H / 2 - fy * dh;
+  x = Math.min(0, Math.max(W - dw, W / 2 - fx * dw)); y = Math.min(0, Math.max(H - dh, y));
+  g.save();
+  if (rot) { g.translate(W / 2, H / 2); g.rotate(rot); g.translate(-W / 2, -H / 2); }
+  g.drawImage(im, x, y, dw, dh);
+  g.restore();
+}
+function black(a = 1) { if (a <= 0) return; g.fillStyle = `rgba(0,0,0,${clamp(a)})`; g.fillRect(0, 0, W, H); }
+function flash(rgb, a) { if (a <= 0) return; g.fillStyle = `rgba(${rgb},${clamp(a)})`; g.fillRect(0, 0, W, H); }
+function vignette(a) {
+  const gr = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H * .95);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(0,0,0,${a})`);
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+}
+function txt(s, x, y, size, font, color, align = 'left', base = 'alphabetic') {
+  g.font = `${size}px ${font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y);
+}
+function wrap(s, x, y, maxW, lh, size, font, color) {
+  g.font = `${size}px ${font}`; g.fillStyle = color; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  let line = ''; for (const w of s.split(' ')) {
+    const t = line ? line + ' ' + w : w;
+    if (g.measureText(t).width > maxW && line) { g.fillText(line, x, y); y += lh; line = w; } else line = t;
+  } if (line) g.fillText(line, x, y); return y;
+}
+// folha de prova (creme, pauta azul, margem vermelha); "inner" desenha em coordenadas da folha
+function paper(cx, cy, w, h, rot, inner, header = true) {
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.translate(-w / 2, -h / 2);
+  g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 40; g.shadowOffsetY = 14;
+  g.fillStyle = C.paper; g.fillRect(0, 0, w, h); g.shadowColor = 'transparent';
+  g.strokeStyle = 'rgba(60,90,140,.13)'; g.lineWidth = 1.5;
+  for (let ly = 118; ly < h - 16; ly += 40) { g.beginPath(); g.moveTo(0, ly); g.lineTo(w, ly); g.stroke(); }
+  g.strokeStyle = 'rgba(184,50,42,.7)'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(74, 0); g.lineTo(74, h); g.stroke();
+  if (header) txt('UNIMAR — AVALIAÇÃO BIMESTRAL      Aluno: ______________      Nota: _____', 96, 44, 17, F.type, 'rgba(43,42,40,.5)');
+  if (inner) inner(w, h);
+  g.restore();
+}
+function paperFull(inner) { paper(W / 2, H / 2, W + 4, H + 4, 0, inner, true); }
+// carimbo: cai grande e "assenta"
+function stamp(text, color, cx, cy, size, tl, rot = -.1) {
+  if (tl < 0) return;
+  const k = tl < .12 ? lerp(2.4, 1, tl / .12) : 1;
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(k, k); g.globalAlpha = clamp(tl / .05) * .92;
+  g.font = `${size}px ${F.type}`; const tw = g.measureText(text).width;
+  const pw = tw + size * .9, ph = size * 1.55;
+  g.strokeStyle = color; g.lineWidth = size * .08; g.strokeRect(-pw / 2, -ph / 2, pw, ph);
+  g.lineWidth = size * .03; g.strokeRect(-pw / 2 + size * .16, -ph / 2 + size * .16, pw - size * .32, ph - size * .32);
+  g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 0, size * .06);
+  g.restore();
+}
+function keycap(x, y, s, key) {
+  g.fillStyle = '#d9d1bd'; g.fillRect(x, y + 6, s, s);
+  g.fillStyle = '#fbf6e9'; g.fillRect(x, y, s, s - 4);
+  g.strokeStyle = C.ink; g.lineWidth = 3; g.strokeRect(x, y, s, s + 2);
+  txt(key, x + s / 2, y + s / 2 + 2, s * .55, F.type, C.ink, 'center', 'middle');
+}
+// etiqueta de papel que entra pela esquerda: [tecla] nome / nota à caneta
+function tag(tl, key, label, sub) {
+  if (tl < 0) return;
+  const x = lerp(-760, 56, easeOut(tl / .35)), y = H - 196, h = 128;
+  g.font = `40px ${F.type}`; const lw = g.measureText(label).width;
+  g.font = `38px ${F.hand}`; const sw = g.measureText(sub).width;
+  const w = (key ? 120 : 34) + Math.max(lw, sw) + 40;
+  g.save(); g.translate(x, y); g.rotate(-.015);
+  g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = 24; g.shadowOffsetY = 8;
+  g.fillStyle = C.paper; g.fillRect(0, 0, w, h); g.shadowColor = 'transparent';
+  g.strokeStyle = 'rgba(184,50,42,.7)'; g.lineWidth = 2; g.beginPath(); g.moveTo(14, 0); g.lineTo(14, h); g.stroke();
+  const ox = key ? 120 : 34;
+  if (key) keycap(30, 26, 72, key);
+  txt(label, ox, 58, 40, F.type, C.ink);
+  txt(sub, ox, 104, 38, F.hand, C.blue);
+  g.restore();
+}
+// letreiro datilografado numa faixa de papel
+function caption(s, tl, y = H - 120) {
+  if (tl < 0) return;
+  const n = Math.min(s.length, Math.floor(tl / .045));
+  g.font = `48px ${F.type}`; const fw = g.measureText(s).width;
+  const w = fw + 90, h = 92, x = W / 2 - w / 2;
+  g.save(); g.globalAlpha = clamp(tl / .15);
+  g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 24; g.fillStyle = C.paper; g.fillRect(x, y - h / 2, w, h); g.shadowColor = 'transparent';
+  txt(s.slice(0, n), x + 45, y + 16, 48, F.type, C.ink);
+  g.restore();
+}
+function typed(s, tl, cps) { return s.slice(0, clamp(Math.floor(tl * cps), 0, s.length)); }
+function shake(amount, t) {
+  if (amount <= 0) return;
+  g.translate(Math.sin(t * 91) * amount, Math.cos(t * 77) * amount * .7);
+}
+
+// ---------- os planos (mesmos tempos do roteiro) ----------
+const QUESTOES = [
+  'Q1) Um boleto vence em 3 dias. O aluno tem R$ 4,50 e um pastel. Calcule a velocidade do desespero em m/s², sem o atrito da esperança.',
+  'Q2) Prove que "eu ia estudar ontem" não é uma demonstração válida.'
+];
+const COLAS = [
+  ['Q', 'Colinha', 'na manga'],
+  ['G', 'Garrafinha', 'o rótulo sabe tudo'],
+  ['B', 'Bilhete', 'mire bem!'],
+  ['F', 'Fone', 'reze pra não tocar'],
+];
+
+const SHOTS = [
+  { n: 1, t0: 0, t1: 4, sec: 0, img: 'Tela preta, frase datilografada', fala: 'Ontem à noite você ia estudar.', d(t) {
+      black(1);
+      const s = 'Ontem à noite você ia estudar.';
+      g.font = `60px ${F.type}`; const fw = g.measureText(s).width;
+      const shown = typed(s, t - .4, 1 / .085);
+      const cursor = (Math.floor(t * 2.5) % 2 === 0) ? '_' : '';
+      g.globalAlpha = t > 3.4 ? clamp(1 - (t - 3.4) / .5) : 1;
+      txt(shown + cursor, W / 2 - fw / 2, H / 2 + 20, 60, F.type, C.cream);
+      g.globalAlpha = 1;
+  } },
+  { n: 2, t0: 4, t1: 7, sec: 0, img: 'A folha da prova entra, o carimbo cai', fala: 'NÃO ESTUDOU', d(t) {
+      black(1);
+      const cy = lerp(H + 420, H / 2 + 10, easeOut((t - 4) / .6));
+      paper(W / 2, cy, 1060, 720, -.025, (w, h) => {
+        txt('PROVA FINAL — Prof. Takanervoso', 110, 132, 40, F.type, C.ink);
+        let y = 218; for (const q of QUESTOES) y = wrap(q, 110, y, 860, 40, 27, F.type, C.ink) + 62;
+        txt('Nota mínima: depende do meu humor.', 110, h - 92, 44, F.hand, C.red);
+        stamp('NÃO ESTUDOU', C.red, w - 250, h - 150, 58, t - 5.0, -.12);
+      });
+      black((t - 6.6) / .4);
+  } },
+  { n: 3, t0: 7, t1: 10, sec: 0, img: 'A sala inteira, da carteira do jogador', fala: 'A prova começou. Boa sorte. Vocês vão precisar.', d(t) {
+      const p = (t - 7) / 3; cover('s03', lerp(1, 1.12, easeInOut(p)), .5, .42); vignette(.35); black(1 - (t - 7) / .35);
+  } },
+  { n: 4, t0: 10, t1: 14, sec: 0, img: 'Close do Prof. Takanervoso, desconfiado', fala: 'Eu corrijo prova há 30 anos. Eu SINTO a cola.', d(t) {
+      const p = (t - 10) / 4; cover('s04', lerp(1.02, 1.16, p), .5, 0); vignette(lerp(.3, .6, p));
+  } },
+  { n: 5, t0: 14, t1: 17, sec: 1, img: 'Letreiro sobre a folha', fala: 'Você não estudou. → Você tem um PLANO.', d(t) {
+      paperFull(() => {
+        const s1 = 'Você não estudou.';
+        g.font = `64px ${F.type}`; const w1 = g.measureText(s1).width; const x1 = W / 2 - w1 / 2, y1 = H / 2 - 70;
+        txt(typed(s1, t - 14.1, 1 / .04), x1, y1, 64, F.type, C.ink);
+        const ps = clamp((t - 15.0) / .35);
+        if (ps > 0) {
+          g.strokeStyle = C.blue; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath();
+          for (let i = 0; i <= 30 * ps; i++) { const xx = x1 - 14 + (w1 + 28) * i / 30; const yy = y1 - 20 + Math.sin(i * 1.7) * 3; i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
+          g.stroke();
+        }
+        const tl = t - 15.6;
+        if (tl >= 0) {
+          const k = tl < .15 ? lerp(1.6, 1, tl / .15) : 1;
+          g.save(); g.translate(W / 2, H / 2 + 120); g.rotate(-.04); g.scale(k, k);
+          txt('Você tem um PLANO.', 0, 0, 132, F.hand, C.blue, 'center', 'middle'); g.restore();
+        }
+      });
+  } },
+  { n: 6, t0: 17, t1: 20, sec: 1, img: 'O jogador na carteira, suando', fala: 'Celular: se a bateria deixar', d(t) {
+      const p = (t - 17) / 3; cover('s06', lerp(1.04, 1.14, p), .5, .35); vignette(.3);
+      tag(t - 17.3, '2', 'Celular', 'se a bateria deixar');
+  } },
+  { n: 7, t0: 20, t1: 23, sec: 1, img: 'Close do Nerd, convencido', fala: 'Tão fácil que eu fiz duas vezes.', d(t) {
+      const p = (t - 20) / 3; cover('s07', lerp(1.0, 1.1, p), .5, 0); vignette(.3);
+      tag(t - 20.3, '', 'Copie do Nerd', 'se ele deixar');
+  } },
+  { n: 8, t0: 23, t1: 26, sec: 1, img: 'O Fundão, com cara de quem tem um plano', fala: 'Toma a cola. Confia no pai.', d(t) {
+      const p = (t - 23) / 3; cover('s08', lerp(1.0, 1.1, p), .5, 0); vignette(.3);
+      tag(t - 23.3, '', 'Peça ao Fundão', 'o que pode dar errado?');
+  } },
+  { n: 9, t0: 26, t1: 30, sec: 1, img: 'As quatro colas de bolso, uma por batida', fala: 'Q colinha · G garrafinha · B bilhete · F fone', d(t) {
+      paperFull(() => {
+        txt(typed('4 jeitos de colar sem levantar', t - 26, 40), 120, 190, 54, F.type, C.ink);
+        COLAS.forEach(([k, nome, nota], i) => {
+          const tl = t - (26.15 + i * .95); if (tl < 0) return;
+          const cw = 320, x = 120 + i * (cw + 34), y = 300;
+          const s = tl < .12 ? lerp(1.25, 1, tl / .12) : 1;
+          g.save(); g.translate(x + cw / 2, y + 190); g.scale(s, s); g.rotate((i % 2 ? .02 : -.02)); g.translate(-cw / 2, -190);
+          g.strokeStyle = C.ink; g.lineWidth = 3; g.strokeRect(0, 0, cw, 380);
+          keycap(cw / 2 - 66, 46, 132, k);
+          txt(nome, cw / 2, 262, 44, F.type, C.ink, 'center');
+          txt(nota, cw / 2, 326, 40, F.hand, C.blue, 'center');
+          g.restore();
+        });
+      });
+  } },
+  { n: 10, t0: 30, t1: 34, sec: 1, img: 'O Dorminhoco ronca; o professor atende o telefone', fala: 'ZZZzzz... resposta C... zzz / Alô? ... Pizza?', d(t) {
+      if (t < 32) { cover('s10a', lerp(1.0, 1.08, (t - 30) / 2), .5, 0); tag(t - 30.25, '', 'Ronco = distração', 'aproveite'); }
+      else { cover('s10b', lerp(1.0, 1.08, (t - 32) / 2), .5, 0); tag(t - 32.25, '', 'Professor no telefone', 'janela aberta'); }
+      vignette(.3);
+  } },
+  { n: 11, t0: 34, t1: 38, sec: 1, img: 'A HUD do jogo: nota, tempo, colas', fala: 'Tire a nota antes do sinal.', d(t) {
+      cover('s11', lerp(1.0, 1.05, (t - 34) / 4), .5, .5); caption('Tire a nota antes do sinal.', t - 34.4, H / 2 + 120);
+  } },
+  { n: 12, t0: 38, t1: 42, sec: 1, img: 'O Puxa-saco se vira', fala: 'PROFESSOOOR! Tem gente lendo minha prova com os olhos!', d(t) {
+      const p = easeOut((t - 38.25) / .25);
+      g.save(); shake(t > 38.25 && t < 38.7 ? 6 : 0, t);
+      cover('s12', lerp(1.0, 1.18, p), .5, 0, lerp(0, -.05, p)); g.restore(); vignette(.35);
+  } },
+  { n: 13, t0: 42, t1: 46, sec: 2, img: 'A sala vista de cima; o professor no corredor', fala: 'Ele não nasceu ontem.', d(t) {
+      const p = (t - 42) / 4;
+      g.filter = `saturate(${lerp(1, .55, p)})`; cover('s13', lerp(1.0, 1.22, easeInOut(p)), .57, .5); g.filter = 'none';
+      vignette(lerp(.4, .85, p)); caption('Ele não nasceu ontem.', t - 42.6, H - 110);
+  } },
+  { n: 14, t0: 46, t1: 50, sec: 2, img: 'Close do professor BRAVO; FLAGRANTE na HUD', fala: 'Achou que eu não ia ver?! Eu tenho olhos nas costas!', d(t) {
+      if (t < 48.2) {
+        g.save(); shake(t > 46.2 ? Math.max(0, 14 * (1 - (t - 46.2) / .6)) : 0, t);
+        cover('s14', lerp(1.12, 1.3, easeOut((t - 46.2) / .3)), .5, 0); g.restore();
+        flash('200,40,30', t > 46.2 ? .55 * (1 - (t - 46.2) / .6) : 0); vignette(.5);
+      } else {
+        cover('s14b', lerp(1.0, 1.06, (t - 48.2) / 1.8), .5, .2); vignette(.4);
+      }
+  } },
+  { n: 15, t0: 50, t1: 53, sec: 3, img: 'Tela final: EXPULSO!', fala: 'Sua cola agora é peça de museu.', d(t) {
+      if (t < 50.15) { black(1); return; }
+      g.save(); shake(Math.max(0, 10 * (1 - (t - 50.15) / .35)), t);
+      cover('fim_expulso', lerp(1.32, 1.4, (t - 50.15) / 2.6), .5, .2); g.restore();
+      if (t > 52.75) { black(1); txt('...ou', W / 2, H / 2, 72, F.hand, C.cream, 'center', 'middle'); }
+  } },
+  { n: 16, t0: 53, t1: 56, sec: 3, img: 'Tela final: APROVADO', fala: 'Passou! O professor ainda está tentando entender como.', d(t) {
+      if (t < 53.15) { black(1); txt('...ou', W / 2, H / 2, 72, F.hand, C.cream, 'center', 'middle'); return; }
+      g.save(); shake(Math.max(0, 8 * (1 - (t - 53.15) / .3)), t);
+      cover('fim_aprovado', lerp(1.32, 1.38, (t - 53.15) / 2.8), .5, .2); g.restore();
+      black((t - 55.7) / .3);
+  } },
+  { n: 17, t0: 56, t1: 62, sec: 4, img: 'Capa do jogo na folha de prova', fala: 'SOBREVIVENDO À UNIMAR · Em breve no PC', d(t) {
+      g.filter = 'blur(10px) brightness(0.38)'; cover('s13', 1.12, .5, .5); g.filter = 'none';
+      const a = easeOut((t - 56) / .6);
+      g.save(); g.globalAlpha = a;
+      paper(W / 2, lerp(H / 2 + 60, H / 2, a), 1180, 720, -.012, (w, h) => {
+        txt('SOBREVIVENDO À UNIMAR', w / 2 + 30, 205, 86, F.type, C.ink, 'center');
+        g.fillStyle = C.ink; g.fillRect(150, 238, w - 240, 3);
+        txt('FASE 1 — A PROVA IMPOSSÍVEL', w / 2 + 30, 300, 38, F.type, C.ink, 'center');
+        txt('Não estudou, né? Tô de olho. — Prof. T.', w / 2 + 30, 410, 50, F.hand, C.red, 'center');
+        txt('Estúdio Fundão', 110, h - 70, 30, F.type, 'rgba(43,42,40,.7)');
+        stamp('EM BREVE · PC', C.blue, w - 290, h - 120, 56, t - 60.0, -.1);
+      });
+      g.restore();
+      black((t - 61.6) / .4);
+  } },
+  { n: 18, t0: 62, t1: 65, sec: 4, img: 'Piada final: o Nerd', fala: 'Professor, a questão 7 tem um erro de digitação. Grave.', d(t) {
+      if (t < 62.3 || t > 64.6) { black(1); return; }
+      cover('s18', lerp(1.0, 1.05, (t - 62.3) / 2.3), .5, 0); vignette(.35);
+  } },
+];
+const SECOES = [['Abertura', 0, 14], ['O plano', 14, 42], ['O perigo', 42, 50], ['O desfecho', 50, 56], ['Encerramento', 56, 65]];
+
+function draw(t) {
+  g.save(); g.clearRect(0, 0, W, H);
+  const s = SHOTS.find(s => t >= s.t0 && t < s.t1) || SHOTS[SHOTS.length - 1];
+  g.globalAlpha = 1; g.filter = 'none'; s.d(t);
+  g.restore();
+}
+
+// ---------- som (tudo sintetizado) ----------
+let ac = null, mix, muteGain, recDest, out, NB;
+let muted = false;
+function ensureAudio() {
+  if (ac) return;
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  mix = ac.createGain(); mix.gain.value = .85;
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
+  muteGain = ac.createGain(); muteGain.gain.value = muted ? 0 : 1;
+  recDest = ac.createMediaStreamDestination();
+  mix.connect(comp); comp.connect(muteGain); muteGain.connect(ac.destination); comp.connect(recDest);
+  NB = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+  const d = NB.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+const nf = s => {
+  const m = s.match(/^([A-G])(#|b)?(-?\d)$/);
+  const st = { C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+  return 440 * Math.pow(2, (st + (parseInt(m[3]) - 4) * 12) / 12);
+};
+function env(gn, w, a, peak, dur, rel) {
+  gn.gain.setValueAtTime(.0001, w); gn.gain.exponentialRampToValueAtTime(Math.max(.0002, peak), w + a);
+  gn.gain.setTargetAtTime(.0001, w + a + dur, rel);
+}
+function tone(w, f, o = {}) {
+  const { type = 'sine', vol = .2, a = .005, dur = .2, rel = .08, lp = 0, glide = 0 } = o;
+  const os = ac.createOscillator(); os.type = type; os.frequency.setValueAtTime(f, w);
+  if (glide) os.frequency.exponentialRampToValueAtTime(glide, w + a + dur);
+  const gn = ac.createGain(); env(gn, w, a, vol, dur, rel);
+  let node = os; if (lp) { const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = lp; os.connect(fl); node = fl; }
+  node.connect(gn); gn.connect(out); os.start(w); os.stop(w + a + dur + rel * 7);
+}
+function noise(w, o = {}) {
+  const { dur = .1, vol = .2, type = 'bandpass', f = 1000, q = 1, a = .002, rel = .05 } = o;
+  const s = ac.createBufferSource(); s.buffer = NB; s.loop = true;
+  const fl = ac.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+  const gn = ac.createGain(); env(gn, w, a, vol, dur, rel);
+  s.connect(fl); fl.connect(gn); gn.connect(out); s.start(w, Math.random() * 1.5); s.stop(w + a + dur + rel * 7);
+}
+const S = {
+  kick: w => tone(w, 130, { glide: 42, dur: .12, vol: .7, rel: .08 }),
+  hat: (w, v) => noise(w, { type: 'highpass', f: 7000, dur: .015, vol: v, rel: .02 }),
+  brush: w => noise(w, { type: 'bandpass', f: 2200, q: .6, dur: .06, vol: .16, rel: .07 }),
+  bass: (w, f) => { tone(w, f, { type: 'triangle', vol: .42, dur: .3, rel: .08 }); tone(w, f * 2, { vol: .07, dur: .15, rel: .06 }); },
+  pluck: (w, f) => { tone(w, f, { type: 'triangle', vol: .17, dur: .04, rel: .07 }); tone(w, f * 2, { type: 'square', vol: .022, dur: .02, rel: .05, lp: 2600 }); },
+  brass: (w, fs, dur, vol = .045) => fs.forEach(f => {
+    const fl = ac.createBiquadFilter(); fl.type = 'lowpass';
+    fl.frequency.setValueAtTime(500, w); fl.frequency.exponentialRampToValueAtTime(2600, w + .06); fl.frequency.exponentialRampToValueAtTime(1100, w + dur);
+    const gn = ac.createGain(); env(gn, w, .03, vol, dur, .12); fl.connect(gn); gn.connect(out);
+    for (const det of [1, 1.006]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * det; o.connect(fl); o.start(w); o.stop(w + dur + 1); }
+  }),
+  crash: w => noise(w, { type: 'highpass', f: 5000, dur: .05, vol: .14, rel: .6 }),
+  tick: (w, hi) => noise(w, { type: 'bandpass', f: hi ? 3300 : 2400, q: 7, dur: .006, vol: .5, rel: .012 }),
+  key: w => { noise(w, { type: 'bandpass', f: 1400 + Math.random() * 900, q: 3, dur: .01, vol: .35, rel: .02 }); tone(w, 170, { vol: .08, dur: .01, rel: .02 }); },
+  ding: w => { tone(w, 2093, { vol: .06, dur: .01, rel: .3 }); },
+  thump: w => { tone(w, 110, { glide: 38, dur: .18, vol: .95, rel: .12 }); noise(w, { type: 'lowpass', f: 900, dur: .04, vol: .55, rel: .08 }); },
+  heart: w => { tone(w, 62, { glide: 45, dur: .07, vol: .65, rel: .07 }); tone(w + .2, 58, { glide: 42, dur: .06, vol: .45, rel: .07 }); },
+  step: w => { noise(w, { type: 'lowpass', f: 350, dur: .03, vol: .5, rel: .05 }); tone(w, 80, { glide: 50, dur: .04, vol: .22, rel: .04 }); },
+  hm: w => { tone(w, 150, { type: 'sawtooth', vol: .1, a: .04, dur: .1, rel: .05, lp: 900 }); tone(w + .2, 160, { type: 'sawtooth', vol: .13, a: .03, dur: .2, rel: .06, lp: 900, glide: 250 }); },
+  vibe: w => { for (let i = 0; i < 2; i++) tone(w + i * .45, 70, { type: 'square', vol: .07, dur: .28, rel: .03, lp: 300 }); },
+  ring: w => { for (let r = 0; r < 2; r++) for (let i = 0; i < 8; i++) tone(w + r * .7 + i * .05, i % 2 ? 480 : 440, { vol: .06, dur: .035, rel: .01 }); },
+  snore: w => { noise(w, { type: 'lowpass', f: 500, q: 2, a: .6, dur: .4, vol: .2, rel: .2 }); tone(w, 75, { type: 'sawtooth', a: .6, dur: .4, vol: .05, rel: .2, lp: 400 }); },
+  scratch: (w, d) => noise(w, { type: 'highpass', f: 2600, dur: d, vol: .05, rel: .03 }),
+  murmur: (w, d) => noise(w, { type: 'bandpass', f: 420, q: .6, a: .8, dur: d, vol: .07, rel: .4 }),
+  drone: (w, d) => { tone(w, nf('D1'), { a: 2, dur: d, vol: .3, rel: .3 }); tone(w, nf('Eb2'), { type: 'sawtooth', a: 3, dur: d, vol: .025, rel: .3, lp: 380 }); },
+  plim: w => { tone(w, 1568, { vol: .13, dur: .01, rel: .35 }); tone(w, 2349, { vol: .06, dur: .01, rel: .25 }); },
+  wah: w => {
+    ['Bb3', 'A3', 'Ab3', 'G3'].forEach((n, i) => {
+      const d = i === 3 ? .9 : .32, ww = w + i * .4;
+      const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = 6;
+      fl.frequency.setValueAtTime(350, ww); fl.frequency.linearRampToValueAtTime(1500, ww + d * .4); fl.frequency.linearRampToValueAtTime(380, ww + d);
+      const gn = ac.createGain(); env(gn, ww, .03, .16, d, .08); fl.connect(gn); gn.connect(out);
+      const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = nf(n);
+      if (i === 3) o.frequency.linearRampToValueAtTime(nf(n) * .94, ww + d);
+      o.connect(fl); o.start(ww); o.stop(ww + d + .6);
+    });
+  },
+};
+S.boom = w => { S.thump(w); S.crash(w); noise(w, { type: 'lowpass', f: 200, dur: .3, vol: .5, rel: .4 }); S.brass(w, ['D3', 'Eb3', 'A3'].map(nf), .25, .06); };
+
+// --- a partitura: lista de eventos {t, fn} ---
+const EV = [];
+const ev = (t, fn) => EV.push({ t, fn });
+const BEAT = .5;
+const PROG = [
+  { bass: ['D2', 'E2', 'F2', 'A2'], mel: ['D5', 0, 'F5', 0, 'A5', 'G#5', 'A5', 0], chord: ['D4', 'F4', 'A4'] },
+  { bass: ['Bb1', 'D2', 'F2', 'E2'], mel: ['D6', 0, 'C6', 'Bb5', 'F5', 0, 'D5', 0], chord: ['D4', 'F4', 'Bb4'] },
+  { bass: ['G1', 'Bb1', 'D2', 'C#2'], mel: ['G5', 0, 'Bb5', 0, 'D6', 'C#6', 'D6', 0], chord: ['D4', 'G4', 'Bb4'] },
+  { bass: ['A1', 'C#2', 'E2', 'C#2'], mel: ['E6', 0, 'C#6', 0, 'A5', 'G5', 'E5', 'C#5'], chord: ['C#4', 'E4', 'G4', 'A4'] },
+];
+const eighth = (t, i) => t + Math.floor(i / 2) * BEAT + (i % 2 ? BEAT * .62 : 0); // swing
+function bar(t, k, o) {
+  const P = PROG[k % 4];
+  if (o.bass) P.bass.forEach((n, i) => ev(t + i * BEAT, w => S.bass(w, nf(n))));
+  if (o.kick) { ev(t, S.kick); ev(t + 2 * BEAT, S.kick); }
+  if (o.hat) for (let i = 0; i < 8; i++) ev(eighth(t, i), w => S.hat(w, i % 2 ? .05 : .085));
+  if (o.snare) { ev(t + BEAT, S.brush); ev(t + 3 * BEAT, S.brush); }
+  if (o.mel) P.mel.forEach((n, i) => n && ev(eighth(t, i), w => S.pluck(w, nf(n))));
+  if (o.brass) ev(t, w => S.brass(w, P.chord.map(nf), .3));
+}
+(function compor() {
+  // abertura: relógio, máquina de escrever, carimbo, sala
+  for (let t = 0; t < 13.2; t += 1) ev(t + .05, w => S.tick(w, Math.round(t) % 2 === 0));
+  const frase = 'Ontem à noite você ia estudar.';
+  for (let i = 0; i < frase.length; i++) if (frase[i] !== ' ') ev(.4 + i * .085, S.key);
+  ev(.4 + frase.length * .085 + .05, S.ding);
+  ev(4.05, w => S.scratch(w, .3));
+  ev(5.0, S.thump);
+  ev(7.0, w => S.murmur(w, 5.6));
+  ev(8.4, w => S.scratch(w, .25)); ev(9.3, w => S.scratch(w, .4)); ev(11.1, w => S.scratch(w, .2));
+  // o plano: tema
+  ev(14.0, S.kick); ev(14.0, S.crash);
+  for (let i = 0; i < 17; i++) if ('Você não estudou.'[i] !== ' ') ev(14.1 + i * .04, S.key);
+  ev(15.0, w => S.scratch(w, .35));
+  ev(15.6, w => S.brass(w, ['D4', 'F4', 'A4', 'D5'].map(nf), .4, .06)); ev(15.6, S.crash);
+  for (let b = 0; b < 12; b++) {
+    const t = 14 + b * 2;
+    bar(t, b, { bass: true, kick: true, hat: true, snare: b >= 2, mel: b >= 4, brass: b >= 8 });
+  }
+  ev(17.25, S.vibe);
+  ev(20.4, w => S.scratch(w, .5));
+  for (let i = 0; i < 4; i++) ev(26.15 + i * .95, w => { S.tick(w, true); S.pluck(w, nf(['D6', 'F6', 'A6', 'D7'][i])); });
+  ev(30.2, S.snore); ev(31.3, S.snore);
+  ev(32.1, S.ring);
+  for (let i = 0; i < 28; i++) if ('Tire a nota antes do sinal.'[i] !== ' ') ev(34.4 + i * .045, S.key);
+  // o tema tropeça
+  ev(38.0, w => S.bass(w, nf('D2'))); ev(38.0, S.kick);
+  ev(38.25, w => S.brass(w, ['Eb4', 'A4'].map(nf), .2, .05));
+  ev(38.6, S.wah);
+  for (let i = 0; i < 4; i++) ev(40 + i * .5, w => S.bass(w, nf('D1')));
+  // o perigo
+  ev(42.0, w => S.drone(w, 7.2));
+  for (let t = 42.1; t < 46; t += .8) ev(t, S.heart);
+  for (let t = 46.6; t < 49.4; t += .55) ev(t, S.heart);
+  for (let t = 42.3; t < 45.9; t += .62) ev(t, S.step);
+  for (let i = 0; i < 21; i++) if ('Ele não nasceu ontem.'[i] !== ' ') ev(42.6 + i * .045, S.key);
+  ev(44.7, S.hm);
+  ev(46.2, S.boom);
+  // o desfecho
+  ev(50.15, S.thump); ev(50.15, w => S.brass(w, ['D3', 'Ab3'].map(nf), .3, .05));
+  ev(53.15, S.thump); ev(53.2, w => S.brass(w, ['D4', 'F#4', 'A4', 'D5'].map(nf), 2.2, .05));
+  // encerramento
+  bar(56, 0, { bass: true, kick: true, hat: true, snare: true, mel: true, brass: true });
+  bar(58, 1, { bass: true, kick: true, hat: true, snare: true, mel: true, brass: true });
+  ev(60.0, S.kick); ev(60.0, S.crash); ev(60.0, S.thump);
+  ev(60.0, w => S.brass(w, ['D3', 'A3', 'D4', 'F#4', 'A4'].map(nf), 1.3, .055));
+  ev(60.0, w => S.bass(w, nf('D2')));
+  ev(62.35, S.plim);
+  EV.sort((a, b) => a.t - b.t);
+})();
+
+// ---------- transporte ----------
+let playing = false, s0 = 0, a0 = 0, pos = 0, idx = 0, timer = null, bus = null, onEnd = null;
+const now = () => playing ? s0 + (ac.currentTime - a0) : pos;
+function startAudio(from) {
+  bus = ac.createGain(); bus.connect(mix); out = bus;
+  s0 = from; a0 = ac.currentTime + .06;
+  idx = EV.findIndex(e => e.t >= from - .001); if (idx < 0) idx = EV.length;
+  const pump = () => {
+    const horizon = now() + .35;
+    while (idx < EV.length && EV[idx].t <= horizon) {
+      const w = a0 + (EV[idx].t - s0);
+      if (w >= ac.currentTime - .02) { out = bus; EV[idx].fn(Math.max(w, ac.currentTime)); }
+      idx++;
+    }
+  };
+  pump(); timer = setInterval(pump, 40);
+}
+function stopAudio() {
+  clearInterval(timer); timer = null;
+  if (bus) { const b = bus; b.gain.setTargetAtTime(0, ac.currentTime, .015); setTimeout(() => b.disconnect(), 250); bus = null; }
+}
+async function play() {
+  ensureAudio(); await ac.resume();
+  if (pos >= DUR - .05) pos = 0;
+  playing = true; startAudio(pos);
+  ui();
+}
+function pause() { if (!playing) return; pos = now(); playing = false; stopAudio(); ui(); }
+function seek(t) {
+  const was = playing; if (was) { playing = false; stopAudio(); }
+  pos = clamp(t, 0, DUR); if (was) { playing = true; startAudio(pos); }
+  draw(pos); ui();
+}
+
+// ---------- interface ----------
+const $ = id => document.getElementById(id);
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const lista = $('lista'), secoesEl = $('secoes');
+let secAtual = -1;
+SECOES.forEach(([nome, a, b], i) => {
+  const bt = document.createElement('button'); bt.textContent = nome; bt.style.flex = String(b - a);
+  bt.onclick = () => seek(a); secoesEl.appendChild(bt);
+});
+SHOTS.forEach(s => {
+  if (s.sec !== secAtual) {
+    secAtual = s.sec; const li = document.createElement('li'); li.className = 'sec-titulo'; li.textContent = SECOES[s.sec][0]; lista.appendChild(li);
+  }
+  const li = document.createElement('li'); const bt = document.createElement('button'); bt.dataset.n = s.n;
+  bt.innerHTML = `<span class="num">${s.n}</span><span class="tc">${fmt(s.t0)}–${fmt(s.t1)}</span><span class="desc"></span>`;
+  const d = bt.querySelector('.desc'); d.textContent = s.img;
+  const f = document.createElement('span'); f.className = 'fala'; f.textContent = s.fala; d.appendChild(f);
+  bt.onclick = () => seek(s.t0 + .01); li.appendChild(bt); lista.appendChild(li);
+});
+let ultimoN = 0, ultimaSec = -1;
+function ui() {
+  const t = now();
+  $('play').textContent = playing ? 'Pausar' : 'Reproduzir';
+  $('grande').hidden = playing || t > 0.01;
+  $('tempo').textContent = `${fmt(t)} / ${fmt(DUR)}`;
+  if (document.activeElement !== $('scrub')) $('scrub').value = t.toFixed(2);
+  const s = SHOTS.find(s => t >= s.t0 && t < s.t1) || SHOTS[SHOTS.length - 1];
+  if (s.n !== ultimoN) {
+    lista.querySelectorAll('button').forEach(b => b.classList.toggle('atual', +b.dataset.n === s.n));
+    ultimoN = s.n;
+  }
+  if (s.sec !== ultimaSec) { [...secoesEl.children].forEach((b, i) => b.classList.toggle('ativa', i === s.sec)); ultimaSec = s.sec; }
+}
+function frame() {
+  if (playing) {
+    let t = now();
+    if (t >= DUR) { t = DUR; pos = DUR - .001; playing = false; stopAudio(); if (onEnd) onEnd(); }
+    draw(Math.min(t, DUR - .001)); ui();
+  }
+  requestAnimationFrame(frame);
+}
+$('play').onclick = () => playing ? pause() : play();
+$('grande').onclick = () => { seek(0); play(); };
+$('inicio').onclick = () => { seek(0); if (!playing) play(); };
+$('scrub').oninput = e => seek(parseFloat(e.target.value));
+$('mudo').onclick = () => { muted = !muted; if (muteGain) muteGain.gain.value = muted ? 0 : 1; $('mudo').textContent = muted ? 'Som: desligado' : 'Som: ligado'; };
+$('cheia').onclick = () => { const el = cv.parentElement; if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); };
+document.addEventListener('keydown', e => { if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); playing ? pause() : play(); } });
+
+$('gravar').onclick = async () => {
+  const st = $('status');
+  try {
+    ensureAudio(); await ac.resume();
+    const tracks = [...cv.captureStream(30).getVideoTracks(), ...recDest.stream.getAudioTracks()];
+    const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+    if (!mime) { st.textContent = 'Este navegador não grava vídeo. Use o Chrome.'; return; }
+    const rec = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: 8e6 });
+    const partes = [];
+    rec.ondataavailable = e => { if (e.data.size) partes.push(e.data); };
+    rec.onstop = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(partes, { type: 'video/webm' }));
+      a.download = 'trailer_sobrevivendo_unimar_previa.webm';
+      document.body.appendChild(a); a.click(); a.remove();
+      st.textContent = 'Pronto: o vídeo foi para a pasta de downloads.';
+    };
+    seek(0); rec.start(500); st.textContent = 'Gravando... deixe a aba visível (65 s).';
+    onEnd = () => { onEnd = null; setTimeout(() => rec.stop(), 300); };
+    await play();
+  } catch (err) { st.textContent = 'Não deu para gravar aqui: ' + err.message; }
+};
+
+Promise.all([imgReady, document.fonts ? Promise.all([
+  document.fonts.load(`40px "Special Elite"`), document.fonts.load(`40px "Caveat"`)]).catch(() => {}) : null])
+  .then(() => { draw(61.2); ui(); requestAnimationFrame(frame); });
+draw(0.01);
+</script>

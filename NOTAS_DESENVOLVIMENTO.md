@@ -523,6 +523,16 @@
   Reavaliar a simulação e o `partidas.csv` depois: a colinha instantânea sobe bem o risco no Normal.
 - Testes: EditMode 103/103; PlayMode completo 94/94 (80 de antes + 14 da auditoria).
 
+### Trailer — roteiro e prévia (13/11)
+- Fora do jogo: nenhuma linha de código do jogo, cena ou equilíbrio mudou. Tudo em `Trailer/` (fora de `Assets/`).
+- `Trailer/ROTEIRO_TRAILER.md`: roteiro de ~65 s em 18 planos (abertura, o plano, o perigo, o desfecho,
+  encerramento), trilha por trecho e passos para o trailer final.
+- `Trailer/capturas/`: 13 planos 1920×1080 da cena real (closes posados com AI pausada, balões do próprio HUD,
+  HUD real e flagrante real via `ApplyFlagrante`). Teste PlayMode temporário em batch, apagado depois.
+- `Trailer/previa/`: animatic em HTML (canvas + Web Audio). Trilha e efeitos sintetizados (sem faixa de
+  terceiros). `montar_previa.ps1` embute as capturas e gera `Trailer_Previa.html`; o botão Gravar exporta .webm.
+- Visto: folha de contato com 20 quadros renderizada no Chrome headless. Não visto: o som (só ouvindo).
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`
