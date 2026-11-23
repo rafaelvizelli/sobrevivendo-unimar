@@ -30,6 +30,11 @@ namespace ProvaImpossivel
         [Range(0, 1)] public float phone;
         [Range(0, 1)] public float armsCrossed;
         public float leanBack;
+        [Tooltip("Objeto na mão (celular, colinha, garrafinha, bilhete): só visual")]
+        public HandProp prop;
+
+        Transform primitiveProp;
+        HandProp primitivePropKind;
 
         Transform body, head, shoulderL, shoulderR, hipL, hipR, kneeL, kneeR, browL, browR, mouth, lidL, lidR, sweatRoot;
         Vector3 lidBaseL, lidBaseR;
@@ -53,10 +58,35 @@ namespace ProvaImpossivel
 
         public void Talk(float seconds) => talkUntil = Time.time + seconds;
 
+        // estado lido pela pele 3D (CharacterModelSkin)
+        public float CurrentYaw => curYaw;
+        public float CurrentPitch => curPitch;
+        public float Speed => speed;
+        public bool IsWalking => !seated && speed > 0.15f;
+        public bool IsTalking => Application.isPlaying && Time.time < talkUntil;
+        public Transform SweatRoot => sweatRoot;
+
+        /// <summary>Pele 3D em uso (null = boneco de primitivas visível).</summary>
+        public CharacterModelSkin Skin { get; private set; }
+
         void Awake()
         {
             Bind();
             lastPos = transform.position;
+            if (Application.isPlaying) ApplyModel();
+        }
+
+        /// <summary>Se houver modelo 3D para este visual, veste o personagem com ele (o boneco fica invisível).</summary>
+        void ApplyModel()
+        {
+            if (Skin != null || body == null) return;
+            var set = CharacterModelSet.Active;
+            if (set == null) return;
+            var prefab = set.Pick(look, seed, out var entry);
+            if (prefab == null) return;
+            var skin = gameObject.AddComponent<CharacterModelSkin>();
+            if (skin.Init(this, set, prefab, entry)) Skin = skin;
+            else Destroy(skin);
         }
 
         void LateUpdate() => Animate(Time.deltaTime);
@@ -374,6 +404,7 @@ namespace ProvaImpossivel
             head.localRotation = Quaternion.Euler(curPitch, curYaw, sleeping ? 12f : 0f);
 
             ApplyExpression(t);
+            if (Skin == null && Application.isPlaying) UpdatePrimitiveProp();
 
             if (sweatRoot != null)
             {
@@ -381,6 +412,17 @@ namespace ProvaImpossivel
                 if (sweatRoot.gameObject.activeSelf != show) sweatRoot.gameObject.SetActive(show);
                 if (show) sweatRoot.localPosition = new Vector3(0f, -Mathf.Repeat(t * 0.25f, 0.12f), 0f);
             }
+        }
+
+        /// <summary>Sem modelo 3D: o objeto aparece na mão direita do boneco de primitivas.</summary>
+        void UpdatePrimitiveProp()
+        {
+            if (prop == primitivePropKind) return;
+            if (primitiveProp != null) Destroy(primitiveProp.gameObject);
+            primitivePropKind = prop;
+            var hand = shoulderR != null ? shoulderR.Find("Hand") : null;
+            primitiveProp = hand != null ? HandProps.Build(prop, hand.parent) : null;
+            if (primitiveProp != null) primitiveProp.localPosition = hand.localPosition + new Vector3(0f, -0.06f, 0.05f);
         }
 
         void ApplyExpression(float t)

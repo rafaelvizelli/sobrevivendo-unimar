@@ -712,6 +712,7 @@ namespace ProvaImpossivel
             bool still = agent.velocity.sqrMagnitude < 0.04f;
             visual.armsCrossed = Mathf.MoveTowards(visual.armsCrossed, still && (State == ProfState.Tranquilo || staring || inChallenge) ? 1f : 0f, Time.deltaTime * 3f);
             visual.handRaise = Mathf.MoveTowards(visual.handRaise, OnPhone ? 0.6f : 0f, Time.deltaTime * 3f);
+            visual.prop = OnPhone ? HandProp.Celular : HandProp.Nenhum; // ao telefone: o celular aparece na orelha
 
             // o que ele está sentindo aparece em cima da cabeça (no mundo), não no HUD
             if (mood != null)

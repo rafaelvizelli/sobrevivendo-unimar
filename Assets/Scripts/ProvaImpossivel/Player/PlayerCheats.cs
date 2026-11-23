@@ -39,6 +39,18 @@ namespace ProvaImpossivel
         /// </summary>
         public static float FoneRingTime(double rollChance, double rollWhen, float chance, float delay) =>
             rollChance < chance ? delay * Mathf.Lerp(0.2f, 0.9f, (float)rollWhen) : -1f;
+
+        /// <summary>
+        /// O que aparece na mão do jogador agora (só visual). Pesquisar no celular (tecla 2) mostra o celular; usar o
+        /// fone (F) mostra o fone de ouvido com fio; segurar Q/G mostra a colinha/garrafinha; jogando o bilhete, a bolinha.
+        /// </summary>
+        public static HandProp PropInHand(bool googling, PlayerCheats.Hold holding, bool throwing) =>
+            throwing ? HandProp.Bilhete
+            : googling ? HandProp.Celular
+            : holding == PlayerCheats.Hold.FoneEnviar || holding == PlayerCheats.Hold.FoneLer ? HandProp.Fone
+            : holding == PlayerCheats.Hold.Colinha ? HandProp.Colinha
+            : holding == PlayerCheats.Hold.Garrafinha ? HandProp.Garrafinha
+            : HandProp.Nenhum;
     }
 
     /// <summary>Uma resposta que chega depois (bilhete voltando, mensagem do fone). Pura e testável.</summary>

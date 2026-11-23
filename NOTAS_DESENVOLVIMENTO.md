@@ -602,6 +602,118 @@
 - A aba de jogo pode ficar em modo **Simulator** (celular): o jogo aparece espremido. Trocar no menu do canto esquerdo da aba para **Game**.
 - No editor, o input só chega ao jogo com a aba Game em foco (o script `FocusGameViewOnPlay` foca ao dar Play).
 
+### Personagens 3D — histórico (17–18/11)
+- Genies Avatar SDK (17–18/11): abandonado. Não compila no Unity 6.6, e no 6.3 as roupas vinham sem textura. Está em
+  `git stash` no branch `unity63-genies`.
+- Kenney Mini Characters (madrugada de 18/11): funcionou, mas o usuário não gostou do visual. Foi substituído pela
+  Quaternius (abaixo). Os arquivos da Kenney e o `KenneyModelImport.cs` foram MOVIDOS (não apagados) para
+  `C:\Users\rafae\JogoFaculdade_backup_kenney`, fora do projeto.
+
+### Personagens 3D — Quaternius + objetos de cola na mão (18/11, branch `personagens-kenney`)
+- Pedido do usuário: personagens mais legais e **engraçados**, e os itens de cola **visíveis na mão** (celular,
+  colinha, garrafinha etc.).
+- Pacote: **Quaternius Ultimate Modular Men/Women** (CC0, quaternius.com). Em `Assets/Art/Personagens/Quaternius/`:
+  7 homens (`Homem_*`), 6 mulheres (`Mulher_*`), `Animacoes_Homem.fbx`/`Animacoes_Mulher.fbx` e `License.txt`.
+- Importação (`Editor/QuaterniusModelImport.cs`, menu *Prova Impossível > Personagens > Reimportar Quaternius*):
+  - Homens e animações em **Humanoid**, com os ossos mapeados pelo nome, porque o mapeamento automático tomava o
+    osso "Root" por quadril. O esqueleto das animações é diferente: "Body" faz o papel do quadril, "Wrist" o da mão,
+    e a ponta da canela o do pé.
+  - Mulheres em **Generic**: as pernas delas saem da raiz, no chão, e o Humanoid não aceita.
+  - A correção do mapa vale a partir da 2ª importação; o batch `CharacterModelSetup.Batch` já reimporta.
+- Escalação (`Editor/CharacterModelSetup.cs`, menu *Configurar modelos*). Todo mundo tem cabeção (1,3–1,45×).
+  - **Jogador:** Casual, moletom roxo pintado de laranja.
+  - **Professor:** Suit, paletó marrom, gravata vermelha, cabelo grisalho, **bigodão** e **pança com dois botões dourados**.
+  - **Nerd:** Casual2, camisa azul-clara, **óculos fundo de garrafa** e **gravata-borboleta**.
+  - **Dorminhoco:** Beach, de chinelo, com **máscara de dormir rosa** na testa.
+  - **Fundão:** Punk, moicano, **óculos escuros** e **cordão de ouro**.
+  - **Puxa-saco:** Mulher_Suit com **gravatinha vermelha**.
+  - **Figurantes:** 7 modelos sorteados pelo seed, com a cor da roupa sorteada.
+  - Os enfeites são primitivas presas aos ossos (`Visual/CharacterLooks.cs`).
+  - As cores do FBX vêm em espaço linear e são convertidas (`.gamma`).
+- Poses (`Visual/CharacterModelSkin.cs`, reescrito):
+  - Os homens tocam Idle/Walk do pacote por Playables.
+  - Tudo o mais é feito por código, **apontando os ossos para direções do espaço do personagem**, o que vale para
+    qualquer esqueleto com os nomes do pacote: sentar, escrever, dormir, braços cruzados, mão levantada, celular
+    (no colo, de lado), colinha na manga, garrafinha, arremesso do bilhete e celular na orelha.
+  - Os dedos fecham segurando, e a palma vira para o lado certo.
+  - Nos modelos sem animação (mulheres), a pose é refeita do zero a cada quadro. Os dedos também, em todos, porque
+    não fazem parte do mapa humanoide.
+- **Objetos na mão** (`Visual/HandProps.cs`, enum `HandProp`): Celular (capinha rosa, tela acesa), Colinha (papel com
+  linhas), Garrafinha (garrafa azul com rótulo) e Bilhete (bolinha de papel).
+  - São 1,35× o tamanho real, para ler pela câmera que fica atrás do jogador. As poses levam os objetos para o lado
+    ou para cima do corpo pelo mesmo motivo.
+  - `CharacterVisual.prop` diz o que está na mão. Para o jogador, vem de `CheatRules.PropInHand`: tecla 2 ou F
+    mostram o celular, segurar Q a colinha, segurar G a garrafinha e o arremesso (B) a bolinha.
+  - O professor ao telefone (`OnPhone`) aparece com o celular na orelha.
+  - Só visual: nenhuma regra mudou.
+- A pele (`CharacterModelSkin`) continua só copiando o estado do boneco de primitivas invisível, que segue sendo a
+  referência do jogo (visão, cabeça, passos). Sem o asset (ou com `useModels` desligado), os bonecos de primitivas
+  voltam e o objeto aparece na mão deles.
+- Perdas que continuam: as expressões do rosto não aparecem no modelo (balões e ícones continuam).
+- Testes:
+  - EditMode `ModelosPersonagensTests` (11): escalação, cores e materiais que existem, enfeites dos principais,
+    ossos e rig (homens Humanoid com o quadril certo, mulheres Generic), loop de Idle/Walk e `PropInHand`.
+  - PlayMode `ModelosPersonagensPlayTests` (9): veste o modelo e o boneco some, principais com modelos diferentes,
+    cabeção e enfeites sem colisor, altura sentado, rosto segue o olhar do jogo, mão levantada acima da cabeça,
+    cada objeto aparece perto da mão e acima da carteira, garrafinha vai até a boca, professor anda com a caminhada.
+- Visto em captura (teste PlayMode temporário em batch, fora do projeto agora): sala inteira, cada principal de
+  perto, figurantes, os 4 objetos no jogador de frente e pela câmera do jogo, nerd de mão levantada, dorminhoco
+  dormindo, professor ao telefone, de braços cruzados e andando.
+- Resultado: EditMode 131/131, PlayMode 106/106 (os testes de jogabilidade de antes continuam passando). Executável
+  regenerado (`Builds/Windows/SobrevivendoUnimar.exe`, 0 erros no build) e aberto: 0 erros no Player.log.
+- Não visto: uma partida inteira jogada à mão. Não commitado (o usuário faz os commits).
+- Como validar jogando: dar Play na Fase 1 e, sentado:
+  - segurar **2** (celular de lado na mão), **Q** (braço esquerdo sobe com a colinha), **G** (garrafinha virada na
+    boca) e **B** mirando no Nerd (braço armado com a bolinha);
+  - esperar o professor atender o telefone (celular na orelha).
+  Para comparar com os bonecos antigos, desmarcar `useModels` em `Assets/Resources/Personagens/ModelosPersonagens.asset`.
+
+### Objetos sem atravessar a mão + fone de ouvido de verdade (18/11, branch `personagens-kenney`)
+- Retorno do usuário depois de jogar: o celular, a colinha e a garrafinha **atravessavam a mão**, e usar o fone (F)
+  mostrava **o celular** em vez de um fone.
+- Causas, vistas em captura:
+  - os dedos fechavam por cima do objeto (o celular tinha os dedos saindo pela tela);
+  - o objeto ficava a uma distância fixa do osso, menor que a grossura da mão;
+  - a garrafa ficava alinhada com o antebraço, e não atravessada na palma;
+  - `PropInHand` mandava o fone para `HandProp.Celular`.
+- Correções (só visual; nenhuma regra mudou):
+  - **Encostar na palma** (`CharacterModelSkin.RestOnPalm`): a cada quadro, o objeto começa no meio da palma e é
+    afastado na direção para onde a palma olha até nenhum ponto da mão ficar dentro dele. Os pontos são o osso da
+    mão, o meio da palma e cada junta de cada dedo, com folga de meio dedo (`FingerRadius`) e meia palma
+    (`PalmRadius`). O teste geométrico (`HandProps.Touches`) usa as peças reais do objeto (caixa, cilindro, esfera).
+  - **Dedos por objeto**: celular e papel com a mão quase aberta por baixo (10°), garrafa com os dedos em volta
+    (25°; mais que isso, a ponta dos dedos entra na garrafa), bolinha no punho (62°), microfone do fone em pinça (45°).
+  - **Garrafinha**: a ordem foi invertida. Primeiro decide-se onde a garrafa fica no gole
+    (`CharacterModelSkin.BottleFrame`: tampa na boca, fundo para cima e para a frente). Depois a mão é levada até
+    ela com **IK de braço e antebraço** (`Reach`, novo: cotovelo para fora e para baixo), com a palma encostada por
+    baixo e pela direita. A garrafa ficou 1,1× (`BottleScale`), não 1,35×, porque já é comprida. A boca agora é um
+    ponto guardado na cabeça, que acompanha o cabeção.
+  - Tentado e desfeito: com a garrafa quase em pé (para aparecer acima da cabeça pela câmera de trás), ela ficava
+    de pé na frente da cara, com a mão aberta na testa. Pela câmera do jogo, o gole aparece como o braço erguido até
+    a boca, com a garrafa em parte escondida pela cabeça.
+  - **Fone** (novo `HandProp.Fone`): fone branco na orelha direita (exagerado, 1,4× o tamanho dos outros
+    objetos), fio até a mão, que segura o microfone perto do queixo ("alô, primo?"), e fio descendo até o bolso.
+    A cabeça inclina um pouco. Teclas F (mandar) e F (ler) mostram o fone; tecla 2 continua sendo o celular.
+- Testes:
+  - EditMode `ObjetoNaMaoSegueOQueOJogadorEstaFazendo`: FoneEnviar e FoneLer dão `HandProp.Fone`.
+  - PlayMode `ObjetosNaoAtravessamAMao` (novo): figurante e jogador, celular, colinha e garrafinha. Nenhum osso da
+    mão pode ficar dentro do objeto, e o objeto não pode descolar da mão.
+  - PlayMode `FoneApareceNaOrelhaENaoNoCelular` (novo): fone perto da cabeça, microfone na mão, fio ligado, sem tela
+    de celular e sem colisor.
+  - PlayMode `GarrafinhaVaiAteABoca` mede agora a distância da **tampa** até a **boca** (`MouthPoint`), que tem de
+    ficar abaixo de 15 cm (antes era o meio da garrafa até o osso da cabeça), e confere o fundo para cima.
+  - Os testes de objeto esperam por **tempo** (`Segura`, 1 s), não por quadros: no batch os quadros são curtos e
+    a pose de beber (0,33 s para entrar) às vezes não tinha assentado, e a tampa ficava a 15,8 cm da boca.
+  - Resultado: EditMode 131/131; PlayMode 107/108 na rodada completa (a falha era só essa espera da garrafinha),
+    depois `ModelosPersonagensPlayTests` 11/11 com a espera por tempo. Build gerado sem erros.
+- Visto em captura (teste temporário, apagado depois): celular, colinha, garrafinha e fone de frente, de lado e de
+  trás, no jogador e numa figurante, e pela câmera do jogo.
+- Como validar jogando (sentado):
+  - segurar **2**: o celular fica deitado na palma, sem dedo saindo pela tela;
+  - segurar **Q**: a colinha fica na palma, virada para o rosto;
+  - segurar **G**: a mão fica na frente do rosto, a garrafa atravessada na mão e a tampa na boca;
+  - segurar **F**: fone branco na orelha e mão no queixo com o microfone do fio, sem nenhum celular.
+
 ## Onde está cada coisa
 - Cena: `Assets/Scenes/Fase1_ProvaImpossivel.unity` · Código: `Assets/Scripts/ProvaImpossivel/`
 - Testes: `Assets/Scripts/ProvaImpossivel/Editor/Tests` (EditMode) e `Assets/Tests/PlayMode` (PlayMode).

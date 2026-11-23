@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23af58c1c4b60d54ab9c11a65e3d65a8, type: 3}
+  m_Name: ModelosPersonagens
+  m_EditorClassIdentifier: ProvaImpossivel::ProvaImpossivel.CharacterModelSet
+  useModels: 1
+  entries:
+  - look: 0
+    models:
+    - {fileID: 919132149155446097, guid: e0654e0343cc9224d9825ade0edf2301, type: 3}
+    scale: 1
+    headScale: 1.3
+    tints:
+    - material: Purple
+      color: {r: 0.95, g: 0.45, b: 0.12, a: 1}
+    accessories: 0
+    randomShirt: 0
+  - look: 1
+    models:
+    - {fileID: 919132149155446097, guid: fd10497aa02b6924fb335c786943c799, type: 3}
+    scale: 1.06
+    headScale: 1.3
+    tints:
+    - material: Tie
+      color: {r: 0.8, g: 0.1, b: 0.12, a: 1}
+    - material: Hair
+      color: {r: 0.7, g: 0.7, b: 0.72, a: 1}
+    - material: Suit
+      color: {r: 0.36, g: 0.27, b: 0.18, a: 1}
+    accessories: 33
+    randomShirt: 0
+  - look: 2
+    models:
+    - {fileID: 919132149155446097, guid: 67f2c049c493fc54d91e011d3d49029f, type: 3}
+    scale: 0.97
+    headScale: 1.45
+    tints:
+    - material: LightBrown
+      color: {r: 0.62, g: 0.8, b: 0.95, a: 1}
+    - material: LightBlue
+      color: {r: 0.72, g: 0.63, b: 0.45, a: 1}
+    accessories: 10
+    randomShirt: 0
+  - look: 3
+    models:
+    - {fileID: 919132149155446097, guid: 0fe3f8e34d49fe44b8f7f0f40d10d44e, type: 3}
+    scale: 1
+    headScale: 1.3
+    tints: []
+    accessories: 64
+    randomShirt: 0
+  - look: 4
+    models:
+    - {fileID: 919132149155446097, guid: dc0f056ef57dda4459237fe083b35674, type: 3}
+    scale: 1.04
+    headScale: 1.3
+    tints: []
+    accessories: 20
+    randomShirt: 0
+  - look: 5
+    models:
+    - {fileID: 919132149155446097, guid: ec4445ff787154f4d8b8542a4e75133f, type: 3}
+    scale: 1
+    headScale: 1.35
+    tints: []
+    accessories: 512
+    randomShirt: 0
+  - look: 6
+    models:
+    - {fileID: 919132149155446097, guid: 31a2738ea28fdca42a40d417f675fde1, type: 3}
+    - {fileID: 919132149155446097, guid: ca98f6a129aa5364ca35a9f533cbf88b, type: 3}
+    - {fileID: 919132149155446097, guid: 0bd889cf3f66ad247b10e8f275e3744b, type: 3}
+    - {fileID: 919132149155446097, guid: 1d94949d32409f447a53f1ba4a0dbd72, type: 3}
+    - {fileID: 919132149155446097, guid: d2d0c99be223f4a4d9049a0e5e3d5615, type: 3}
+    - {fileID: 919132149155446097, guid: 69139c71ec2a3264a9476511ecf20aae, type: 3}
+    - {fileID: 919132149155446097, guid: 3790b7100eb95c8438ce0a41a30d27dd, type: 3}
+    scale: 1
+    headScale: 1.3
+    tints: []
+    accessories: 0
+    randomShirt: 1
+  shirtMaterials:
+  - model: {fileID: 919132149155446097, guid: 31a2738ea28fdca42a40d417f675fde1, type: 3}
+    material: White
+  - model: {fileID: 919132149155446097, guid: ca98f6a129aa5364ca35a9f533cbf88b, type: 3}
+    material: Green
+  - model: {fileID: 919132149155446097, guid: 0bd889cf3f66ad247b10e8f275e3744b, type: 3}
+    material: LimeGreen
+  - model: {fileID: 919132149155446097, guid: 1d94949d32409f447a53f1ba4a0dbd72, type: 3}
+    material: LightBrown
+  - model: {fileID: 919132149155446097, guid: d2d0c99be223f4a4d9049a0e5e3d5615, type: 3}
+    material: Pink
+  - model: {fileID: 919132149155446097, guid: 69139c71ec2a3264a9476511ecf20aae, type: 3}
+    material: Green
+  - model: {fileID: 919132149155446097, guid: 3790b7100eb95c8438ce0a41a30d27dd, type: 3}
+    material: White
+  shirtColors:
+  - {r: 0.2, g: 0.6, b: 0.4, a: 1}
+  - {r: 0.8, g: 0.25, b: 0.3, a: 1}
+  - {r: 0.25, g: 0.45, b: 0.85, a: 1}
+  - {r: 0.9, g: 0.7, b: 0.2, a: 1}
+  - {r: 0.55, g: 0.35, b: 0.75, a: 1}
+  - {r: 0.95, g: 0.55, b: 0.65, a: 1}
+  - {r: 0.3, g: 0.75, b: 0.8, a: 1}
+  - {r: 0.95, g: 0.95, b: 0.95, a: 1}
+  idle: {fileID: 9061338213343248790, guid: 4527ca902a1fece4684a460b656199ff, type: 3}
+  walk: {fileID: -5599002979973759676, guid: 4527ca902a1fece4684a460b656199ff, type: 3}
+  seatHipHeight: 0.62
+  seatBack: 0.05
+  headPitchFactor: 0.8

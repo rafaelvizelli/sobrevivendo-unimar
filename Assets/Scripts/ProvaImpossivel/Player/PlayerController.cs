@@ -171,7 +171,9 @@ namespace ProvaImpossivel
                 HUD.I.SetHold(-1f, "");
             }
 
-            visual.phone = Mathf.MoveTowards(visual.phone, holdingPhone ? 1f : 0f, dt * 5f);
+            visual.prop = CheatRules.PropInHand(holdingPhone, Cheats != null ? Cheats.Holding : PlayerCheats.Hold.Nenhum,
+                                                Cheats != null && Cheats.Throwing);
+            visual.phone = Mathf.MoveTowards(visual.phone, visual.prop == HandProp.Celular ? 1f : 0f, dt * 5f);
             visual.writing = !holdingPhone && QuizChallenge.I != null && QuizChallenge.I.Active;
 
             var exam = ExamSystem.I;
@@ -259,6 +261,7 @@ namespace ProvaImpossivel
             IsSeated = false;
             visual.seated = false;
             visual.phone = 0f;
+            visual.prop = HandProp.Nenhum;
             phoneProgress = 0f;
             HUD.I.SetHold(-1f, "");
             HUD.I.SetSeatedHelp(null);

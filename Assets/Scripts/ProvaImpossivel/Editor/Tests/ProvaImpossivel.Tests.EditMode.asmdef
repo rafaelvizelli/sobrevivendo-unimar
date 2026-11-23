@@ -3,6 +3,7 @@
     "rootNamespace": "ProvaImpossivel.Tests",
     "references": [
         "ProvaImpossivel",
+        "ProvaImpossivel.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
