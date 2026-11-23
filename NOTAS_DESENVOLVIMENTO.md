@@ -826,6 +826,32 @@ Como validar jogando (Normal):
   overlay de FPS da Steam/NVIDIA/AMD).
 - Correção na auditoria: são 14 personagens com modelo (não ~30 como estimado em T12).
 
+### S9 — sala com identidade (23/11)
+- Contexto: o objetivo real do usuário é **apresentar o jogo ao professor** ("Steam" era jeito de dizer "quero o jogo
+  muito bom"). A sala é a primeira coisa que quem assiste vê.
+- `Visual/Cenografia.cs` (novo), criado pelo `GameManager.Awake`. Tudo por código (a cena `.unity` não muda) e **tudo
+  sem colisor**: NavMesh, visão do professor e câmera continuam iguais (teste confere).
+  - **Fim de tarde:** sol a 17° de elevação, alaranjado (1; 0,76; 0,52), entrando pelas janelas e desenhando faixas no
+    chão; luzes do teto a 72%; ambiente mais quente; céu de pôr do sol (cópia do material do céu, com tom alaranjado).
+  - **Lá fora:** prédios do campus (reitoria, biblioteca, cantina), árvores e calçada, visíveis pelas janelas.
+  - **Ventiladores de teto** girando (2, no corredor do meio).
+  - **Ar-condicionado pingando num balde azul** (parede esquerda; uma gota a cada 1,4 s).
+  - **8 cartazes** com humor de faculdade (`Falas.Cartazes`): churrasco do DA, "proibido comer (exceto pastel)",
+    monitoria na sala 404, achados e perdidos, Wi-Fi, trancamento "prazo: ontem", "vende-se calculadora", "NÃO ABRA:
+    provas de 2009" no armário. Papel colorido, título datilografado em vermelho, texto à caneta azul, fita crepe.
+  - **A estante de metal do fundo (parecia uma escada) virou armário de aço** com caixas de provas em cima. Só a
+    aparência: os renderers da estante foram desligados e o colisor dela continua.
+  - **Projetor** 28% menor, encolhido em direção ao teto (tapava a lousa). **Lousa com letra de giz** (Caveat), giz e
+    apagador no parapeito.
+- Visto em captura (teste temporário, movido para fora): câmera do jogo, frente, fundo, parede esquerda, mural, ar-
+  condicionado, armário, ventilador, janela. Ajuste feito pelas capturas: o céu azul de meio-dia pela janela não
+  combinava com a luz → céu alaranjado + campus lá fora.
+- Testes: PlayMode `OperacaoSteamPlayTests` +3 (cenografia sem nenhum colisor e estante só escondida; sol baixo e
+  alaranjado, ventilador girando; o raio de visão do professor é o mesmo com e sem a cenografia). Também passaram
+  `LevelDesignTests`, `EquilibrioNaCenaTests` e `LeituraNoMundoPlayTests` (24/24). EditMode 157/157.
+- Como validar jogando: olhe em volta sentado (cartazes, ventilador, balde pingando, pôr do sol pela janela). Confira
+  se a luz de fim de tarde não deixou nada escuro demais para ler (professor, Nerd, ícones).
+
 ### Fechamento do dia (23/11)
 - Suítes completas no fim, rodadas uma de cada vez: **EditMode 157/157, PlayMode 123/123**.
 - Versão 0.1.0 → **0.2.0** (`ProjectSettings` → `bundleVersion`; vai na coluna `versao` do `partidas.csv`).

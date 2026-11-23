@@ -253,6 +253,63 @@ namespace ProvaImpossivel.Tests
             Assert.GreaterOrEqual(Records.BestGrade(GameManager.I.normal.name), 8f, "o recorde foi gravado");
         }
 
+        // ------------------------------------------------------------------ S9: sala com identidade (só visual)
+
+        [UnityTest]
+        public IEnumerator S9_CenografiaESoVisual_NenhumColisorNovo()
+        {
+            yield return EnterGame();
+            yield return null;
+            var c = Cenografia.I;
+            Assert.IsNotNull(c, "a cenografia não foi criada");
+            Assert.IsTrue(c.Built);
+            Assert.Greater(c.Root.GetComponentsInChildren<Renderer>(true).Length, 30, "cenografia vazia");
+            Assert.AreEqual(0, c.Root.GetComponentsInChildren<Collider>(true).Length,
+                            "a cenografia não pode ter colisor: mudaria a visão do professor, a câmera e a NavMesh");
+
+            // a estante virou armário só na aparência: o colisor original continua
+            var rack = GameObject.Find("rack");
+            Assert.IsNotNull(rack);
+            foreach (var r in rack.GetComponentsInChildren<Renderer>()) Assert.IsFalse(r.enabled, "a estante antiga ainda aparece");
+            var col = rack.GetComponentInChildren<Collider>();
+            if (col != null) Assert.IsTrue(col.enabled, "o colisor da estante tem que continuar (NavMesh e visão iguais)");
+        }
+
+        [UnityTest]
+        public IEnumerator S9_FimDeTardeEVentiladoresGirando()
+        {
+            yield return EnterGame();
+            yield return null;
+            Light sol = null;
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (l.type == LightType.Directional) sol = l;
+            Assert.IsNotNull(sol);
+            float elevacao = Vector3.Angle(-sol.transform.forward, Vector3.ProjectOnPlane(-sol.transform.forward, Vector3.up));
+            Assert.That(elevacao, Is.InRange(8f, 25f), "sol de fim de tarde fica baixo");
+            Assert.Greater(sol.color.r - sol.color.b, 0.3f, "luz de fim de tarde é alaranjada");
+
+            var helice = Cenografia.I.Root.Find("Ventilador de teto/Helice");
+            Assert.IsNotNull(helice);
+            var antes = helice.rotation;
+            yield return Wait(0.5f);
+            Assert.Greater(Quaternion.Angle(antes, helice.rotation), 20f, "o ventilador não gira");
+        }
+
+        [UnityTest]
+        public IEnumerator S9_VisaoDoProfessorNaoMudou()
+        {
+            // o mesmo raio de visão com e sem a cenografia: ela não pode tapar nada
+            yield return ComecaNormalIsolado();
+            var p = PlayerController.I;
+            Vector3 olho = new(0f, 1.8f, -6f);
+            bool comCenografia = Vision.LineOfSight(olho, p.HeadPosition);
+            Cenografia.I.Root.gameObject.SetActive(false);
+            yield return null;
+            bool semCenografia = Vision.LineOfSight(olho, p.HeadPosition);
+            Cenografia.I.Root.gameObject.SetActive(true);
+            Assert.AreEqual(semCenografia, comCenografia);
+        }
+
         [UnityTest]
         public IEnumerator S1_PrimeiroFlagranteGuardaOSegundoDaProva()
         {

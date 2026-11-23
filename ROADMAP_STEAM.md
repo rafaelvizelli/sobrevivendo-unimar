@@ -158,7 +158,7 @@ Tudo o que for novo na cena é criado por código (o padrão que o projeto já u
 | S6 Rejogabilidade | ✅ feito | Título de estilo, dica, recorde, 8 conquistas locais |
 | S7 Controle | ✅ feito (parcial) | Jogo inteiro no controle; ajuda troca sozinha. Faltam: remapear, ícones gráficos, textos fixos de menu/tutorial |
 | S8 Vídeo/acessibilidade | 🟡 parcial | Tela cheia/janela e VSync. Faltam: resolução, tamanho de texto, legendas de som, daltonismo |
-| S9 Sala com identidade | ⏸ aguardando | Precisa de aprovação visual do dono |
+| S9 Sala com identidade | ✅ feito | Fim de tarde, cartazes, ventiladores, ar pingando, armário, campus pela janela, lousa de giz. Só visual (sem colisor) |
 | S10 HUD enxuto | ⏸ não começado | P2 |
 | S11 Textos centralizados | ⏸ não começado | Depende da decisão de mercado/idioma |
 | S12 Desempenho | 🟡 medido | 278 FPS numa RTX 2060 em janela pequena; falta medir em vídeo integrado 1080p |

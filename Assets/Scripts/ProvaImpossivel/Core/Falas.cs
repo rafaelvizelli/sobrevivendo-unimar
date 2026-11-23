@@ -379,6 +379,19 @@ namespace ProvaImpossivel
                                          + "celular ou aproveitando o caos da sala. Três flagrantes e você está fora.";
         public const string MenuRecadoProfessor = "Não estudou, né? Tô de olho.\n— Prof. T.";
         public const string MenuCarimbo = "NÃO ESTUDOU";
+
+        // ---------------------------------------------------------- S9: cartazes da sala (título datilografado, texto à caneta)
+        public static readonly (string titulo, string texto)[] Cartazes =
+        {
+            ("DIRETÓRIO ACADÊMICO", "CHURRASCO SEXTA 18h\nTraga o carvão. E a carne. E a churrasqueira."),
+            ("AVISO DA COORDENAÇÃO", "Proibido comer na sala.\n(Exceto pastel. Pastel é cultura.)"),
+            ("MONITORIA DE CÁLCULO", "Sala 404.\nSe não achar, é porque não existe."),
+            ("ACHADOS E PERDIDOS", "1 guarda-chuva, 47 canetas sem tampa e a esperança de alguém."),
+            ("WI-FI", "Rede: ALUNOS_UNIMAR\nSenha: estudaquepassa"),
+            ("TRANCAMENTO DE MATRÍCULA", "Prazo: ONTEM.\nDúvidas: na fila da secretaria."),
+            ("VENDE-SE", "Calculadora científica, pouco usada.\nMotivo: reprovei mesmo assim."),
+            ("NÃO ABRA", "Provas de 2009"),
+        };
         public const string BotaoJogar = "JOGAR";
         public const string BotaoTutorialPrimeira = "TUTORIAL (1 min)  [T]";
         public const string BotaoTutorialRever = "Rever tutorial  [T]";

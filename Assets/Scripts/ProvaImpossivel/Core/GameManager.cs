@@ -252,6 +252,8 @@ namespace ProvaImpossivel
             Settings = normal;
             TimeLeft = normal.duration;
             Time.timeScale = 1f;
+            // S9: a cenografia (luz de fim de tarde, cartazes, ventiladores...) é criada por código, só visual
+            if (GetComponent<Cenografia>() == null) gameObject.AddComponent<Cenografia>();
         }
 
         void Start()
