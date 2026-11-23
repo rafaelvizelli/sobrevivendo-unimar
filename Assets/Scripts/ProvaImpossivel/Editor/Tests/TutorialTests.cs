@@ -48,34 +48,30 @@ namespace ProvaImpossivel.Tests
 
         // ------------------------------------------------------------------ ordem dos passos
 
+        /// <summary>S3: começa sentado respondendo; as colas de bolso (com o orçamento) entram depois do celular.</summary>
         [Test]
         public void OrdemDosPassos()
         {
             CollectionAssert.AreEqual(new[]
             {
-                TutorialStep.Andar, TutorialStep.Sentar, TutorialStep.Responder, TutorialStep.Celular,
-                TutorialStep.Nerd, TutorialStep.Distracao, TutorialStep.Entregar, TutorialStep.Concluido,
+                TutorialStep.Responder, TutorialStep.Celular, TutorialStep.ColasDeBolso, TutorialStep.Nerd,
+                TutorialStep.Distracao, TutorialStep.Entregar, TutorialStep.Concluido,
             }, TutorialSteps.Order);
         }
 
         [Test]
         public void PercorreTodosOsPassosNaOrdem()
         {
-            var p = new TutorialProgress { seated = true };
-            var step = TutorialStep.Andar;
-            Assert.AreEqual(TutorialStep.Andar, TutorialSteps.Next(step, p), "sentado e parado: não avança");
-
-            p.seated = false; p.distanceFromSeat = 0.5f;
-            Assert.AreEqual(TutorialStep.Andar, TutorialSteps.Next(step, p), "levantou mas não andou");
-            p.distanceFromSeat = TutorialSteps.WalkDistance + 0.1f;
-            step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Sentar, step);
-
-            Assert.AreEqual(TutorialStep.Sentar, TutorialSteps.Next(step, p), "ainda em pé");
-            p.seated = true;
-            step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Responder, step);
+            var p = new TutorialProgress();
+            var step = TutorialSteps.Order[0];
+            Assert.AreEqual(TutorialStep.Responder, step, "o treino começa sentado, respondendo");
+            Assert.AreEqual(TutorialStep.Responder, TutorialSteps.Next(step, p), "sem responder: não avança");
             p.answers = 1;
             step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Celular, step);
             p.phoneUses = 1;
+            step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.ColasDeBolso, step);
+            Assert.AreEqual(TutorialStep.ColasDeBolso, TutorialSteps.Next(step, p), "sem usar colinha/garrafinha/bilhete/fone: não avança");
+            p.pocketCheats = 1;
             step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Nerd, step);
             p.nerdCopies = 1;
             step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Distracao, step);
@@ -92,10 +88,12 @@ namespace ProvaImpossivel.Tests
             // fez tudo fora de ordem (ex.: usou o celular antes de responder): ainda avança um passo por vez
             var tudo = new TutorialProgress
             {
-                seated = true, distanceFromSeat = 0f, answers = 1, phoneUses = 1, nerdCopies = 1, favorsSpent = 1, delivered = true,
+                answers = 1, phoneUses = 1, pocketCheats = 1, nerdCopies = 1, favorsSpent = 1, delivered = true,
             };
-            Assert.AreEqual(TutorialStep.Andar, TutorialSteps.Next(TutorialStep.Andar, tudo), "sem ter andado, não sai do primeiro passo");
             Assert.AreEqual(TutorialStep.Celular, TutorialSteps.Next(TutorialStep.Responder, tudo), "avança só um");
+            Assert.AreEqual(TutorialStep.Nerd, TutorialSteps.Next(TutorialStep.ColasDeBolso, tudo), "avança só um");
+            var nada = new TutorialProgress { phoneUses = 1, nerdCopies = 1 };
+            Assert.AreEqual(TutorialStep.Responder, TutorialSteps.Next(TutorialStep.Responder, nada), "sem responder, não sai do primeiro passo");
         }
 
         [Test]

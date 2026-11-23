@@ -21,21 +21,46 @@ namespace ProvaImpossivel
         public float squeezeLift = 0.75f;
         public Vector3 shoulderOffset = new(0.35f, 0f, 0f);
 
+        [Tooltip("S7: analógico direito todo inclinado = tantos \"pixels de mouse\" por segundo (com a sensibilidade 0,12: ~150°/s)")]
+        public float stickSpeed = 1250f;
+
+        [Header("Momento do flagrante (S4)")]
+        [Tooltip("Quanto o campo de visão fecha ao focar o professor (1 = nada)")] public float focusZoom = 0.62f;
+        [Tooltip("Velocidade com que a câmera vira para o foco e volta")] public float focusSpeed = 6f;
+
         float yaw, pitch = 15f, curDist;
         bool wasPlaying;
         readonly RaycastHit[] hits = new RaycastHit[16];
+        Transform focus;
+        float focusUntil, focusWeight, baseFov;
+        Camera cam;
 
         void Start()
         {
             if (target != null) yaw = target.transform.eulerAngles.y;
             curDist = distance;
+            cam = GetComponent<Camera>();
+            if (cam != null) baseFov = cam.fieldOfView;
         }
+
+        /// <summary>
+        /// S4: por <paramref name="seconds"/> s a câmera vira e fecha em <paramref name="who"/> (o professor no flagrante),
+        /// depois volta sozinha para onde estava. O mouse não mexe nela enquanto isso (o jogador está travado mesmo).
+        /// </summary>
+        public void Focus(Transform who, float seconds)
+        {
+            focus = who;
+            focusUntil = Time.time + seconds;
+        }
+
+        /// <summary>Quanto a câmera está no foco agora (0 = normal, 1 = toda no foco). Testes.</summary>
+        public float FocusWeight => focusWeight;
 
         void LateUpdate()
         {
             if (target == null) return;
             var gm = GameManager.I;
-            var mouse = Mouse.current;
+            // S7: mouse ou analógico direito (pelo Controls)
             bool playing = gm != null && gm.IsPlaying;
             if (playing && !wasPlaying && gm.ElapsedFraction < 0.01f)
             {
@@ -44,9 +69,11 @@ namespace ProvaImpossivel
                 pitch = 15f;
             }
             wasPlaying = playing;
-            if (mouse != null && playing)
+            bool focusing = focus != null && Time.time < focusUntil && playing;
+            focusWeight = Mathf.MoveTowards(focusWeight, focusing ? 1f : 0f, Time.deltaTime * focusSpeed * 0.5f);
+            if (playing && !focusing)
             {
-                Vector2 d = mouse.delta.ReadValue() * (sensitivity * GameOptions.CameraSensitivity);
+                Vector2 d = Controls.Look(stickSpeed) * (sensitivity * GameOptions.CameraSensitivity);
                 yaw += d.x;
                 pitch = Mathf.Clamp(pitch - d.y, minPitch, maxPitch);
             }
@@ -83,7 +110,18 @@ namespace ProvaImpossivel
             // (proporcional ao aperto) para olhar por cima da cabeça, mantendo a mesma direção do olhar
             float squeeze = 1f - Mathf.Clamp01(curDist / want);
             Vector3 lift = Vector3.up * (squeeze * squeezeLift);
-            transform.SetPositionAndRotation(pivot + back * curDist + lift, rot);
+            Vector3 pos = pivot + back * curDist + lift;
+            Quaternion look = rot;
+            if (focusWeight > 0f && focus != null)
+            {
+                // olha para a cabeça de quem está no foco, mantendo a posição (o jogador continua no quadro)
+                Vector3 to = focus.position + Vector3.up * 1.6f - pos;
+                if (to.sqrMagnitude > 0.01f) look = Quaternion.Slerp(rot, Quaternion.LookRotation(to), Smooth(focusWeight));
+            }
+            transform.SetPositionAndRotation(pos, look);
+            if (cam != null && baseFov > 0f) cam.fieldOfView = Mathf.Lerp(baseFov, baseFov * focusZoom, Smooth(focusWeight));
         }
+
+        static float Smooth(float t) => t * t * (3f - 2f * t);
     }
 }

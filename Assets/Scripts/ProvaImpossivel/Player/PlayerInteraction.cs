@@ -42,14 +42,13 @@ namespace ProvaImpossivel
             }
 
             bool isHold = current.HoldTime > 0f;
-            HUD.I.SetPrompt("[E] " + current.Prompt + (isHold ? "  (segure)" : ""));
+            HUD.I.SetPrompt(Controls.Tag(Acao.Interagir) + " " + current.Prompt + (isHold ? "  (segure)" : ""));
 
-            var e = Keyboard.current?.eKey;
-            if (e == null) return;
+            // S7: E no teclado, A no controle
 
             if (!isHold)
             {
-                if (e.wasPressedThisFrame)
+                if (Controls.Pressed(Acao.Interagir))
                 {
                     SoundFX.Play(Sfx.Clique);
                     current.Interact(player);
@@ -57,7 +56,7 @@ namespace ProvaImpossivel
                 return;
             }
 
-            if (e.isPressed)
+            if (Controls.Held(Acao.Interagir))
             {
                 if (!holding)
                 {

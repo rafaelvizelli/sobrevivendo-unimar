@@ -26,7 +26,11 @@ namespace ProvaImpossivel
 
         GameObject panel;
         RectTransform track, zone, pointer;
-        Text statusText, timerText, feedbackText;
+        Text statusText, timerText, feedbackText, help;
+
+        /// <summary>S7: o texto de ajuda mostra a tecla do dispositivo em uso (ESPAÇO ou A).</summary>
+        static string HelpText() => "O professor está te encarando. Aperte " + Controls.Label(Acao.CaraDePaisagem).ToUpperInvariant()
+                                    + " quando o ponteiro estiver na zona verde.";
         float timeLeft, speed, zoneCenter, curZone, t, feedbackUntil, prepLeft;
         int hits, misses;
         Action<bool> done;
@@ -43,7 +47,7 @@ namespace ProvaImpossivel
 
             var title = UIFactory.Label("Titulo", tr, "DESAFIO A — CARA DE PAISAGEM!", 30, HUD.Yellow);
             title.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -12f), new Vector2(860f, 40f));
-            var help = UIFactory.Label("Ajuda", tr, "O professor está te encarando. Aperte ESPAÇO quando o ponteiro estiver na zona verde.", 20, HUD.Gray, TextAnchor.MiddleCenter, FontStyle.Italic);
+            help = UIFactory.Label("Ajuda", tr, HelpText(), 20, HUD.Gray, TextAnchor.MiddleCenter, FontStyle.Italic);
             help.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -54f), new Vector2(860f, 30f));
 
             var trackImg = UIFactory.Box("Trilho", tr, new Color(0.75f, 0.2f, 0.2f));
@@ -82,6 +86,7 @@ namespace ProvaImpossivel
             curZone = zoneWidth * Mathf.Lerp(1f, 0.8f, closeness);
             t = UnityEngine.Random.value;
             NewZone();
+            help.text = HelpText();
             Feedback("Prepare-se... o professor está te encarando!", HUD.Yellow, prepTime);
             Active = true;
             panel.SetActive(true);
@@ -122,8 +127,8 @@ namespace ProvaImpossivel
             timeLeft -= dt;
             timerText.text = Mathf.CeilToInt(Mathf.Max(0f, timeLeft)) + "s";
 
-            var kb = Keyboard.current;
-            if (kb != null && kb.spaceKey.wasPressedThisFrame) Press();
+            // S7: ESPAÇO no teclado, A no controle
+            if (Controls.Pressed(Acao.CaraDePaisagem)) Press();
 
             if (!Active) return;
             if (hits >= hitsNeeded) Finish(true, "");

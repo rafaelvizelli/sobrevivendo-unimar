@@ -23,7 +23,23 @@ namespace ProvaImpossivel
                 foreach (var t in entry.tints)
                     if (t.material == "Suit") belly = t.color;
             Build(entry.accessories, root, head, neck, spine, scale, belly);
+            if (entry.accessories.HasFlag(Accessory.Sobrancelhas)) BuildBrows(owner, root, head, scale);
             if (entry.headScale > 0f && Mathf.Abs(entry.headScale - 1f) > 0.001f) head.localScale *= entry.headScale;
+        }
+
+        static readonly Color SobrancelhaCor = new(0.2f, 0.19f, 0.2f);
+
+        /// <summary>
+        /// S4: sobrancelhas grossas (bem maiores que as reais, para ler pela câmera do jogo a 10 m) presas na cabeça, com
+        /// o componente que as faz atuar conforme a expressão do personagem. Criadas antes do cabeção, como os outros
+        /// enfeites, para crescer junto com a cabeça.
+        /// </summary>
+        static void BuildBrows(MonoBehaviour owner, Transform root, Transform head, float scale)
+        {
+            var left = Part(PrimitiveType.Cube, "SobrancelhaE", root, head, new Vector3(-0.047f, 0.131f, 0.122f), new Vector3(0.085f, 0.03f, 0.03f), SobrancelhaCor, scale);
+            var right = Part(PrimitiveType.Cube, "SobrancelhaD", root, head, new Vector3(0.047f, 0.131f, 0.122f), new Vector3(0.085f, 0.03f, 0.03f), SobrancelhaCor, scale);
+            var brows = owner.gameObject.AddComponent<ExpressiveBrows>();
+            brows.Init(owner.GetComponentInParent<CharacterVisual>(), left, right, head.InverseTransformVector(root.up) * scale);
         }
 
         static string Clean(string matName) => matName.Replace(" (Instance)", "").Trim();
@@ -138,8 +154,8 @@ namespace ProvaImpossivel
             }
         }
 
-        static void Part(PrimitiveType type, string name, Transform root, Transform bone, Vector3 offset, Vector3 size, Color color,
-                         float scale, Vector3 euler = default, float smooth = 0.25f)
+        static Transform Part(PrimitiveType type, string name, Transform root, Transform bone, Vector3 offset, Vector3 size, Color color,
+                              float scale, Vector3 euler = default, float smooth = 0.25f)
         {
             var go = GameObject.CreatePrimitive(type);
             go.name = name;
@@ -152,6 +168,7 @@ namespace ProvaImpossivel
             var r = go.GetComponent<MeshRenderer>();
             r.sharedMaterial = MaterialLibrary.Get(color, smooth);
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return t;
         }
     }
 }

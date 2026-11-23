@@ -23,15 +23,17 @@ namespace ProvaImpossivel
         }
     }
 
-    /// <summary>Passos do tutorial, NESTA ordem.</summary>
-    public enum TutorialStep { Andar, Sentar, Responder, Celular, Nerd, Distracao, Entregar, Concluido }
+    /// <summary>
+    /// Passos do tutorial, NESTA ordem (S3, Operação Steam). O treino começa SENTADO, com o professor falando: andar
+    /// e sentar se aprendem no caminho até o Nerd e até a mesa. O passo das colas de bolso (Q/G/B/F) apresenta o
+    /// orçamento de colas, que antes nenhum passo explicava.
+    /// </summary>
+    public enum TutorialStep { Responder, Celular, ColasDeBolso, Nerd, Distracao, Entregar, Concluido }
 
     /// <summary>O que já aconteceu na partida de treino (lido das mecânicas reais: MatchLog, favores, jogador).</summary>
     public struct TutorialProgress
     {
-        public bool seated;
-        public float distanceFromSeat;
-        public int answers, phoneUses, nerdCopies, favorsSpent;
+        public int answers, phoneUses, pocketCheats, nerdCopies, favorsSpent;
         public bool delivered;
     }
 
@@ -40,20 +42,16 @@ namespace ProvaImpossivel
     {
         public static readonly TutorialStep[] Order =
         {
-            TutorialStep.Andar, TutorialStep.Sentar, TutorialStep.Responder, TutorialStep.Celular,
-            TutorialStep.Nerd, TutorialStep.Distracao, TutorialStep.Entregar, TutorialStep.Concluido,
+            TutorialStep.Responder, TutorialStep.Celular, TutorialStep.ColasDeBolso, TutorialStep.Nerd,
+            TutorialStep.Distracao, TutorialStep.Entregar, TutorialStep.Concluido,
         };
-
-        /// <summary>Distância (m) que conta como "deu uma volta".</summary>
-        public const float WalkDistance = 1.5f;
 
         /// <summary>O passo atual já foi cumprido?</summary>
         public static bool IsDone(TutorialStep step, TutorialProgress p) => step switch
         {
-            TutorialStep.Andar => !p.seated && p.distanceFromSeat >= WalkDistance,
-            TutorialStep.Sentar => p.seated,
             TutorialStep.Responder => p.answers > 0,
             TutorialStep.Celular => p.phoneUses > 0,
+            TutorialStep.ColasDeBolso => p.pocketCheats > 0,
             TutorialStep.Nerd => p.nerdCopies > 0,
             TutorialStep.Distracao => p.favorsSpent > 0,
             TutorialStep.Entregar => p.delivered,
@@ -67,10 +65,9 @@ namespace ProvaImpossivel
         /// <summary>Texto curto do passo (fica em Falas).</summary>
         public static string Text(TutorialStep step) => step switch
         {
-            TutorialStep.Andar => Falas.TutorialAndar,
-            TutorialStep.Sentar => Falas.TutorialSentar,
             TutorialStep.Responder => Falas.TutorialResponder,
             TutorialStep.Celular => Falas.TutorialCelular,
+            TutorialStep.ColasDeBolso => Falas.TutorialColasDeBolso,
             TutorialStep.Nerd => Falas.TutorialNerd,
             TutorialStep.Distracao => Falas.TutorialDistracao,
             TutorialStep.Entregar => Falas.TutorialEntregar,
@@ -84,7 +81,7 @@ namespace ProvaImpossivel
     /// </summary>
     public class TutorialDirector : MonoBehaviour
     {
-        public TutorialStep Step { get; private set; } = TutorialStep.Andar;
+        public TutorialStep Step { get; private set; } = TutorialSteps.Order[0];
         bool deliveredNow;
 
         void Start()
@@ -95,21 +92,12 @@ namespace ProvaImpossivel
 
         TutorialProgress Read()
         {
-            var p = PlayerController.I;
             var gm = GameManager.I;
-            float dist = 0f;
-            if (p != null && p.seatPoint != null)
-            {
-                Vector3 a = p.transform.position, b = p.seatPoint.position;
-                a.y = b.y = 0f;
-                dist = Vector3.Distance(a, b);
-            }
             return new TutorialProgress
             {
-                seated = p != null && p.IsSeated,
-                distanceFromSeat = dist,
                 answers = MatchLog.ConhecidasTentadas + MatchLog.Chutes,
                 phoneUses = MatchLog.Celular,
+                pocketCheats = MatchLog.ColinhaUsos + MatchLog.GarrafaUsos + MatchLog.BilheteUsos + MatchLog.FoneUsos,
                 nerdCopies = MatchLog.NerdCopias,
                 favorsSpent = gm != null && gm.Settings != null ? gm.Settings.favors - gm.Favors : 0,
                 delivered = deliveredNow,
@@ -128,7 +116,11 @@ namespace ProvaImpossivel
             else ShowStep();
         }
 
-        void ShowStep() => HUD.I.SetTutorial(TutorialSteps.Text(Step) + "    <color=#999999>[T] pular tutorial</color>");
+        void ShowStep()
+        {
+            HUD.I.SetTutorial(TutorialSteps.Text(Step) + "    <color=#999999>[T] pular tutorial</color>");
+            if (Step == TutorialStep.ColasDeBolso) HUD.I.Toast(Falas.TutorialOrcamento, HUD.Yellow, 7f, important: true);
+        }
 
         /// <summary>O jogador entregou a prova na mesa: só conta no último passo.</summary>
         public void OnDeliver()

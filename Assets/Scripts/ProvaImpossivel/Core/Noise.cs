@@ -11,14 +11,20 @@ namespace ProvaImpossivel
         public readonly string what;
         /// <summary>Foi o jogador (ou alguém a pedido dele)? NPCs vigias só reagem a esses.</summary>
         public readonly bool byPlayer;
+        /// <summary>
+        /// S2: de que cola veio o barulho (Bilhete, CelularTocando...) ou Outra. Quem ouve continua sem saber QUEM foi;
+        /// isto só diz o que o professor pode achar se for investigar o lugar.
+        /// </summary>
+        public readonly Infracao kind;
 
-        public NoiseInfo(Vector3 position, float radius, float amount, string what, bool byPlayer)
+        public NoiseInfo(Vector3 position, float radius, float amount, string what, bool byPlayer, Infracao kind = Infracao.Outra)
         {
             this.position = position;
             this.radius = radius;
             this.amount = amount;
             this.what = what;
             this.byPlayer = byPlayer;
+            this.kind = kind;
         }
 
         public bool HeardFrom(Vector3 listener)
@@ -39,8 +45,8 @@ namespace ProvaImpossivel
     {
         public static event Action<NoiseInfo> Emitted;
 
-        public static void Emit(Vector3 position, float radius, float amount, string what, bool byPlayer) =>
-            Emitted?.Invoke(new NoiseInfo(position, radius, amount, what, byPlayer));
+        public static void Emit(Vector3 position, float radius, float amount, string what, bool byPlayer, Infracao kind = Infracao.Outra) =>
+            Emitted?.Invoke(new NoiseInfo(position, radius, amount, what, byPlayer, kind));
 
         /// <summary>Quantos sistemas estão ouvindo (testes de vazamento entre reinícios).</summary>
         public static int ListenerCount => Emitted?.GetInvocationList().Length ?? 0;

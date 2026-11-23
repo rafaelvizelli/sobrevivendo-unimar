@@ -66,6 +66,8 @@ namespace ProvaImpossivel.Tests
             {
                 WorldRect(Find(panel, "ColunaProva")), WorldRect(Find(panel, "ColunaFicha")),
                 WorldRect(Find(panel, "JogarDeNovo")), WorldRect(Find(panel, "Menu")), WorldRect(Find(panel, "Sair")),
+                // S6: a dica (reprovado com questões em branco) e o rodapé com o recorde
+                WorldRect(Find(panel, "Dica")), WorldRect(Find(panel, "Rodape")),
             };
             for (int i = 0; i < parts.Count; i++)
             {
@@ -78,7 +80,7 @@ namespace ProvaImpossivel.Tests
         [UnityTest]
         public IEnumerator PausaTemAsTresOpcoesQueValemNaHora()
         {
-            float master = GameOptions.MasterVolume, sfx = GameOptions.SfxVolume, sens = GameOptions.CameraSensitivity;
+            float master = GameOptions.MasterVolume, sfx = GameOptions.SfxVolume, sens = GameOptions.CameraSensitivity, musica = GameOptions.MusicVolume;
             yield return EnterGame();
             var gm = GameManager.I;
             gm.Begin(Difficulty.Normal);
@@ -92,22 +94,25 @@ namespace ProvaImpossivel.Tests
                 var panel = HUD.I.PanelRoot.Find("Pausa");
                 Assert.IsNotNull(panel, "pausa não apareceu");
                 var sliders = panel.GetComponentsInChildren<UnityEngine.UI.Slider>();
-                Assert.AreEqual(3, sliders.Length, "volume geral, efeitos e sensibilidade");
+                int graficos = QualitySettings.names.Length > 1 ? 1 : 0; // S8: "Gráficos" só aparece com mais de um nível
+                Assert.AreEqual(6 + graficos, sliders.Length, "volume geral, efeitos, música (S5), sensibilidade, tela, vsync (S8) e, se houver, gráficos");
 
                 sliders[0].value = 0.3f;
                 Assert.AreEqual(0.3f, GameOptions.MasterVolume, 1e-5f);
                 Assert.AreEqual(0.3f, AudioListener.volume, 1e-5f, "volume geral não foi aplicado");
                 sliders[1].value = 0.6f;
                 Assert.AreEqual(0.6f, GameOptions.SfxVolume, 1e-5f);
-                sliders[2].value = 2f;
+                sliders[2].value = 0.4f;
+                Assert.AreEqual(0.4f, GameOptions.MusicVolume, 1e-5f, "volume da música (S5)");
+                sliders[3].value = 2f;
                 Assert.AreEqual(2f, GameOptions.CameraSensitivity, 1e-5f);
-                Assert.AreEqual(GameOptions.MaxCameraSensitivity, sliders[2].maxValue, "o slider usa os mesmos limites");
+                Assert.AreEqual(GameOptions.MaxCameraSensitivity, sliders[3].maxValue, "o slider usa os mesmos limites");
 
                 // as linhas de opção não se cruzam com os botões
                 var rows = new List<Rect>();
                 foreach (Transform c in panel.GetComponentsInChildren<Transform>())
                     if (c.name == "Opcao" || c.name == "Botao") rows.Add(WorldRect((RectTransform)c));
-                Assert.AreEqual(6, rows.Count);
+                Assert.AreEqual(9 + graficos, rows.Count);
                 for (int i = 0; i < rows.Count; i++)
                     for (int j = i + 1; j < rows.Count; j++)
                         Assert.IsFalse(rows[i].Overlaps(rows[j]), "itens " + i + " e " + j + " da pausa se sobrepõem");
@@ -117,6 +122,7 @@ namespace ProvaImpossivel.Tests
                 GameOptions.SetMasterVolume(master);
                 GameOptions.SetSfxVolume(sfx);
                 GameOptions.SetCameraSensitivity(sens);
+                GameOptions.SetMusicVolume(musica);
                 gm.Resume();
             }
             Assert.IsTrue(HUD.I.ToastsVisible, "as mensagens não voltaram depois da pausa");

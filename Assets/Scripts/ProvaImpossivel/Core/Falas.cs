@@ -183,6 +183,56 @@ namespace ProvaImpossivel
         public const string ResumoFundaoFurada = "furada";
         public const string ResumoFavores = "Favores gastos";
         public const string ResumoRodape = "Dificuldade: ";
+
+        // ---------------------------------------------------------- S6: título de estilo, dica, recorde, conquistas
+        public const string TituloEstiloHonesto = "ALUNO EXEMPLAR (?!)";
+        public const string TituloEstiloGenio = "GÊNIO DO CRIME";
+        public const string TituloEstiloBolso = "MÁGICO DO BOLSO";
+        public const string TituloEstiloCaraDePau = "CARA DE PAU";
+        public const string TituloEstiloSobrevivente = "SOBREVIVENTE DO {0}";
+        public const string TituloEstiloNerd = "PARASITA DO NERD";
+        public const string TituloEstiloGoogle = "DEPENDENTE DO GOOGLE";
+        public const string TituloEstiloFundao = "AMIGO DO FUNDÃO";
+        public const string TituloEstiloNinja = "NINJA DA PROVA";
+        public const string TituloEstiloProfissional = "COLADOR PROFISSIONAL";
+
+        public const string DicaPrefixo = "Dica: ";
+        /// <summary>{0} = questões em branco, {1} = orçamento de colas.</summary>
+        public const string DicaEmBranco = "sobraram {0} em branco. A turma cobria {1} colas: o 7 estava ali.";
+        public const string DicaErradas = "errou as que sabia? As conhecidas têm moldura amarela. O resto é cola.";
+
+        /// <summary>O que fazer diferente, pelo tipo de flagrante que mais te pegou.</summary>
+        public static string DicaFlagrante(Infracao kind) => kind switch
+        {
+            Infracao.Celular => "o celular leva 3 s. Espere o pigarro: ele avisa antes de virar de costas.",
+            Infracao.CelularTocando => "celular vibrando? Aperte F na hora para silenciar.",
+            Infracao.EspiarNerd => "quando o Nerd PARA de escrever, solte: ele vai olhar de lado.",
+            Infracao.ColinhaNaManga => "colinha só com ele longe ou de lado. Perto e olhando, é flagrante na hora.",
+            Infracao.Bilhete => "o papel faz barulho: com ele perto, ele ouve, vem ver e pode achar o bilhete.",
+            Infracao.Garrafinha => "o gole é barulhento. Beba com ele longe.",
+            Infracao.ColaFundao => "a cola do Fundão cai no chão às vezes. Peça com o professor ocupado.",
+            Infracao.CaraDeCulpado => "na Cara de Paisagem, aperte ESPAÇO só com o ponteiro no verde.",
+            Infracao.Dedurado => "o Puxa-saco gira a cabeça antes de dedurar. Com ele de olho, nada de cola.",
+            Infracao.ForaDoLugar or Infracao.Correndo => "passear pela sala chama atenção. Correr, mais ainda.",
+            _ => "cada flagrante custa um ponto. Leia o professor antes de colar.",
+        };
+
+        public const string ResumoRecorde = "Recorde: ";
+        public const string ResumoRecordeNovo = "(NOVO!)";
+        public const string ResumoConquista = "Conquista: ";
+
+        public static string NomeConquista(Conquista c) => c switch
+        {
+            Conquista.Passei => "Passei!",
+            Conquista.LisoComoSabao => "Liso como sabão",
+            Conquista.SobreviventeDaUnimar => "Sobrevivente da UNIMAR",
+            Conquista.NoGrito => "No grito",
+            Conquista.MagicoDoBolso => "Mágico do bolso",
+            Conquista.FichaSuja => "Ficha suja",
+            Conquista.ListaDoMercado => "Lista do mercado",
+            Conquista.GenioDoCrime => "Gênio do crime",
+            _ => c.ToString(),
+        };
         public const string BotaoJogarDeNovo = "JOGAR DE NOVO (R)";
         public const string BotaoMenu = "MENU (M)";
         public const string BotaoSair = "SAIR";
@@ -229,6 +279,12 @@ namespace ProvaImpossivel
         public const string MotivoFone = "mexendo no celular";
         public const string MotivoCelularTocando = "celular tocando na prova";
         public const string MotivoGarrafinha = "lendo o rótulo da garrafinha";
+        // S2: o professor investigou o barulho e achou a prova na sua carteira
+        // S4: carimbo que bate na tela no flagrante (a advertência do Fácil tem o seu)
+        public const string CarimboFlagrante = "FLAGRANTE!";
+        public const string CarimboAdvertencia = "ADVERTÊNCIA";
+        public const string MotivoBilheteAchado = "bilhete achado na sua carteira";
+        public const string MotivoCelularAchado = "o celular que vibrou estava com você";
         public const string RuidoPapel = "um papel voando";
         public const string RuidoVibra = "um celular vibrando";
         public const string RuidoGole = "um gole MUITO barulhento";
@@ -276,20 +332,31 @@ namespace ProvaImpossivel
         // ---------------------------------------------------------- opções (pausa)
         public const string OpcaoVolumeGeral = "Volume geral";
         public const string OpcaoVolumeEfeitos = "Volume dos efeitos";
+        public const string OpcaoVolumeMusica = "Volume da música";
+        // S8: vídeo
+        public const string OpcaoTela = "Tela";
+        public const string OpcaoTelaCheia = "Cheia";
+        public const string OpcaoTelaJanela = "Janela";
+        public const string OpcaoVSync = "Sincronia (VSync)";
+        public const string OpcaoLigado = "Sim";
+        public const string OpcaoDesligado = "Não";
+        public const string OpcaoQualidade = "Gráficos";
         public const string OpcaoSensibilidade = "Sensibilidade da câmera";
 
         // ---------------------------------------------------------- tutorial (prova de treino)
-        public const string TutorialAndar = "Levante (Espaço) e dê uma voltinha (WASD). Hoje ninguém te prende.";
-        public const string TutorialSentar = "Volte pra sua carteira e aperte E. Cadeira arrastando faz barulho, viu?";
+        // S3: o treino começa sentado (andar e sentar se aprendem no caminho até o Nerd e até a mesa)
         public const string TutorialResponder = "Aperte 1 e responda a questão que você estudou (moldura amarela). Sim, UMA.";
         public const string TutorialCelular = "Segure 2 pra pesquisar no celular. De preferência com o professor olhando pro outro lado.";
-        public const string TutorialNerd = "Levante, fique do lado do Nerd e segure E pra espiar. Se ele PARAR de escrever, solta!";
+        public const string TutorialColasDeBolso = "Sentado: Q colinha, G garrafinha, B bilhete (mire), F fone. Use uma: cada uma gasta 1 do orçamento.";
+        /// <summary>Aviso que acompanha o passo das colas de bolso: o orçamento é o que nenhum passo explicava antes.</summary>
+        public const string TutorialOrcamento = "ORÇAMENTO DE COLAS: na prova, a turma só cobre algumas respostas (painel da direita). Escolha bem QUAIS riscos correr.";
+        public const string TutorialNerd = "Levante (Espaço), ande (WASD) até o Nerd e segure E pra espiar. Se ele PARAR de escrever, solta!";
         public const string TutorialDistracao = "Gaste um favor: cutuque o Dorminhoco ou peça pro Puxa-saco tirar uma 'dúvida' (E).";
         public const string TutorialEntregar = "Agora leve a prova até a mesa do professor e segure E. Simples. Na teoria.";
         public const string TutorialCedoDemais = "Calma! O treino ainda não acabou. Termine o passo de agora antes de entregar.";
         public const string TutorialPrimeiraVez = "Primeiro o treino. Depois, a prova de verdade (e a DP, se der ruim).";
         public const string TutorialConcluidoTitulo = "TREINO CONCLUÍDO!";
-        public const string TutorialConcluido = "Você andou, respondeu, pesquisou, espiou, distraiu e entregou. Na prova de verdade, o Takanervoso não finge que não vê.";
+        public const string TutorialConcluido = "Você respondeu, pesquisou, colou do bolso, espiou, distraiu e entregou. Na prova de verdade, o Takanervoso não finge que não vê.";
         public const string TutorialPulado = "Tutorial pulado. Coragem ou excesso de confiança? A prova vai dizer.";
         public static readonly string[] TutorialProfInicio =
         {
@@ -333,7 +400,9 @@ namespace ProvaImpossivel
           + "E interagir (alguns: segure) • Sentado: Espaço levanta\n"
           + "1 responder o que sabe / chutar • 2 celular (segure)\n"
           + "Colas: Q colinha • G garrafinha • B bilhete (mire) • F fone\n"
-          + "Cara de Paisagem: ESPAÇO com o ponteiro no verde";
+          + "Cara de Paisagem: ESPAÇO com o ponteiro no verde\n"
+          // S7: controle (Xbox/PlayStation/Steam Deck)
+          + "Controle: X responde • Y celular • LB RB LT RT colas • A interage • B levanta";
         public const string BotaoVoltar = "VOLTAR  [Esc]";
 
         public const string PausaTitulo = "PAUSADO";

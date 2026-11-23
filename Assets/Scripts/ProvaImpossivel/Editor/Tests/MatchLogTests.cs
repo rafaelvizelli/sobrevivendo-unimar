@@ -57,7 +57,7 @@ namespace ProvaImpossivel.Tests
             var head = linhas[0].Split(';');
             var c = linhas[^1].Split(';');
 
-            Assert.AreEqual(34, head.Length, "22 colunas antigas + 12 das colas novas");
+            Assert.AreEqual(40, head.Length, "22 colunas antigas + 12 das colas novas + 6 do kit de playtest (S1)");
             Assert.AreEqual(head.Length, c.Length, "linha com o mesmo número de colunas do cabeçalho");
             // as antigas não andaram
             Assert.AreEqual("data", head[0]);
@@ -90,7 +90,7 @@ namespace ProvaImpossivel.Tests
                 MatchLog.UpgradeHeader(path);
                 var linhas = File.ReadAllLines(path);
                 Assert.AreEqual(2, linhas.Length);
-                Assert.AreEqual(34, linhas[0].Split(';').Length, "cabeçalho novo");
+                Assert.AreEqual(40, linhas[0].Split(';').Length, "cabeçalho novo");
                 StringAssert.StartsWith(antigo + ";colinha_usos", linhas[0]);
                 Assert.AreEqual(partida, linhas[1], "a partida antiga não pode mudar");
 
@@ -123,6 +123,59 @@ namespace ProvaImpossivel.Tests
             MatchLog.Reset();
             Assert.AreEqual(0, MatchLog.Chutes);
             Assert.AreEqual(0, MatchLog.NerdCopias);
+        }
+
+        /// <summary>
+        /// S1 (kit de playtest): investigações, maior suspeita, segundo do 1º flagrante, partida da sessão, orçamento e
+        /// versão entram NO FIM, depois das colunas das colas.
+        /// </summary>
+        [Test]
+        public void KitDePlaytestNoFimDoCsv()
+        {
+            MatchLog.Reset();
+            int partida = MatchLog.PartidaDaSessao;
+            MatchLog.Investigacoes = 2;
+            MatchLog.Suspeita(40f);
+            MatchLog.Suspeita(87.6f);
+            MatchLog.Suspeita(10f); // menor: não substitui a máxima
+            MatchLog.Flagrante(Infracao.Celular, 95.4f);
+            MatchLog.Flagrante(Infracao.Bilhete, 200f); // o 2º não muda o "primeiro"
+
+            var s = new DifficultySettings { name = "Teste", minGrade = 7f, favors = 2, maxCheatAnswers = 4 };
+            MatchLog.Write(s, LevelResult.Reprovado, 5f, 2, 60f, favorsLeft: 2);
+            var linhas = File.ReadAllLines(MatchLog.FilePath);
+            var head = linhas[0].Split(';');
+            var c = linhas[^1].Split(';');
+
+            Assert.AreEqual(head.Length, c.Length);
+            Assert.AreEqual("fone_erradas", head[33], "as colunas das colas não andaram");
+            string[] novas = { "investigacoes", "suspeita_max", "primeiro_flagrante_s", "partida_da_sessao", "orcamento", "versao" };
+            for (int i = 0; i < novas.Length; i++) Assert.AreEqual(novas[i], head[34 + i]);
+            Assert.AreEqual("2", c[34]);
+            Assert.AreEqual("88", c[35]);
+            Assert.AreEqual("95", c[36]);
+            Assert.AreEqual(partida.ToString(), c[37]);
+            Assert.AreEqual("4", c[38]);
+            Assert.AreEqual(UnityEngine.Application.version, c[39]);
+        }
+
+        [Test]
+        public void SemFlagranteOPrimeiroFicaVazioEOResetZeraOKit()
+        {
+            MatchLog.Investigacoes = 3;
+            MatchLog.Suspeita(99f);
+            MatchLog.Flagrante(Infracao.Celular, 10f);
+            int antes = MatchLog.PartidaDaSessao;
+            MatchLog.Reset();
+            Assert.AreEqual(0, MatchLog.Investigacoes);
+            Assert.AreEqual(0f, MatchLog.SuspeitaMaxima);
+            Assert.AreEqual(-1f, MatchLog.PrimeiroFlagranteEm);
+            Assert.AreEqual(antes + 1, MatchLog.PartidaDaSessao, "cada prova começada conta uma partida da sessão");
+
+            var s = new DifficultySettings { name = "Teste" };
+            MatchLog.Write(s, LevelResult.Aprovado, 8f, 0, 30f, favorsLeft: 2);
+            var c = File.ReadAllLines(MatchLog.FilePath)[^1].Split(';');
+            Assert.AreEqual("", c[36], "sem flagrante: coluna vazia");
         }
     }
 }

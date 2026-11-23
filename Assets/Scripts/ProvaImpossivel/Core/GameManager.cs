@@ -105,8 +105,9 @@ namespace ProvaImpossivel
         [Tooltip("Erros permitidos")] public int facePokerMisses = 1;
 
         [Header("Orçamento de colas (Bloco 15)")]
-        [Tooltip("Respostas que TODAS as colas somadas podem dar na partida (celular, Nerd, Fundão, colinha, bilhete, fone, garrafinha)")]
-        public int maxCheatAnswers = 3;
+        [Tooltip("Respostas que TODAS as colas somadas podem dar na partida (celular, Nerd, Fundão, colinha, bilhete, fone, garrafinha). " +
+                 "S2: conhecidas + orçamento = nota mínima (quem cola sem ser pego passa; o chute é só margem)")]
+        public int maxCheatAnswers = 4;
 
         [Header("Colinha na manga (Q, sentado)")]
         [Tooltip("Consultas por partida")] public int colinhaCharges = 2;
@@ -114,6 +115,18 @@ namespace ProvaImpossivel
         [Tooltip("Suspeita/s se o professor VÊ (como celular e Nerd)")] public float colinhaSuspicion = 55f;
         [Tooltip("Perto assim (m), ele percebe mesmo sem olhar pra você")] public float colinhaDangerDistance = 3.5f;
         [Tooltip("Suspeita/s quando ele está perto, mesmo fora do cone de visão")] public float colinhaNearSuspicion = 50f;
+        [Tooltip("S2: colinha VISTA de perto (depois do tempo de reação) é flagrante na hora, sem esperar a suspeita chegar a 100")]
+        public bool colinhaInstantCatch = true;
+        [Tooltip("S2: visibilidade mínima (0,35 longe/borda a 1,4 colado/centro) para a colinha vista virar flagrante na hora")]
+        public float colinhaCatchVisibility = 0.7f;
+
+        [Header("Investigação acha provas (S2)")]
+        [Tooltip("Chance (0 a 1) de, investigando o barulho do papel, ele achar o bilhete com você → flagrante 'Bilhete'")]
+        [Range(0, 1)] public float bilheteFindChance = 0.5f;
+        [Tooltip("Chance (0 a 1) de, investigando o celular que vibrou, ele achar o celular → flagrante 'CelularTocando'")]
+        [Range(0, 1)] public float foneRingFindChance = 0.6f;
+        [Tooltip("Segundos em que o barulho de uma cola ainda deixa a prova 'achável' na sua carteira")]
+        public float evidenceMemorySeconds = 20f;
 
         [Header("Bilhete (B, sentado, mirando no Nerd ou no Fundão)")]
         [Tooltip("Bilhetes por partida")] public int bilheteCharges = 2;
@@ -162,6 +175,7 @@ namespace ProvaImpossivel
             facePokerSpeed = 0.45f, facePokerZone = 0.28f, facePokerMisses = 2,
             maxCheatAnswers = 5,
             colinhaCharges = 3, colinhaTime = 1f, colinhaSuspicion = 40f, colinhaDangerDistance = 2.5f, colinhaNearSuspicion = 35f,
+            colinhaInstantCatch = true, colinhaCatchVisibility = 0.9f, bilheteFindChance = 0.3f, foneRingFindChance = 0.4f,
             bilheteCharges = 3, bilheteDelay = 6f, bilheteThrowTime = 0.6f, bilheteThrowSuspicion = 45f, bilheteNoiseRadius = 4f, bilheteNoise = 5f,
             bilheteMissChancePerMeter = 0.04f, bilheteLostDistance = 2f, bilheteAimAngle = 35f,
             foneCharges = 1, foneDelay = 12f, foneUseTime = 1.2f, foneRingChance = 0.3f, foneRingRadius = 5f, foneRingNoise = 30f,
@@ -180,8 +194,9 @@ namespace ProvaImpossivel
             turnTellSeconds = 0.35f, snoreWarningSeconds = 2f, showSuspicionMeter = false, showStudentHints = false,
             eventInterval = new Vector2(45f, 65f), distractionMultiplier = 0.8f, snitchInterval = new Vector2(8f, 14f), favors = 2,
             facePokerSpeed = 0.75f, facePokerZone = 0.17f, facePokerMisses = 1,
-            maxCheatAnswers = 2,
+            maxCheatAnswers = 4,
             colinhaCharges = 1, colinhaTime = 1.2f, colinhaSuspicion = 65f, colinhaDangerDistance = 4.5f, colinhaNearSuspicion = 65f,
+            colinhaInstantCatch = true, colinhaCatchVisibility = 0.6f, bilheteFindChance = 0.7f, foneRingFindChance = 0.8f,
             bilheteCharges = 2, bilheteDelay = 10f, bilheteThrowTime = 0.6f, bilheteThrowSuspicion = 70f, bilheteNoiseRadius = 6f, bilheteNoise = 7f,
             bilheteMissChancePerMeter = 0.08f, bilheteLostDistance = 3f, bilheteAimAngle = 25f,
             foneCharges = 1, foneDelay = 18f, foneUseTime = 1.2f, foneRingChance = 0.6f, foneRingRadius = 7f, foneRingNoise = 60f,
@@ -305,7 +320,8 @@ namespace ProvaImpossivel
             CurrentDifficulty = d;
             StartMatch(d == Difficulty.Facil ? facil : d == Difficulty.Dificil ? dificil : normal);
             HUD.I.Toast("A PROVA COMEÇOU! Tire pelo menos " + Fmt(Settings.minGrade) + " e entregue na mesa do professor.", HUD.Yellow, 4f);
-            HUD.I.Toast("Você só estudou " + Settings.knownQuestions + " questões (moldura amarela). O resto: chute... ou cola.", HUD.Orange, 6f);
+            HUD.I.Toast("Você só estudou " + Settings.knownQuestions + " questões (moldura amarela). A turma cobre " + Settings.maxCheatAnswers
+                        + " colas. O resto: chute e reza.", HUD.Orange, 6f);
             ProfessorAI.I.Say(Falas.Pick(Falas.ProfInicio), 3.5f);
         }
 
@@ -359,32 +375,30 @@ namespace ProvaImpossivel
 
         void Update()
         {
-            var kb = Keyboard.current;
-
-            // atalhos de teclado para os menus (caso o clique não chegue)
-            if (kb != null && Phase == Phase.Intro)
+            // atalhos para os menus (caso o clique não chegue). S7: teclado ou controle, pelo Controls
+            if (Phase == Phase.Intro)
             {
-                if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) { ChooseFromMenu(Difficulty.Facil); return; }
-                if (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) { ChooseFromMenu(Difficulty.Normal); return; }
-                if (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame) { ChooseFromMenu(Difficulty.Dificil); return; }
-                if (kb.tKey.wasPressedThisFrame) { BeginTutorial(); return; }
+                if (Controls.Pressed(Acao.MenuFacil)) { ChooseFromMenu(Difficulty.Facil); return; }
+                if (Controls.Pressed(Acao.MenuNormal)) { ChooseFromMenu(Difficulty.Normal); return; }
+                if (Controls.Pressed(Acao.MenuDificil)) { ChooseFromMenu(Difficulty.Dificil); return; }
+                if (Controls.Pressed(Acao.Tutorial)) { BeginTutorial(); return; }
             }
             // no treino, T pula (no mesmo frame em que o treino começou não vale)
-            if (kb != null && InTutorial && Phase == Phase.Playing && PhaseChangedFrame != Time.frameCount && kb.tKey.wasPressedThisFrame)
+            if (InTutorial && Phase == Phase.Playing && PhaseChangedFrame != Time.frameCount && Controls.Pressed(Acao.Tutorial))
             {
                 EndTutorial(completed: false);
                 return;
             }
             // fim: R joga de novo (mesma dificuldade), M volta ao menu; na pausa, R reinicia como antes.
             // No frame em que a prova acabou a tecla não vale (input duplicado).
-            if (kb != null && Phase == Phase.Ended && PhaseChangedFrame != Time.frameCount)
+            if (Phase == Phase.Ended && PhaseChangedFrame != Time.frameCount)
             {
-                if (kb.rKey.wasPressedThisFrame) { PlayAgain(); return; }
-                if (kb.mKey.wasPressedThisFrame) { Restart(); return; }
+                if (Controls.Pressed(Acao.JogarDeNovo)) { PlayAgain(); return; }
+                if (Controls.Pressed(Acao.VoltarAoMenu)) { Restart(); return; }
             }
-            if (kb != null && Phase == Phase.Paused && kb.rKey.wasPressedThisFrame) { Restart(); return; }
+            if (Phase == Phase.Paused && Controls.Pressed(Acao.JogarDeNovo)) { Restart(); return; }
 
-            if (kb != null && kb.escapeKey.wasPressedThisFrame)
+            if (Controls.Pressed(Acao.Pausa))
             {
                 if (Phase == Phase.Playing) Pause();
                 else if (Phase == Phase.Paused) Resume();
@@ -431,12 +445,13 @@ namespace ProvaImpossivel
             SoundFX.Play(Sfx.Flagrante);
             HUD.I.Flash(new Color(1f, 0.1f, 0.1f, 0.45f));
 
-            MatchLog.Flagrante(kind);
+            MatchLog.Flagrante(kind, Settings.duration - TimeLeft);
             bool warningOnly = Settings.firstFlagranteIsWarning && Flagrantes == 1;
             string penalty;
             if (warningOnly) penalty = "só uma ADVERTÊNCIA desta vez";
             else penalty = ExamSystem.I.Annul() ? "-" + Fmt(ExamSystem.I.PointsPerQuestion) + " ponto" : "uma questão zerada";
             HUD.I.Toast("FLAGRANTE! (" + reason + ") " + penalty + "  [" + Flagrantes + "/" + Settings.maxFlagrantes + "]", HUD.Red, 4f, important: true);
+            FlagranteStamp.Show(warningOnly ? Falas.CarimboAdvertencia : Falas.CarimboFlagrante); // S4: o carimbo bate na tela
 
             var p = PlayerController.I;
             // o que ele leva embora depende só do TIPO da infração (Bloco 15: celular tocando também é celular)
@@ -504,7 +519,9 @@ namespace ProvaImpossivel
             var exam = ExamSystem.I;
             LastSummary = MatchSummary.Build(Settings, r, g, TimeLeft, Flagrantes, Favors,
                                              exam.Count(QuestionState.Certa), exam.Count(QuestionState.Errada), exam.Count(QuestionState.EmBranco));
-            HUD.I.ShowMatchResult(LastSummary, msg, color, PlayAgain, Restart, Quit);
+            // S6: título de estilo, dica, recorde e conquistas (grava o recorde e as conquistas novas)
+            var extras = Records.Process(LastSummary, Settings.maxCheatAnswers, CurrentDifficulty == Difficulty.Dificil);
+            HUD.I.ShowMatchResult(LastSummary, msg, color, PlayAgain, Restart, Quit, extras);
         }
 
         /// <summary>Resumo mostrado na última tela de fim de prova (testes).</summary>

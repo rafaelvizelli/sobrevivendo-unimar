@@ -870,9 +870,8 @@ namespace ProvaImpossivel
 
         void UpdateIntroKeys()
         {
-            // Esc na folha da dificuldade volta para a capa (no mesmo frame em que a folha abriu não vale)
-            var kb = Keyboard.current;
-            if (kb != null && DifficultyPageOpen && pageChangedFrame != Time.frameCount && kb.escapeKey.wasPressedThisFrame) ShowMenuPage();
+            // S7: Esc no teclado, B no controle
+            if (DifficultyPageOpen && pageChangedFrame != Time.frameCount && Controls.Pressed(Acao.Voltar)) ShowMenuPage();
         }
 
         public void HideIntro()
@@ -886,30 +885,44 @@ namespace ProvaImpossivel
             HidePause();
             pausePanel = Dim("Pausa");
             var box = UIFactory.Paper("Caixa", pausePanel.transform, margin: true);
-            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(780f, 760f));
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(780f, 950f));
             // a caixa da pausa alcança a faixa das mensagens do topo: elas somem enquanto a pausa está aberta
             toastRoot.gameObject.SetActive(false);
             const float cx = 40f;
-            AddInk(box.transform, Falas.PausaTitulo, UITheme.SizeTitle, UITheme.Ink, new Vector2(cx, -34f), new Vector2(660f, 74f));
-            AddInk(box.transform, Falas.PausaFrase, UITheme.SizeHandSmall + 2, UITheme.Pen, new Vector2(cx, -112f), new Vector2(660f, 44f), hand: true);
+            AddInk(box.transform, Falas.PausaTitulo, UITheme.SizeTitle, UITheme.Ink, new Vector2(cx, -30f), new Vector2(660f, 74f));
+            AddInk(box.transform, Falas.PausaFrase, UITheme.SizeHandSmall + 2, UITheme.Pen, new Vector2(cx, -104f), new Vector2(660f, 44f), hand: true);
 
-            // opções (Bloco 14): salvas na hora, valem para as próximas partidas também
+            // opções (Bloco 14): salvas na hora, valem para as próximas partidas também. S8: linhas a cada 64 px
+            const float y0 = -162f, dy = 64f;
             AddOption(box.transform, Falas.OpcaoVolumeGeral, GameOptions.MinVolume, GameOptions.MaxVolume, GameOptions.MasterVolume,
-                      GameOptions.SetMasterVolume, Percent, -180f);
+                      GameOptions.SetMasterVolume, Percent, y0);
             AddOption(box.transform, Falas.OpcaoVolumeEfeitos, GameOptions.MinVolume, GameOptions.MaxVolume, GameOptions.SfxVolume,
-                      GameOptions.SetSfxVolume, Percent, -252f);
+                      GameOptions.SetSfxVolume, Percent, y0 - dy);
+            AddOption(box.transform, Falas.OpcaoVolumeMusica, GameOptions.MinVolume, GameOptions.MaxVolume, GameOptions.MusicVolume,
+                      GameOptions.SetMusicVolume, Percent, y0 - 2 * dy); // S5
             AddOption(box.transform, Falas.OpcaoSensibilidade, GameOptions.MinCameraSensitivity, GameOptions.MaxCameraSensitivity,
-                      GameOptions.CameraSensitivity, GameOptions.SetCameraSensitivity, v => v.ToString("0.00").Replace('.', ',') + "×", -324f);
+                      GameOptions.CameraSensitivity, GameOptions.SetCameraSensitivity, v => v.ToString("0.00").Replace('.', ',') + "×", y0 - 3 * dy);
+            // S8: vídeo (réguas de posições inteiras: 0/1 para ligar/desligar, uma posição por nível de qualidade)
+            AddOption(box.transform, Falas.OpcaoTela, 0f, 1f, GameOptions.Fullscreen ? 1f : 0f,
+                      v => GameOptions.SetFullscreen(v > 0.5f), v => v > 0.5f ? Falas.OpcaoTelaCheia : Falas.OpcaoTelaJanela, y0 - 4 * dy).wholeNumbers = true;
+            AddOption(box.transform, Falas.OpcaoVSync, 0f, 1f, GameOptions.VSync ? 1f : 0f,
+                      v => GameOptions.SetVSync(v > 0.5f), v => v > 0.5f ? Falas.OpcaoLigado : Falas.OpcaoDesligado, y0 - 5 * dy).wholeNumbers = true;
+            int levels = Mathf.Max(1, QualitySettings.names.Length);
+            int q = GameOptions.ClampQuality(GameOptions.Quality < 0 ? QualitySettings.GetQualityLevel() : GameOptions.Quality, levels);
+            // com um nível só (o Windows do projeto hoje só inclui "PC"), a régua não teria o que escolher: não aparece
+            if (levels > 1)
+                AddOption(box.transform, Falas.OpcaoQualidade, 0f, levels - 1, q,
+                          v => GameOptions.SetQuality(Mathf.RoundToInt(v)), v => GameOptions.QualityLabel(Mathf.RoundToInt(v), levels), y0 - 6 * dy).wholeNumbers = true;
 
-            AddButton(box.transform, Falas.BotaoContinuar, resume, -420f);
-            AddButton(box.transform, Falas.BotaoReiniciar, restart, -524f);
-            AddButton(box.transform, Falas.BotaoSair, quit, -628f);
+            AddButton(box.transform, Falas.BotaoContinuar, resume, -626f);
+            AddButton(box.transform, Falas.BotaoReiniciar, restart, -722f);
+            AddButton(box.transform, Falas.BotaoSair, quit, -818f);
         }
 
         static string Percent(float v) => Mathf.RoundToInt(v * 100f) + "%";
 
         /// <summary>Linha de opção: rótulo datilografado à esquerda, régua no meio, valor à caneta à direita.</summary>
-        static void AddOption(Transform parent, string label, float min, float max, float value, Action<float> set, Func<float, string> show, float y)
+        static Slider AddOption(Transform parent, string label, float min, float max, float value, Action<float> set, Func<float, string> show, float y)
         {
             var row = UIFactory.Rect("Opcao", parent).Top(40f, y, 640f, 60f);
             var l = UIFactory.Ink("Rotulo", row, label, UITheme.SizeSmall, UITheme.Ink, TextAnchor.MiddleLeft);
@@ -922,6 +935,7 @@ namespace ProvaImpossivel
                 v.text = show(x);
             });
             s.GetComponent<RectTransform>().Place(new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(310f, 0f), new Vector2(226f, 40f));
+            return s;
         }
 
         /// <summary>Há mensagens do topo visíveis agora? (testes: a pausa não pode ficar embaixo delas)</summary>
@@ -937,20 +951,34 @@ namespace ProvaImpossivel
         /// Fim da prova (Bloco 14/16): carimbo do resultado, comentário do professor à caneta, resumo em duas colunas
         /// (a prova x a ficha criminal) e botões jogar de novo (R), menu (M) e sair. Caixa de 1240×800.
         /// </summary>
-        public void ShowMatchResult(MatchSummary sum, string message, Color color, Action playAgain, Action menu, Action quit)
+        public void ShowMatchResult(MatchSummary sum, string message, Color color, Action playAgain, Action menu, Action quit,
+                                    ResultExtras extras = default)
         {
             ClearForResult();
             resultPanel = Dim("Resultado");
             var box = UIFactory.Paper("Caixa", resultPanel.transform, margin: true, header: true);
-            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240f, 800f));
+            box.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240f, 860f));
             var t = box.transform;
             var stamp = UIFactory.Stamp("Carimbo", t, MatchSummary.Title(sum.result), UITheme.StampFor(color), UITheme.SizeStamp, -3f);
             stamp.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(40f, -135f), stamp.sizeDelta);
+            // S6: o título de estilo é um segundo carimbo, azul, no canto (a "medalha" de quem passou)
+            if (!string.IsNullOrEmpty(extras.title))
+            {
+                var titulo = UIFactory.Stamp("TituloEstilo", t, extras.title, UITheme.StampBlue, UITheme.SizeSmall + 4, 6f);
+                titulo.Place(new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-50f, -95f), titulo.sizeDelta);
+            }
             AddInk(t, message, UITheme.SizeHand, UITheme.PenRed, new Vector2(40f, -226f), new Vector2(1060f, 70f), hand: true);
 
             SummaryColumn(t, "ColunaProva", Falas.ResumoProva, sum.ExamLines, -240f);
             SummaryColumn(t, "ColunaFicha", Falas.ResumoCrimes, sum.CrimeLines, 330f);
-            AddInk(t, Falas.ResumoRodape + sum.difficulty, UITheme.SizeSmall, UITheme.InkSoft, new Vector2(40f, -644f), new Vector2(1060f, 28f));
+            // S6: o que te derrubou (à caneta azul), e o rodapé com dificuldade, recorde e conquistas novas
+            if (!string.IsNullOrEmpty(extras.tip))
+                AddInk(t, Falas.DicaPrefixo + extras.tip, UITheme.SizeHandSmall + 2, UITheme.Pen, new Vector2(40f, -646f), new Vector2(1060f, 40f), hand: true)
+                    .name = "Dica";
+            string rodape = Falas.ResumoRodape + sum.difficulty;
+            string extra = Records.FooterLine(extras);
+            if (extra.Length > 0) rodape += "   •   " + extra;
+            AddInk(t, rodape, UITheme.SizeSmall, UITheme.InkSoft, new Vector2(40f, -694f), new Vector2(1100f, 28f)).name = "Rodape";
 
             ResultButton(t, "JogarDeNovo", Falas.BotaoJogarDeNovo, playAgain, -260f, 400f);
             ResultButton(t, "Menu", Falas.BotaoMenu, menu, 120f, 300f);
@@ -980,7 +1008,7 @@ namespace ProvaImpossivel
         static void ResultButton(Transform parent, string name, string text, Action onClick, float x, float width)
         {
             var b = UIFactory.PaperButton(name, parent, text, () => onClick(), UITheme.SizeButton - 2);
-            b.GetComponent<RectTransform>().Top(x, -684f, width, 84f);
+            b.GetComponent<RectTransform>().Top(x, -740f, width, 84f);
         }
 
         void ClearForResult()

@@ -122,6 +122,25 @@ namespace ProvaImpossivel
             return -1;
         }
 
+        /// <summary>
+        /// S2: como <see cref="RandomBlank"/>, mas sorteia primeiro entre as em branco que ele NÃO sabe; só se não houver
+        /// nenhuma, entre as que ele sabe. Pura (testável). Assim a cola nunca é gasta numa questão que ele faria sozinho.
+        /// </summary>
+        public static int RandomBlankPreferUnknown(QuestionState[] questions, bool[] known, double roll)
+        {
+            int unknownBlanks = 0;
+            for (int i = 0; i < questions.Length; i++)
+                if (questions[i] == QuestionState.EmBranco && !known[i]) unknownBlanks++;
+            if (unknownBlanks == 0) return RandomBlank(questions, roll);
+            int k = Math.Min(unknownBlanks - 1, (int)(Math.Clamp(roll, 0.0, 1.0) * unknownBlanks));
+            for (int i = 0; i < questions.Length; i++)
+                if (questions[i] == QuestionState.EmBranco && !known[i] && k-- == 0) return i;
+            return -1;
+        }
+
+        /// <summary>Marca como certa uma questão em branco sorteada, preferindo as que ele não sabe. Retorna o índice ou -1.</summary>
+        public int MarkCorrectRandomBlankPreferUnknown(double roll) => MarkCorrect(RandomBlankPreferUnknown(Questions, Known, roll));
+
         /// <summary>Marca como certa uma questão em branco sorteada. Retorna o índice ou -1.</summary>
         public int MarkCorrectRandomBlank(double roll) => MarkCorrect(RandomBlank(Questions, roll));
 

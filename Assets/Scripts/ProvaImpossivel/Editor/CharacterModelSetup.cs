@@ -33,9 +33,9 @@ namespace ProvaImpossivel.EditorTools
             new() { look = CharacterLook.Jogador, models = new[] { "Homem_Casual" }, scale = 1f, headScale = 1.3f,
                     tints = new[] { T("Purple", C(0.95f, 0.45f, 0.12f)) } },
             // terno, gravata vermelha, cabelo grisalho, bigodão e barriga saltando do paletó
-            new() { look = CharacterLook.Professor, models = new[] { "Homem_Suit" }, scale = 1.06f, headScale = 1.3f,
+            new() { look = CharacterLook.Professor, models = new[] { "Homem_Suit" }, scale = 1.15f, headScale = 1.3f, // S4: o maior da sala
                     tints = new[] { T("Tie", C(0.8f, 0.1f, 0.12f)), T("Hair", C(0.7f, 0.7f, 0.72f)), T("Suit", C(0.36f, 0.27f, 0.18f)) },
-                    acc = Accessory.Bigode | Accessory.Barriga },
+                    acc = Accessory.Bigode | Accessory.Barriga | Accessory.Sobrancelhas },
             // camisa azul-clara, calça cáqui, óculos fundo de garrafa, gravata-borboleta e o maior cérebro da sala
             new() { look = CharacterLook.Nerd, models = new[] { "Homem_Casual2" }, scale = 0.97f, headScale = 1.45f,
                     tints = new[] { T("LightBrown", C(0.62f, 0.8f, 0.95f)), T("LightBlue", C(0.72f, 0.63f, 0.45f)) },

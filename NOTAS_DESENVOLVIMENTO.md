@@ -21,8 +21,14 @@
 - **15b** (10/11) `partidas.csv` registra as colas novas (colunas no fim); ícone do Nerd com teto de tamanho;
   simulação com perfil arrojado e flagrantes/partida. Bug do flagrante com bilhete no ar (prendia 1 vaga do
   orçamento) corrigido.
-- Próximo: jogar com o executável novo (menus e HUD de papel), decidir os ajustes da auditoria 15c e PLAYTEST
-  HUMANO com as colas novas (`partidas.csv`).
+- 18/11: personagens 3D Quaternius (commit `c7fd7a2`, branch `personagens-kenney`).
+- **Operação Steam (23/11)**: `AUDITORIA_STEAM.md`, `DIRECAO_CRIATIVA.md`, `ROADMAP_STEAM.md` (com status por
+  bloco), `CREDITOS.md`, `ROTEIRO_PLAYTEST.md`. Blocos S0–S8 e S12 feitos (seção "Operação Steam" abaixo): núcleo
+  justo (orçamento cobre a nota mínima, colinha pega na hora, investigação acha provas), tutorial novo, professor com
+  sobrancelhas/voz/câmera/carimbo no flagrante, trilha adaptativa provisória, título/dica/recorde/conquistas,
+  controle (gamepad), opções de vídeo. Executável 0.2.0 gerado. **Nada commitado** (o usuário faz).
+- Próximo: **PLAYTEST HUMANO** com `ROTEIRO_PLAYTEST.md` (o S2 mudou números por hipótese); decisões do dono: nome
+  "UNIMAR", origem do pacote `school`, visual da sala (S9).
 
 ## Como rodar os testes
 - Batch (Unity FECHADO): `Unity.exe -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`.
@@ -579,6 +585,253 @@
   pico e volume do som, música abaixando em toda fala. Capturas e relatórios em `Trailer/verificacao/atual/`.
 - Visto em captura: celular, os 4 cartões, quadro final e os últimos 15 s (a cada 0,1 s) nos 3 cortes. Não visto:
   o som de ouvido, o ritmo dos cortes em movimento e a prévia tocando ao vivo no navegador.
+
+## Operação Steam (23/11) — auditoria, direção e blocos S0…
+Documentos novos na raiz: `AUDITORIA_STEAM.md` (Etapa 1), `DIRECAO_CRIATIVA.md` (Etapa 2), `ROADMAP_STEAM.md`
+(Etapa 6), `CREDITOS.md`. O usuário autorizou seguir os blocos sem pedir aprovação a cada um (23/11). Sem commits:
+o usuário faz.
+
+### S0 — higiene de produção (23/11)
+- Teste novo `ValoresNaCenaTests` (EditMode): abre a cena da Fase 1 em modo aditivo (fecha sem salvar) e compara
+  campo a campo as 4 dificuldades do `GameManager` gravado na cena com as do código. **Passou**: a suspeita da
+  auditoria (cena salva antes do Bloco 15 com valores velhos) não se confirmou. A Unity usa o valor do código para
+  campos que não estão na cena. O teste fica como trava: se alguém mexer num número só no Inspector, ele avisa.
+  Ao mudar um número de equilíbrio daqui em diante, mudar no código **e** conferir que a cena não tem um valor
+  diferente gravado (o teste aponta).
+- `.gitignore`: `Assets/InitTestScene*` (cena temporária que o Test Runner deixa para trás).
+- `CREDITOS.md`: licença de cada asset de terceiros. Quaternius (CC0), Special Elite (Apache 2.0) e Caveat (OFL)
+  confirmadas. **Pendente:** o pacote `Assets/school` não tem licença nem origem registradas. Também registrado
+  o risco do nome "UNIMAR" (universidade real) numa versão comercial.
+- Não feito (depende do usuário): push/merge do branch, origem do pacote `school`, decisão sobre o nome.
+
+### S1 — kit de playtest (23/11)
+- `ROTEIRO_PLAYTEST.md` (novo): como aplicar (sem explicar nada, pensar em voz alta), a sessão (tutorial → 3 provas no
+  Normal → 1 no Difícil), as 3 perguntas pós-partida e que coluna do CSV responde cada pergunta de design.
+- `partidas.csv`: 6 colunas novas **no fim** (as 34 antigas não andaram; o cabeçalho de arquivos antigos é atualizado
+  pelo `UpgradeHeader` de sempre): `investigacoes` (vezes que o professor partiu para investigar),
+  `suspeita_max` (0–100), `primeiro_flagrante_s` (segundo da prova; vazio se não houve), `partida_da_sessao`
+  (1 = a primeira desde que o jogo abriu: curva de aprendizado), `orcamento` e `versao` (comparar versões).
+- Código: `MatchLog` (campos, `Suspeita()`, `Flagrante(kind, elapsed)`, `PartidaDaSessao` zerado a cada Play),
+  `ProfessorAI.Enter(Investigando)` conta, `ProfessorAI.Perceive` registra a suspeita, `GameManager.ApplyFlagrante`
+  passa o segundo da prova.
+- Testes: EditMode `MatchLogTests` (2 novos + contagem de colunas 34 → 40), PlayMode `OperacaoSteamPlayTests` (novo:
+  investigação e suspeita máxima vão para o registro; segundo do 1º flagrante). 8/8 e 2/2.
+- Como validar: jogar uma prova e abrir o `partidas.csv`: a linha nova tem 40 colunas e as 6 últimas preenchidas.
+
+### S2 — núcleo justo: risco no lugar do dado (23/11)
+**Hipótese documentada** (números mudaram sem playtest, como o roadmap prevê; confirmar com o `partidas.csv`):
+- *Problema:* com 3 conhecidas + orçamento 3 (Normal) a nota garantida era 6 para mínimo 7: o jogador sem nenhum erro
+  reprovava ~1 em 3 por causa do chute (25%). No Difícil (3 + 2 = 5), ~2 em 3.
+- *Mudança:* **orçamento cobre o piso**. Normal `maxCheatAnswers` 3 → **4**, Difícil 2 → **4** (Fácil 5, sem
+  mudança). Conhecidas continuam 3 nas três (o Difícil chegou a ir para 2 + 5, mas `knownQuestions` está gravado na
+  cena e o roadmap não mexe no `.unity` por fora; ficou 3 + 4). O Difícil passa a apertar o **professor**, não o dado.
+- *Esperado:* a reprovação vem de flagrantes (erro do jogador). Meta de gente de verdade no 1º contato: Normal 40–60%.
+  Se o playtest der muito acima disso, o próximo ajuste é de percepção (colinha/celular), não do orçamento.
+
+Regras novas (decisões da auditoria 15c):
+1. **Colinha vista bem = flagrante na hora** (`colinhaInstantCatch`, `colinhaCatchVisibility` 0,9 / 0,7 / 0,6 para
+   Fácil / Normal / Difícil). Precisa: ele ter percebido (tempo de reação completo), visibilidade acima do mínimo
+   (peso de `Vision.Weight`: perto e no centro do olhar) e não estar distraído. Regra pura `CheatRules.ColinhaCaughtNow`,
+   aplicada em `ProfessorAI.Perceive` depois da trégua. O Difícil começou em 0,5 (o proposto na 15c), mas a auditoria
+   mostrou flagrante até a 10,9 m (quase qualquer ponto do cone): subiu para 0,6.
+2. **A investigação acha provas.** O barulho agora carrega a `Infracao` (`NoiseInfo.kind`, `Noise.Emit(..., kind)`,
+   `PlayerController.MakeNoise(..., kind)`): papel do bilhete = `Bilhete`, celular vibrando = `CelularTocando`. Ao
+   ouvir, o professor guarda a prova (`ProfessorAI.Evidence`, vale `evidenceMemorySeconds` = 20 s). Se ele investigar,
+   chegar com você no lugar e não te vir colando, sorteia `bilheteFindChance` (0,3 / 0,5 / 0,7) ou `foneRingFindChance`
+   (0,4 / 0,6 / 0,8): achou = flagrante do tipo certo ("bilhete achado na sua carteira" / "o celular que vibrou estava
+   com você"); não achou = Cara de Paisagem, como antes. A prova vale uma vez só.
+3. **O "Dedurado" não apaga o que ele ouviu:** a prova fica num campo separado do `lastInfracao`.
+4. **Garrafinha sem mudança** (decisão registrada): continua somando suspeita quando vista (beber de olho no
+   professor é suspeito) e o gole **não** deixa prova (`LeavesEvidence(Garrafinha)` = falso: água é desculpa plausível).
+5. **Bilhete responde uma questão que você NÃO sabe** (`ExamSystem.RandomBlankPreferUnknown`; antes podia cair numa
+   que você faria sozinho e a cola era gasta à toa). Só cai numa conhecida se não sobrar nenhuma desconhecida em branco.
+
+Simulação (`SimulacaoDeEquilibrioTests`): o modelo aprendeu as duas regras (colinha vista na distância de referência =
+flagrante quando a dificuldade pega de lá; bilhete ouvido + investigação = chance de achar). Aprovação, cuidadoso /
+arrojado: Fácil 100 / 100%, **Normal 90 / 90%**, **Difícil ~65 / ~46%** (antes: Normal 64%, Difícil 28–39%).
+- Limite conhecido do modelo: no Normal ele não produz flagrantes nem para o arrojado (a visibilidade de referência,
+  6 m a meio cone, fica abaixo do 0,7 da colinha, e ele não acumula suspeita entre ações). Por isso a meta dos testes
+  é "o cuidadoso passa" e não "humanos passam X%": essa resposta vem do playtest.
+- Testes que mudaram de meta, com motivo no próprio teste: `MetaDoNormal_…` (45–70% → 85–97%: o teto antigo era o
+  dado) e `OrcamentoECargasDiminuemComADificuldade` (o Difícil não tem orçamento menor que o Normal; agora confere que
+  ele pega a colinha de mais longe e acha mais provas). Novos: `OrcamentoCobreONotaMinima`, `NoDificilArriscarSemOlharCustaCaro`.
+
+Testes:
+- EditMode: `ColasNovasTests` +3 (`ColinhaVistaBemDePertoEFlagranteNaHora`, `SoBilheteECelularTocandoDeixamProvaParaAchar`,
+  `BilhetePrefereQuestaoQueVoceNaoSabe`) e os 2 da simulação acima. Suíte: 139/139.
+- PlayMode: `OperacaoSteamPlayTests` +4 (achou o bilhete → flagrante Bilhete; não achou → Cara de Paisagem; Dedurado
+  não apaga a prova; prova velha expira), `AuditoriaRiscoColasTests.S2_ColinhaVistaDePertoEFlagranteNaHora` (teclado
+  virtual, professor a ~2 m: flagrante ColinhaNaManga). Suíte completa antes do ajuste do Difícil: 110/110; os 7 novos/
+  alterados depois: 7/7.
+- Auditoria de risco atualizada (`Captures/AuditoriaRisco/auditoria.md`): colinha a) perto vendo → **F** no Normal e no
+  Difícil (antes 39/85 sem flagrante); de longe no Normal continua escapando (18); bilhete visto perto → F; celular
+  tocando no Difícil → F CelularTocando.
+
+Como validar jogando (Normal):
+- Com o professor perto e olhando para você, segure **Q**: flagrante "colinha na manga". Com ele longe ou de lado,
+  a colinha passa.
+- Jogue um bilhete (**B**) com o professor de costas mas perto (ele ouve o papel): se ele vier investigar e você não
+  estiver colando, às vezes ele **acha o bilhete** (metade das vezes no Normal).
+- Passe na prova colando 4 vezes sem ser pego: tem que dar 7,0 sem depender de chute.
+
+### S3 — tutorial completo e mais curto (23/11)
+- Passos agora: **Responder → Celular → Colas de bolso → Nerd → Distração → Entregar** (antes: Andar → Sentar →
+  Responder → Celular → Nerd → Distração → Entregar). Os passos Andar e Sentar saíram: o treino começa sentado,
+  com o professor falando, e andar se aprende no caminho até o Nerd ("Levante (Espaço), ande (WASD) até o Nerd...").
+- Passo novo **Colas de bolso**: cumpre com qualquer uma de Q/G/B/F (`MatchLog.ColinhaUsos + GarrafaUsos +
+  BilheteUsos + FoneUsos`). Ao entrar nele, um aviso importante explica o **orçamento de colas** (que nenhum passo
+  explicava). O resumo do fim do treino cita "colou do bolso".
+- A prova de verdade avisa no começo quantas colas a turma cobre ("A turma cobre 4 colas. O resto: chute e reza.").
+- Código: `Core/Tutorial.cs` (enum, `TutorialProgress.pocketCheats`, `Order`, aviso no `ShowStep`), `Core/Falas.cs`
+  (textos; saíram `TutorialAndar`/`TutorialSentar`), `GameManager.Begin` (aviso do orçamento).
+- Não mudou: o que o treino ainda não ensina é a **Cara de Paisagem** (ela precisa de uma investigação; forçar uma no
+  treino fica para o S13, quando o minijogo for redesenhado).
+- Testes: EditMode `TutorialTests` (ordem nova, percorre os 6 passos, não pula etapa) e PlayMode `TutorialPlayTests`
+  (treino completo pelas mecânicas reais, agora com o bilhete no passo das colas de bolso). 139/139 e 4/4.
+- Como validar jogando: menu → "Rever tutorial [T]". Conferir que começa sentado com o professor falando, que o
+  passo das colas aparece depois do celular com o aviso do orçamento, e que qualquer uma de Q/G/B/F avança.
+
+### S4 — o professor estrela (23/11)
+- **Sobrancelhas que atuam** (`Visual/ExpressiveBrows.cs`, novo; enfeite `Accessory.Sobrancelhas` = 1024): duas
+  sobrancelhas grossas (primitivas, cor quase preta) presas na cabeça, por cima das pintadas do modelo, que mudam com
+  `CharacterVisual.expression`: **Desconfiado** = uma aperta o olho e a outra sobe (e balança); **Bravo** = V sobre os
+  olhos; **Assustado** (ao telefone) = sobem, aflitas; Nervoso/Feliz/Dormindo têm a sua. Pose = regra pura
+  `ExpressiveBrows.PoseFor`. O modelo perdeu as expressões do boneco de primitivas; agora o professor voltou a ter rosto.
+- **O maior da sala:** escala do professor 1,06 → **1,15** (asset `ModelosPersonagens.asset` e `CharacterModelSetup.Cast`,
+  os dois iguais; o teste confere).
+- **Momento do flagrante:** ao começar o flagrante ele diz **"a-HÁ!"** (`Sfx.Aha`, voz sintetizada) e a câmera do jogo
+  **vira e fecha nele** por 2,2 s (`ThirdPersonCamera.Focus`, zoom 0,62 do FOV, volta sozinha; o mouse não mexe nela
+  enquanto isso, e o jogador já está travado no flagrante). Quando o flagrante é aplicado, um **carimbo "FLAGRANTE!"**
+  (ou "ADVERTÊNCIA" no 1º do Fácil) bate no meio da tela: entra grande, assenta, some em ~1,6 s (`UI/FlagranteStamp.cs`,
+  novo; mesmo carimbo do menu/tela final, com um papel atrás).
+- **"hmpf"** (`Sfx.Hmpf`) quando ele desiste: alarme falso e Cara de Paisagem bem-sucedida.
+- Vozes: sintetizadas no padrão do `SoundFX` (`Voice(...)`), **provisórias** até existir voz gravada.
+- Visto em captura (teste temporário em batch, depois movido para fora do projeto): rosto nas 4 expressões, câmera do
+  jogo durante o flagrante (dá para ler o "bravo" com o zoom) e o carimbo na tela. Ajustes feitos pelas capturas: as
+  sobrancelhas começaram na testa (subiram para dentro do cabelo no "desconfiado") e desceram para cima dos olhos; o
+  carimbo sumia em cima da lousa e ganhou o papel atrás.
+- **Limite:** pela câmera normal (professor lá na frente, ~10 m), o rosto ainda é pequeno demais para ler; de longe
+  quem informa continua sendo o ícone ("?", "!", "!!!") e a barrinha. O rosto aparece quando ele chega perto, no
+  flagrante e na Cara de Paisagem.
+- Testes: EditMode `ProfessorEstrelaTests` (novo: poses legíveis; professor ≥ 1,08× o maior aluno, com sobrancelhas,
+  asset = código). PlayMode `OperacaoSteamPlayTests`: `S4_SobrancelhasDoProfessorAtuam` (mede as pontas das
+  sobrancelhas no mundo: bravo = ponta de dentro mais baixa; assustado = sobem; desconfiado = assimétrico) e
+  `S4_FlagranteViraACameraEBateOCarimbo` ("a-HÁ!" tocou, câmera virou e fechou, carimbo apareceu e sumiu, câmera voltou).
+  `AudioFuncionalTests.TodoSomTemClip` cobre os 2 sons novos.
+- Como validar jogando: deixe o professor te pegar no celular (segure 2 com ele olhando): a câmera vira para ele, ele
+  grita "a-HÁ!", vem bravo (sobrancelhas em V) e o carimbo bate na tela. Com fone: o "a-HÁ!" e o "hmpf" soam como
+  voz ou como apito? (são sintetizados).
+
+### S5 — trilha adaptativa (23/11) — PROVISÓRIA
+- `Audio/MusicDirector.cs` (novo), criado pelo `SoundFX.Awake` no mesmo objeto (a cena não muda). Três camadas de 4
+  compassos (92 BPM, ré menor), que começam juntas no relógio de áudio (`PlayScheduled`) e só mudam de volume:
+  - **Calma:** baixo em pizzicato "na ponta dos pés" + tique no contratempo. Sempre na prova; no menu e na pausa, a metade.
+  - **Desconfiança:** acordes em trêmulo de cordas. Sobe com a suspeita (20% → 60%) e vai a 80% ou mais com ele Desconfiado.
+    Ao telefone/distraído, cai (a música avisa que é a sua janela).
+  - **Perseguição:** tambor grave em toda batida + chimbal + baixo dobrado. Só investigando ou no flagrante.
+  - Estingers: **trombone triste "uá-uá-uá-uáaa"** no flagrante (as camadas abaixam enquanto ele toca) e um **arpejo
+    de alívio** quando você é aprovado.
+  - Regra pura `MusicDirector.Targets(playing, estado, suspeita, nível do menu)`.
+- **Volume da música** nas opções da pausa (`GameOptions.MusicVolume`, padrão 80%, salvo em PlayerPrefs). A pausa ganhou
+  uma linha (caixa 760 → 832 px; os botões desceram 72 px).
+- Mixagem: máximo 0,22 × volume da música, abaixo dos sons de jogo (passos e "hm?" são informação).
+- **Provisória:** sintetizada em código, como o resto do áudio. **Não foi ouvida** (o agente não tem como ouvir): o que
+  está validado é a lógica (qual camada toca quando, sincronia, volume). Dívida registrada: trocar por trilha composta.
+- Testes: EditMode `TrilhaTests` (novo, 4: camadas por estado, suspeita sobe aos poucos, volume salvo e limitado).
+  PlayMode `OperacaoSteamPlayTests` +3 (investigação faz o tambor entrar; flagrante toca o trombone e abaixa as camadas;
+  volume 0 silencia) e `AcabamentoPlayTests` (pausa com 4 sliders, o 3º é a música; 7 linhas sem se sobrepor).
+  145/145 e 22/22.
+- Como validar jogando (com fone): a música de fundo é agradável ou irrita depois de 3 partidas? Dá para perceber,
+  **sem olhar**, que ele começou a investigar (entra o tambor)? O trombone do flagrante é engraçado? O slider
+  "Volume da música" na pausa funciona?
+
+### S6 — título de estilo, dica, recorde e conquistas (23/11)
+- `Core/Records.cs` (novo), regras puras + gravação em PlayerPrefs (prefixo `sobrevivendo_unimar.`):
+  - **Título de estilo** (só para quem passou), do mais raro para o mais comum: ALUNO EXEMPLAR (?!) (sem colar nada),
+    GÊNIO DO CRIME (10 sem flagrante), MÁGICO DO BOLSO (3+ colas de bolso, sem celular/Nerd, sem flagrante), CARA DE PAU
+    (2+ flagrantes), SOBREVIVENTE DO 7,0 (no sufoco ou raspando), PARASITA DO NERD, DEPENDENTE DO GOOGLE, AMIGO DO FUNDÃO,
+    NINJA DA PROVA (sem flagrante), COLADOR PROFISSIONAL. Aparece como um 2º carimbo, azul, no canto da tela final.
+  - **Dica** (só para quem não passou): pelo tipo de flagrante que mais aconteceu (`MatchLog.FlagranteMaisComum`, novo
+    campo `MatchSummary.flagranteMaisComum`), ou, sem flagrante, pelo que sobrou ("sobraram 3 em branco. A turma cobria
+    4 colas: o 7 estava ali."). Textos em `Falas.DicaFlagrante` (todo tipo de `Infracao` tem dica; o teste confere).
+  - **Recorde** = melhor nota de aprovação por dificuldade, no rodapé ("Recorde: 8,0 (NOVO!)").
+  - **8 conquistas locais** (`enum Conquista`, os nomes servem de id para a Steam depois): Passei!, Liso como sabão,
+    Sobrevivente da UNIMAR (passar no Difícil), No grito, Mágico do bolso (as 4 colas de bolso numa partida), Ficha
+    suja (expulso), Lista do mercado (cola furada do Fundão), Gênio do crime (10). Conquista nova aparece no rodapé;
+    cada uma só uma vez.
+- Tela final: caixa 800 → 860 px, linha da dica à caneta azul (-646), rodapé (-694), botões desceram para -740.
+  `GameManager.End` chama `Records.Process` e passa o resultado (`ResultExtras`) ao `HUD.ShowMatchResult` (parâmetro
+  opcional; o trailer continua chamando sem ele).
+- Visto em captura (teste temporário, movido para fora): aprovado com o carimbo "NINJA DA PROVA" e o recorde; reprovado
+  com a dica do celular. Nada sobreposto.
+- Observação: os recordes e conquistas do **editor** (testes) ficam nas PlayerPrefs do editor; o executável usa as dele.
+- Testes: EditMode `RecordesTests` (novo, 5: título, dica, recorde, conquistas, gravação sem repetir conquista). PlayMode
+  `OperacaoSteamPlayTests.S6_AprovadoGanhaTituloDeEstiloERecorde` e o layout da tela final em `AcabamentoPlayTests`
+  (agora com a dica e o rodapé). 150/150 e 19/19.
+- Como validar jogando: passe numa prova e veja o carimbo azul do título; reprove de propósito e leia a dica (faz
+  sentido com o que aconteceu?); passe de novo com nota maior e confira o "(NOVO!)".
+
+### S7 — controle (gamepad) e ponto único de entrada (23/11)
+- `Core/Controls.cs` (novo): enum `Acao` + `Controls.Pressed/Held/Move/Look`. Cada ação vale pelo **teclado** (as mesmas
+  teclas de sempre) **ou pelo controle**, com a mesma semântica de antes (`wasPressedThisFrame`/`isPressed`), então as
+  proteções de input duplicado continuam. Nenhum script de jogo lê mais `Keyboard.current`/`Mouse.current` direto
+  (GameManager, HUD, PlayerController, PlayerCheats, PlayerInteraction, ThirdPersonCamera, QuizChallenge,
+  FacePokerChallenge passaram a usar o `Controls`).
+- Mapa do controle (layout Xbox; PlayStation/Steam Deck na mesma posição): analógico esquerdo anda (devagar se pouco
+  inclinado), direito gira a câmera (`ThirdPersonCamera.stickSpeed`), L3 corre. **X** responde, **Y** celular (segure),
+  **B** levanta, **A** interage / Cara de Paisagem. **LB** colinha, **RB** garrafinha, **LT** fone, **RT** bilhete.
+  **Start** pausa. Na pergunta: X, Y, A, B = alternativas 1–4. Menu: X Fácil, A Normal, Y Difícil, Select tutorial,
+  B volta. Fim: Y joga de novo, Select volta ao menu.
+- **A ajuda na tela troca sozinha** para o dispositivo usado por último (`Controls.UsingGamepad`, `Controls.Tag/Label`):
+  linha de ajuda sentado/em pé, painel das colas (`[LB] Colinha ×2`), "[A] ..." da interação, alternativas da pergunta
+  ("X)  ..."), ajuda da pergunta e da Cara de Paisagem. As instruções do menu ganharam uma linha do controle.
+- **Não feito** (fica para depois): remapear teclas (o `Controls` é o lugar certo para isso), ícones gráficos de
+  botões (hoje são letras), textos fixos do tutorial e dos menus que citam teclas do teclado ("Aperte 1...", "[Esc]"
+  nos botões), vibração. Os botões de papel dos menus continuam sendo de mouse; com o controle, os atalhos acima fazem
+  o mesmo papel.
+- Testes: EditMode `ControlesTests` (novo: toda ação tem tecla e botão; teclado = teclas de sempre; ações da prova não
+  dividem tecla nem botão; 4 alternativas distintas) e `ColasNovasTests.TeclasNovasNaoConflitamComAsExistentes`
+  (agora as teclas Q/B/F/G só podem aparecer no `Controls.cs`). PlayMode `ControlePlayTests` (novo, controle virtual:
+  A no menu começa o Normal; X abre a pergunta e a ajuda mostra "X, Y, A ou B"; Y responde; painel mostra "[LB]";
+  Start pausa e despausa; B levanta; analógico anda). Suítes completas: **EditMode 154/154, PlayMode 122/122** (todos
+  os testes antigos de teclado virtual continuam passando).
+- Observação: a 1ª rodada completa foi interrompida pelo Claude Code por falta de memória no sistema; o Unity em batch
+  continuou sozinho e terminou (122/122). Para não pesar, rodar as suítes uma de cada vez.
+- Como validar jogando: ligue um controle (Xbox/PS/Steam Deck) e jogue uma prova inteira sem tocar no teclado. A ajuda
+  na tela deve trocar para X/Y/LB... ao usar o controle e voltar para 1/2/Q... ao usar o teclado.
+
+### S8 — opções de vídeo (23/11) — parcial
+- Na pausa: **Tela** (Cheia/Janela), **Sincronia (VSync)** (Sim/Não) e **Gráficos** (Leve/…/Bonito; só aparece se o
+  projeto tiver mais de um nível de qualidade para a plataforma — hoje o Windows só inclui "PC", então ela fica
+  escondida). Réguas de posições inteiras, no mesmo estilo das outras. A caixa da pausa cresceu (832 → 950 px) e as
+  linhas ficaram a cada 64 px.
+- `GameOptions`: `Fullscreen`, `VSync`, `Quality` (PlayerPrefs), `ClampQuality`/`QualityLabel` (puras) e `ApplyVideo`
+  (roda ao abrir o jogo e a cada mudança). **Só aplica no executável**: no editor, mexer em qualidade/vsync alteraria o
+  `ProjectSettings` (os testes rodam no editor), então lá as opções só são guardadas. Sem vsync, teto de 144 FPS.
+- Visto em captura: a pausa com as 7 linhas, sem sobreposição (antes de esconder "Gráficos").
+- **Não feito** (fica no roadmap): resolução, tamanho do texto da HUD, legendas para os sinais sonoros, modo daltônico.
+- Testes: EditMode `OpcoesDeVideoTests` (novo: faixa e nomes da qualidade; opções salvas; no editor o ProjectSettings
+  não muda). PlayMode `AcabamentoPlayTests` (pausa com 6 ou 7 réguas e 9 ou 10 linhas sem se sobrepor). 23/23 e 7/7.
+- Como validar jogando (no executável): Esc → Tela: Janela (a janela aparece) → Cheia. VSync: Não → o jogo não deve
+  ficar travado em 60 FPS. Fechar e abrir de novo: as escolhas continuam.
+
+### S12 — desempenho medido (23/11) — só medição
+- PlayMode `DesempenhoTests` (novo): prova no Normal, 2 s de aquecimento + 10 s medindo. Grava
+  `Captures/Desempenho/desempenho.md` (fora do git). Só falha se o quadro médio passar de 100 ms.
+- Resultado nesta máquina (RTX 2060, Ryzen 7 2700X; batch, janela 640×480, sem vsync): **3,6 ms por quadro em média
+  (~278 FPS), p95 4,7 ms, pior 12,4 ms**. Scripts: Update 0,21 ms, LateUpdate 1,21 ms (é onde ficam as poses dos 14
+  modelos 3D com IK por código: a parte mais cara do código do jogo, mas pequena).
+- **Não responde** à meta da auditoria (≥ 60 FPS em 1080p num vídeo integrado): a janela do batch é pequena e a placa é
+  dedicada. Para isso, rodar o executável em 1080p num notebook comum (o `Player.log` não mede FPS; dá para usar o
+  overlay de FPS da Steam/NVIDIA/AMD).
+- Correção na auditoria: são 14 personagens com modelo (não ~30 como estimado em T12).
+
+### Fechamento do dia (23/11)
+- Suítes completas no fim, rodadas uma de cada vez: **EditMode 157/157, PlayMode 123/123**.
+- Versão 0.1.0 → **0.2.0** (`ProjectSettings` → `bundleVersion`; vai na coluna `versao` do `partidas.csv`).
+- Executável regenerado (0 erros, 115 MB) e aberto por 20 s: chega à renderização, 0 exceções no `Player.log` (só os
+  avisos de sempre do URP sobre shaders de profundidade de campo fora do build).
+- A cena `.unity` não foi alterada. Nada commitado.
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.

@@ -82,8 +82,8 @@ namespace ProvaImpossivel
                              : QuizBank.Next(GameManager.I != null && GameManager.I.Settings != null ? GameManager.I.Settings.quizTier : 1);
             titleText.text = chute ? "CHUTE — ESSA VOCÊ NÃO ESTUDOU" : "DESAFIO B — RESPOSTA SOB PRESSÃO";
             helpText.text = chute
-                ? "Não faz a menor ideia? Escolha 1, 2, 3 ou 4 e reze. Errou = questão perdida (só cola corrige)."
-                : "Aperte 1, 2, 3 ou 4 antes do tempo acabar. Acertou = ponto. Errou = questão perdida.";
+                ? "Não faz a menor ideia? Escolha " + Teclas() + " e reze. Errou = questão perdida (só cola corrige)."
+                : "Aperte " + Teclas() + " antes do tempo acabar. Acertou = ponto. Errou = questão perdida.";
             openedFrame = Time.frameCount;
             order = new[] { 0, 1, 2, 3 };
             for (int i = 3; i > 0; i--)
@@ -94,7 +94,7 @@ namespace ProvaImpossivel
             questionText.text = question.text;
             for (int i = 0; i < 4; i++)
             {
-                optionTexts[i].text = (i + 1) + ")  " + question.options[order[i]];
+                optionTexts[i].text = Controls.Label(Opcoes[i]) + ")  " + question.options[order[i]];
                 optionBoxes[i].color = new Color(0.22f, 0.24f, 0.32f);
             }
             feedbackText.text = "";
@@ -122,19 +122,23 @@ namespace ProvaImpossivel
             timerFill.color = timeLeft < 3f ? HUD.Red : HUD.Yellow;
             timerText.text = Mathf.CeilToInt(Mathf.Max(0f, timeLeft)) + "s";
 
-            var kb = Keyboard.current;
-            if (kb != null && Time.frameCount != openedFrame)
+            // S7: 1-4 no teclado; X, Y, A, B no controle
+            if (Time.frameCount != openedFrame)
             {
-                if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) Answer(0);
-                else if (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame) Answer(1);
-                else if (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame) Answer(2);
-                else if (kb.digit4Key.wasPressedThisFrame || kb.numpad4Key.wasPressedThisFrame) Answer(3);
+                if (Controls.Pressed(Acao.Opcao1)) Answer(0);
+                else if (Controls.Pressed(Acao.Opcao2)) Answer(1);
+                else if (Controls.Pressed(Acao.Opcao3)) Answer(2);
+                else if (Controls.Pressed(Acao.Opcao4)) Answer(3);
             }
             if (!answered && timeLeft <= 0f) Answer(-1);
         }
 
         /// <summary>Já respondeu (o painel ainda mostra o resultado por 1,6 s antes de fechar)?</summary>
         public bool Answered => Active && answered;
+
+        // S7: as 4 alternativas e o nome das teclas delas no dispositivo em uso ("1, 2, 3 ou 4" / "X, Y, A ou B")
+        static readonly Acao[] Opcoes = { Acao.Opcao1, Acao.Opcao2, Acao.Opcao3, Acao.Opcao4 };
+        static string Teclas() => Controls.Label(Opcoes[0]) + ", " + Controls.Label(Opcoes[1]) + ", " + Controls.Label(Opcoes[2]) + " ou " + Controls.Label(Opcoes[3]);
 
         /// <summary>Posição (0 a 3) em que a alternativa correta foi sorteada nesta pergunta.</summary>
         public int CorrectSlot => Array.IndexOf(order, 0);

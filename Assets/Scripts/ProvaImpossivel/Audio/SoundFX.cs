@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ProvaImpossivel
 {
     public enum Sfx { Ponto, PerdePonto, Flagrante, Evento, Alerta, Clique, Acerto, Erro, Sinal, Passo, Cadeira, Ouviu, Coracao,
-                      Papel, Vibra, Gole }
+                      Papel, Vibra, Gole, Aha, Hmpf }
 
     /// <summary>
     /// Efeitos sonoros sintetizados na hora (sem depender de arquivos de áudio).
@@ -58,6 +58,10 @@ namespace ProvaImpossivel
             clips[Sfx.Papel] = PaperFlick();
             clips[Sfx.Vibra] = Buzz();
             clips[Sfx.Gole] = Gulp();
+            clips[Sfx.Aha] = Aha();
+            clips[Sfx.Hmpf] = Hmpf();
+            // S5: a trilha adaptativa mora no mesmo objeto do som (criada por código: a cena não precisa ser remontada)
+            if (GetComponent<MusicDirector>() == null) gameObject.AddComponent<MusicDirector>();
 
             // fontes 3D reaproveitadas (vários passos/ruídos ao mesmo tempo sem criar objetos durante o jogo)
             pool = new AudioSource[8];
@@ -343,6 +347,50 @@ namespace ProvaImpossivel
                 d[i] = w * env * 0.4f;
             }
             return Clip("hm", d);
+        }
+
+        /// <summary>
+        /// Voz do professor (S4): sílabas com a mesma voz "anasalada" do "hm?", cada uma com tom inicial e final (Hz),
+        /// duração (s), volume e pausa depois (s). Provisória até existir voz gravada.
+        /// </summary>
+        static float[] Voice((float f0, float f1, float dur, float amp, float gap)[] syllables)
+        {
+            float total = 0f;
+            foreach (var s in syllables) total += s.dur + s.gap;
+            var d = new float[(int)(Rate * total) + 1];
+            int at = 0;
+            float phase = 0f;
+            foreach (var s in syllables)
+            {
+                int n = (int)(Rate * s.dur);
+                for (int i = 0; i < n && at + i < d.Length; i++)
+                {
+                    float t = (float)i / Rate, k = (float)i / n;
+                    float f = Mathf.Lerp(s.f0, s.f1, k) * (1f + 0.02f * Mathf.Sin(2f * Mathf.PI * 6f * t)); // vibrato de teatro
+                    phase += f / Rate;
+                    float w = Mathf.Sin(2f * Mathf.PI * phase) + 0.45f * Mathf.Sin(4f * Mathf.PI * phase) + 0.2f * Mathf.Sin(6f * Mathf.PI * phase);
+                    float env = Mathf.Clamp01(t / 0.02f) * Mathf.Clamp01((1f - k) / 0.2f);
+                    d[at + i] = w * env * s.amp;
+                }
+                at += n + (int)(Rate * s.gap);
+            }
+            return d;
+        }
+
+        /// <summary>"a-HÁ!": a sílaba curta e a segunda subindo, mais alta (o flagrante é o momento dele).</summary>
+        static AudioClip Aha() => Clip("aha", Voice(new[] { (190f, 175f, 0.11f, 0.3f, 0.05f), (240f, 330f, 0.26f, 0.45f, 0f) }));
+
+        /// <summary>"hmpf": descendo, contrariado (alarme falso, você escapou), com o sopro do "pf" no fim.</summary>
+        static AudioClip Hmpf()
+        {
+            var d = Voice(new[] { (150f, 105f, 0.28f, 0.35f, 0f) });
+            var noise = new System.Random(7);
+            int tail = (int)(Rate * 0.08f);
+            var outd = new float[d.Length + tail];
+            System.Array.Copy(d, outd, d.Length);
+            for (int i = 0; i < tail; i++)
+                outd[d.Length + i] = (float)(noise.NextDouble() * 2.0 - 1.0) * 0.18f * (1f - (float)i / tail);
+            return Clip("hmpf", outd);
         }
 
         /// <summary>Batimento "tum-tum" (1 s, em loop). A velocidade sobe com o pitch da fonte de tensão.</summary>

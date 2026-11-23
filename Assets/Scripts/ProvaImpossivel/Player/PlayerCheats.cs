@@ -26,6 +26,25 @@ namespace ProvaImpossivel
         public static float CloseRangeStep(float rate, float multiplier, float distance, float maxDistance, float dt) =>
             rate > 0f && distance <= maxDistance ? rate * multiplier * dt : 0f;
 
+        /// <summary>
+        /// S2: a colinha VISTA vira flagrante na hora? Só se a regra estiver ligada, ele já tiver percebido (tempo de
+        /// reação completo), estiver vendo bem (perto/no centro do olhar) e não estiver distraído. De longe ou de relance,
+        /// ela continua só somando suspeita.
+        /// </summary>
+        public static bool ColinhaCaughtNow(bool instantCatch, Infracao doing, float notice, float visibility, float minVisibility, bool distracted) =>
+            instantCatch && doing == Infracao.ColinhaNaManga && notice >= 1f && visibility >= minVisibility && !distracted;
+
+        /// <summary>S2: barulhos que deixam prova com você (o professor pode achá-la ao investigar).</summary>
+        public static bool LeavesEvidence(Infracao kind) => kind == Infracao.Bilhete || kind == Infracao.CelularTocando;
+
+        /// <summary>S2: chance de o professor achar a prova deste tipo ao investigar.</summary>
+        public static float FindChance(Infracao kind, float bilheteChance, float foneChance) => kind switch
+        {
+            Infracao.Bilhete => bilheteChance,
+            Infracao.CelularTocando => foneChance,
+            _ => 0f,
+        };
+
         /// <summary>Chance de o bilhete cair fora da mesa: cresce com a distância até o destino.</summary>
         public static float BilheteMissChance(float meters, float perMeter) => Mathf.Clamp01(meters * perMeter);
 
@@ -166,24 +185,23 @@ namespace ProvaImpossivel
             UpdateBilhete(dt);
             UpdateFone(dt);
 
-            var kb = Keyboard.current;
             bool quizOpen = QuizChallenge.I != null && QuizChallenge.I.Active;
-            bool canAct = kb != null && player.IsSeated && !player.InputLocked && !quizOpen && !player.UsingPhone;
+            bool canAct = player.IsSeated && !player.InputLocked && !quizOpen && !player.UsingPhone;
             if (!canAct) CancelHold();
-            else HandleInput(kb, dt);
+            else HandleInput(dt);
 
             UpdateRisk();
             HUD.I.SetCheats(PanelText());
         }
 
-        // ------------------------------------------------------------------ entrada
+        // ------------------------------------------------------------------ entrada (S7: teclado ou controle, pelo Controls)
 
-        void HandleInput(Keyboard kb, float dt)
+        void HandleInput(float dt)
         {
             // segurando alguma: só aquela tecla conta (sem duas colas ao mesmo tempo)
             if (Holding != Hold.Nenhum)
             {
-                if (!KeyFor(kb, Holding).isPressed) { CancelHold(); return; }
+                if (!Controls.Held(ActionFor(Holding))) { CancelHold(); return; }
                 HoldProgress += dt / HoldTime(Holding);
                 HUD.I.SetHold(HoldProgress, HoldLabel(Holding), RiskNow());
                 if (HoldProgress >= 1f) FinishHold();
@@ -191,14 +209,14 @@ namespace ProvaImpossivel
             }
             if (Throwing) return;
 
-            if (kb.qKey.wasPressedThisFrame) TryStart(Hold.Colinha);
-            else if (kb.gKey.wasPressedThisFrame) TryStart(Hold.Garrafinha);
-            else if (kb.fKey.wasPressedThisFrame) PressFone();
-            else if (kb.bKey.wasPressedThisFrame) TryThrow();
+            if (Controls.Pressed(Acao.Colinha)) TryStart(Hold.Colinha);
+            else if (Controls.Pressed(Acao.Garrafinha)) TryStart(Hold.Garrafinha);
+            else if (Controls.Pressed(Acao.Fone)) PressFone();
+            else if (Controls.Pressed(Acao.Bilhete)) TryThrow();
         }
 
-        static KeyControl KeyFor(Keyboard kb, Hold h) =>
-            h == Hold.Colinha ? kb.qKey : h == Hold.Garrafinha ? kb.gKey : kb.fKey;
+        static Acao ActionFor(Hold h) =>
+            h == Hold.Colinha ? Acao.Colinha : h == Hold.Garrafinha ? Acao.Garrafinha : Acao.Fone;
 
         float HoldTime(Hold h) => Mathf.Max(0.05f, h switch
         {
@@ -374,7 +392,7 @@ namespace ProvaImpossivel
             MatchLog.BilheteUsos++;
             throwTarget = target;
             throwLeft = Mathf.Max(0.05f, s.bilheteThrowTime);
-            player.MakeNoise(s.bilheteNoiseRadius, s.bilheteNoise, Falas.RuidoPapel);
+            player.MakeNoise(s.bilheteNoiseRadius, s.bilheteNoise, Falas.RuidoPapel, Infracao.Bilhete);
             SoundFX.PlayAt(Sfx.Papel, transform.position);
             return true;
         }
@@ -445,7 +463,8 @@ namespace ProvaImpossivel
                 SoundFX.Play(Sfx.PerdePonto);
                 return;
             }
-            int i = exam.MarkCorrectRandomBlank(Random.value);
+            // S2: a resposta vem para uma questão que você NÃO sabe (antes podia ser uma que você responderia sozinho)
+            int i = exam.MarkCorrectRandomBlankPreferUnknown(Random.value);
             if (i < 0) { Budget?.Cancel(); MatchLog.BilheteErradas++; HUD.I.Toast(Falas.BilheteSemLugar, HUD.Gray, 3f); return; }
             Budget?.Commit();
             MatchLog.BilheteCertas++;
@@ -494,7 +513,7 @@ namespace ProvaImpossivel
         {
             ringLeft = s.foneRingSeconds;
             ringSoundTimer = 0f;
-            player.MakeNoise(s.foneRingRadius, s.foneRingNoise, Falas.RuidoVibra);
+            player.MakeNoise(s.foneRingRadius, s.foneRingNoise, Falas.RuidoVibra, Infracao.CelularTocando);
         }
 
         // ------------------------------------------------------------------ suspeita e flagrante
@@ -566,15 +585,17 @@ namespace ProvaImpossivel
         {
             var b = Budget;
             string head = "COLAS" + (b != null ? "  •  restam " + b.Available + " resposta" + (b.Available == 1 ? "" : "s") : "");
-            string colinha = !HasColinha ? "[Q] Colinha: confiscada" : "[Q] Colinha ×" + ColinhaCharges;
-            string garrafa = !HasGarrafa ? "[G] Garrafinha: confiscada" : "[G] Garrafinha ×" + GarrafaCharges;
-            string bil = bilhete.Waiting ? "[B] Bilhete voltando... " + Mathf.CeilToInt(bilhete.SecondsLeft) + " s"
-                       : "[B] Bilhete ×" + BilheteCharges + " (mire)";
-            string fon = Ringing ? "[F] VIBRANDO! (F silencia)"
-                       : fone.Arrived ? "[F] Resposta chegou! (segure F)"
-                       : fone.Waiting ? "[F] Esperando resposta... " + Mathf.CeilToInt(fone.SecondsLeft) + " s"
-                       : !player.HasPhone ? "[F] Fone: sem celular"
-                       : "[F] Fone ×" + FoneCharges;
+            // S7: a tecla de cada cola é a do dispositivo em uso ([Q] no teclado, [LB] no controle)
+            string q = Controls.Tag(Acao.Colinha), g = Controls.Tag(Acao.Garrafinha), bt = Controls.Tag(Acao.Bilhete), f = Controls.Tag(Acao.Fone);
+            string colinha = !HasColinha ? q + " Colinha: confiscada" : q + " Colinha ×" + ColinhaCharges;
+            string garrafa = !HasGarrafa ? g + " Garrafinha: confiscada" : g + " Garrafinha ×" + GarrafaCharges;
+            string bil = bilhete.Waiting ? bt + " Bilhete voltando... " + Mathf.CeilToInt(bilhete.SecondsLeft) + " s"
+                       : bt + " Bilhete ×" + BilheteCharges + " (mire)";
+            string fon = Ringing ? f + " VIBRANDO! (" + Controls.Label(Acao.Fone) + " silencia)"
+                       : fone.Arrived ? f + " Resposta chegou! (segure " + Controls.Label(Acao.Fone) + ")"
+                       : fone.Waiting ? f + " Esperando resposta... " + Mathf.CeilToInt(fone.SecondsLeft) + " s"
+                       : !player.HasPhone ? f + " Fone: sem celular"
+                       : f + " Fone ×" + FoneCharges;
             return head + "\n" + colinha + "\n" + garrafa + "\n" + bil + "\n" + fon;
         }
     }

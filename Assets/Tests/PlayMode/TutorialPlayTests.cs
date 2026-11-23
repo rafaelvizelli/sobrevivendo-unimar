@@ -71,16 +71,9 @@ namespace ProvaImpossivel.Tests
             var p = PlayerController.I;
             var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
 
-            // andar: levanta e sai do lugar
-            p.StandUp();
-            var cc = p.GetComponent<CharacterController>();
-            cc.enabled = false;
-            p.transform.position = p.seatPoint.position + new Vector3(0f, 0f, -(TutorialSteps.WalkDistance + 0.5f));
-            cc.enabled = true;
-            yield return WaitUntil(() => dir.Step == TutorialStep.Sentar, 2f, "andar não completou");
-
-            p.SitDown();
-            yield return WaitUntil(() => dir.Step == TutorialStep.Responder, 2f, "sentar não completou");
+            // S3: o treino começa sentado, no passo de responder
+            Assert.IsTrue(p.IsSeated, "o treino começa sentado");
+            Assert.AreEqual(TutorialStep.Responder, dir.Step);
 
             // responder: a tecla 1 chama TryAnswer; aqui chamamos direto e respondemos certo
             typeof(PlayerController).GetMethod("TryAnswer", flags).Invoke(p, null);
@@ -89,10 +82,14 @@ namespace ProvaImpossivel.Tests
             yield return WaitUntil(() => dir.Step == TutorialStep.Celular, 4f, "responder não completou");
 
             typeof(PlayerController).GetMethod("FinishPhoneConsult", flags).Invoke(p, null);
-            yield return WaitUntil(() => dir.Step == TutorialStep.Nerd, 2f, "celular não completou");
+            yield return WaitUntil(() => dir.Step == TutorialStep.ColasDeBolso, 2f, "celular não completou");
+
+            // colas de bolso: o bilhete (B) para o Nerd é a mais simples de fazer por código (ThrowAt é o que a tecla chama)
+            var nerd = Object.FindAnyObjectByType<NerdStudent>();
+            Assert.IsTrue(p.Cheats.ThrowAt(nerd), "o bilhete deveria sair");
+            yield return WaitUntil(() => dir.Step == TutorialStep.Nerd, 2f, "colas de bolso não completou");
 
             p.StandUp();
-            var nerd = Object.FindAnyObjectByType<NerdStudent>();
             Assert.IsTrue(nerd.CanInteract(p), "em pé, o Nerd pode ser espiado");
             nerd.Interact(p);
             yield return WaitUntil(() => dir.Step == TutorialStep.Distracao, 2f, "Nerd não completou");
@@ -116,7 +113,7 @@ namespace ProvaImpossivel.Tests
             yield return null;
             gm.DeliverExam();
             Assert.AreEqual(Phase.Playing, gm.Phase, "entregar no primeiro passo não pode encerrar o treino");
-            Assert.AreEqual(TutorialStep.Andar, Object.FindAnyObjectByType<TutorialDirector>().Step);
+            Assert.AreEqual(TutorialStep.Responder, Object.FindAnyObjectByType<TutorialDirector>().Step);
 
             gm.EndTutorial(completed: false);
             Assert.AreEqual(Phase.Ended, gm.Phase);

@@ -8,3 +8,6 @@ Builds/
 *.sln
 Captures/
 *.slnx
+
+# cena temporária que o Test Runner cria e às vezes deixa para trás
+Assets/InitTestScene*

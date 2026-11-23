@@ -128,6 +128,34 @@ namespace ProvaImpossivel.Tests
         [UnityTest, Timeout(400000)] public IEnumerator FoneTocando_Normal() => AuditarToque(Difficulty.Normal);
         [UnityTest, Timeout(400000)] public IEnumerator FoneTocando_Dificil() => AuditarToque(Difficulty.Dificil);
 
+        /// <summary>
+        /// S2 (Operação Steam), este sim com asserção: colinha lida pelo teclado com o professor a ~2 m olhando para você
+        /// é flagrante na hora, do tipo ColinhaNaManga (antes a suspeita parava em ~39 e nunca virava flagrante).
+        /// </summary>
+        [UnityTest, Timeout(60000)]
+        public IEnumerator S2_ColinhaVistaDePertoEFlagranteNaHora()
+        {
+            yield return Comecar(Difficulty.Normal, ringChance: 0f);
+            var prof = ProfessorAI.I;
+            var p = PlayerController.I;
+            Vector3? lugar = AcharLugar(prof, p, 1.6f, 2.4f);
+            Assert.IsTrue(lugar.HasValue, "sem lugar com visão do jogador");
+            Posar(prof, p, lugar.Value, true);
+            yield return null;
+
+            InputSystem.QueueStateEvent(kb, new KeyboardState(Key.Q));
+            for (float fim = Time.time + 4f; Time.time < fim && prof.State != ProfState.Flagrante;)
+            {
+                Posar(prof, p, lugar.Value, true);
+                yield return null;
+            }
+            InputSystem.QueueStateEvent(kb, new KeyboardState());
+            yield return null;
+
+            Assert.AreEqual(ProfState.Flagrante, prof.State, "colinha vista de perto tinha que ser flagrante na hora");
+            Assert.AreEqual(Infracao.ColinhaNaManga, LastInfracao.GetValue(prof));
+        }
+
         IEnumerator Auditar(Cola cola, Difficulty d)
         {
             foreach (Situacao s in Enum.GetValues(typeof(Situacao)))

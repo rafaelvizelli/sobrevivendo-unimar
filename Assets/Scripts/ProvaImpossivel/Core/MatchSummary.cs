@@ -17,12 +17,15 @@ namespace ProvaImpossivel
         public readonly int certas, erradas, emBranco;
         /// <summary>Colas de bolso (Bloco 15) feitas: colinha, garrafinha, bilhete, fone (usos do MatchLog).</summary>
         public readonly int colinha, garrafa, bilhete, fone;
+        /// <summary>S6: o tipo de flagrante que mais aconteceu (para a dica da ficha criminal).</summary>
+        public readonly Infracao flagranteMaisComum;
 
         public MatchSummary(LevelResult result, string difficulty, float grade, float minGrade, float timeUsed,
                             int flagrantes, int maxFlagrantes, int colasCelular, int colasNerd, int colasFundao, int colasFundaoFuradas,
                             int favoresGastos, int certas, int erradas, int emBranco,
-                            int colinha = 0, int garrafa = 0, int bilhete = 0, int fone = 0)
+                            int colinha = 0, int garrafa = 0, int bilhete = 0, int fone = 0, Infracao flagranteMaisComum = Infracao.Nenhuma)
         {
+            this.flagranteMaisComum = flagranteMaisComum;
             this.colinha = colinha;
             this.garrafa = garrafa;
             this.bilhete = bilhete;
@@ -54,7 +57,8 @@ namespace ProvaImpossivel
                                     MatchLog.Celular, MatchLog.NerdCopias,
                                     MatchLog.FundaoColaBoa + MatchLog.FundaoColaRuim, MatchLog.FundaoColaRuim,
                                     Mathf.Max(0, s.favors - favorsLeft), certas, erradas, emBranco,
-                                    MatchLog.ColinhaUsos, MatchLog.GarrafaUsos, MatchLog.BilheteUsos, MatchLog.FoneUsos);
+                                    MatchLog.ColinhaUsos, MatchLog.GarrafaUsos, MatchLog.BilheteUsos, MatchLog.FoneUsos,
+                                    MatchLog.FlagranteMaisComum());
         }
 
         public static string Title(LevelResult r) => r switch

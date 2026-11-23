@@ -112,14 +112,14 @@ namespace ProvaImpossivel
         void Update()
         {
             float dt = Time.deltaTime;
-            var kb = Keyboard.current;
-            bool canAct = !InputLocked && kb != null;
+            // S7: entrada pelo Controls (teclado ou controle)
+            bool canAct = !InputLocked;
             if (quizTimer > 0f) quizTimer -= dt;
             if (phoneCooldown > 0f) phoneCooldown -= dt;
             if (noiseTimer > 0f) noiseTimer -= dt;
 
-            if (IsSeated) UpdateSeated(kb, canAct, dt);
-            else UpdateFree(kb, canAct, dt);
+            if (IsSeated) UpdateSeated(canAct, dt);
+            else UpdateFree(canAct, dt);
 
             UpdateSuspicion();
             UpdateLook(dt);
@@ -127,24 +127,23 @@ namespace ProvaImpossivel
 
         // ---------------------------------------------------------------- sentado
 
-        void UpdateSeated(Keyboard kb, bool canAct, float dt)
+        void UpdateSeated(bool canAct, float dt)
         {
             if (seatPoint != null) transform.SetPositionAndRotation(seatPoint.position, seatPoint.rotation);
             bool holdingPhone = false;
 
             bool quizOpen = QuizChallenge.I != null && QuizChallenge.I.Active;
-            if (waitMenuKeyRelease && kb != null && !kb.digit1Key.isPressed && !kb.digit2Key.isPressed && !kb.digit3Key.isPressed
-                && !kb.numpad1Key.isPressed && !kb.numpad2Key.isPressed && !kb.numpad3Key.isPressed)
+            if (waitMenuKeyRelease && !Controls.AnyMenuKeyHeld())
                 waitMenuKeyRelease = false;
             if (canAct && !quizOpen && !waitMenuKeyRelease)
             {
                 bool spaceFree = FacePokerChallenge.I == null || FacePokerChallenge.I.FinishedFrame != Time.frameCount;
-                if (spaceFree && kb.spaceKey.wasPressedThisFrame) { StandUp(); return; }
+                if (spaceFree && Controls.Pressed(Acao.Levantar)) { StandUp(); return; }
 
-                if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame) TryAnswer();
+                if (Controls.Pressed(Acao.Responder)) TryAnswer();
 
                 bool otherCheat = Cheats != null && Cheats.Holding != PlayerCheats.Hold.Nenhum; // uma cola de cada vez
-                if (HasPhone && !otherCheat && (kb.digit2Key.isPressed || kb.numpad2Key.isPressed))
+                if (HasPhone && !otherCheat && Controls.Held(Acao.Celular))
                 {
                     if (phoneCooldown > 0f) HUD.I.SetHold(-1f, "");
                     else if (PhoneCharges <= 0) HUD.I.Toast("A bateria do celular ACABOU. Agora é Nerd, Fundão ou fé.", HUD.Gray, 2.5f);
@@ -160,7 +159,7 @@ namespace ProvaImpossivel
                             MakeNoise(phoneNoiseRadius, 3f, "um 'tec-tec' de celular");
                             SoundFX.PlayAt(Sfx.Clique, transform.position, 0.35f, 1.3f); // o ruído que a IA ouve também soa pra você
                         }
-                        HUD.I.SetHold(phoneProgress, "Pesquisando no celular... (segure 2)", HoldRiskNow(true));
+                        HUD.I.SetHold(phoneProgress, "Pesquisando no celular... (segure " + Controls.Label(Acao.Celular) + ")", HoldRiskNow(true));
                         if (phoneProgress >= 1f) FinishPhoneConsult();
                     }
                 }
@@ -185,14 +184,15 @@ namespace ProvaImpossivel
                     else unknownBlanks++;
                 }
             // textos curtos: a linha de ajuda é centralizada e, longa demais, invade o painel de suspeita
-            string help = knownBlanks > 0 ? "[1] Responder (sabe " + knownBlanks + ")"
-                        : unknownBlanks > 0 ? "[1] Chutar (" + unknownBlanks + " que não sabe)"
-                        : "[1] Nada em branco (erradas: só cola)";
-            if (quizTimer > 0f && knownBlanks + unknownBlanks > 0) help = "[1] Pensando... " + Mathf.CeilToInt(quizTimer) + "s";
-            help += !HasPhone ? "    [2] Celular confiscado"
-                  : PhoneCharges <= 0 ? "    [2] Celular sem bateria"
-                  : "    [2] Celular (segure; bateria p/ " + PhoneCharges + ")";
-            help += "    [Espaço] Levantar";
+            string r = Controls.Tag(Acao.Responder), c = Controls.Tag(Acao.Celular);
+            string help = knownBlanks > 0 ? r + " Responder (sabe " + knownBlanks + ")"
+                        : unknownBlanks > 0 ? r + " Chutar (" + unknownBlanks + " que não sabe)"
+                        : r + " Nada em branco (erradas: só cola)";
+            if (quizTimer > 0f && knownBlanks + unknownBlanks > 0) help = r + " Pensando... " + Mathf.CeilToInt(quizTimer) + "s";
+            help += !HasPhone ? "    " + c + " Celular confiscado"
+                  : PhoneCharges <= 0 ? "    " + c + " Celular sem bateria"
+                  : "    " + c + " Celular (segure; bateria p/ " + PhoneCharges + ")";
+            help += "    " + Controls.Tag(Acao.Levantar) + " Levantar";
             HUD.I.SetSeatedHelp(InputLocked ? null : help);
         }
 
@@ -253,8 +253,9 @@ namespace ProvaImpossivel
         }
 
         /// <summary>Barulho na posição do jogador. Quem ouve (professor, Puxa-saco) sabe o LUGAR, não quem foi.</summary>
-        public void MakeNoise(float radius, float amount, string what) =>
-            Noise.Emit(transform.position, radius, amount, what, byPlayer: true);
+        /// <param name="kind">S2: de que cola veio o barulho (o que o professor pode achar se investigar).</param>
+        public void MakeNoise(float radius, float amount, string what, Infracao kind = Infracao.Outra) =>
+            Noise.Emit(transform.position, radius, amount, what, byPlayer: true, kind);
 
         public void StandUp()
         {
@@ -280,15 +281,14 @@ namespace ProvaImpossivel
 
         // ---------------------------------------------------------------- andando
 
-        void UpdateFree(Keyboard kb, bool canAct, float dt)
+        void UpdateFree(bool canAct, float dt)
         {
             Vector2 mv = Vector2.zero;
             bool run = false;
             if (canAct)
             {
-                mv.x = (kb.dKey.isPressed ? 1 : 0) - (kb.aKey.isPressed ? 1 : 0);
-                mv.y = (kb.wKey.isPressed ? 1 : 0) - (kb.sKey.isPressed ? 1 : 0);
-                run = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+                mv = Controls.Move();
+                run = Controls.Held(Acao.Correr);
             }
 
             Vector3 fwd = cam != null ? cam.forward : Vector3.forward;
@@ -316,7 +316,7 @@ namespace ProvaImpossivel
                 MakeNoise(runNoiseRadius, 6f, "passos correndo");
             }
 
-            HUD.I.SetSeatedHelp(InputLocked ? null : "[E] perto da sua carteira para sentar    [Shift] Correr");
+            HUD.I.SetSeatedHelp(InputLocked ? null : Controls.Tag(Acao.Interagir) + " perto da sua carteira para sentar    " + Controls.Tag(Acao.Correr) + " Correr");
         }
 
         // ---------------------------------------------------------------- suspeita / visual

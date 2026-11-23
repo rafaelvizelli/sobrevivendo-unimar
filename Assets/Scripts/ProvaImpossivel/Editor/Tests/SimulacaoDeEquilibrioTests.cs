@@ -133,12 +133,16 @@ namespace ProvaImpossivel.Tests
         {
             public float tempo, suspSeVe, ganhoPerto, ganhoRuido;
             public double chancePerto, chanceOuvir, chancePerder;
+            /// <summary>S2: visto (na distância de referência) já é flagrante na hora (colinha).</summary>
+            public bool pegaNaHora;
+            /// <summary>S2: se ele ouviu e veio investigar, chance de achar a prova (bilhete).</summary>
+            public double chanceAchar;
         }
 
         /// <summary>
         /// Resolve uma cola nova: 0 = deu resposta, 1 = perdida (sem resposta), 2 = flagrante.
-        /// Visto agindo: flagrante se passar de 100, ou se ele vier investigar e a Cara de Paisagem falhar.
-        /// Sentido de perto (colinha) e ruído: sem ver, só a investigação + Cara de Paisagem pode virar flagrante.
+        /// Visto agindo: flagrante se passar de 100 (ou na hora, na colinha vista bem: S2), ou se ele vier investigar e a
+        /// Cara de Paisagem falhar. Ruído de cola que deixa prova (bilhete, S2): investigando, ele pode achar a prova.
         /// </summary>
         static int ResolverColaNova(System.Random rng, ColaNova c, double risco, double caraDePaisagem, ref int atencao)
         {
@@ -146,12 +150,15 @@ namespace ProvaImpossivel.Tests
             bool visto = rng.NextDouble() < risco;
             float susp = visto ? c.suspSeVe : 0f;
             if (rng.NextDouble() < c.chancePerto) susp += c.ganhoPerto;
+            bool ouviu = false;
             if (rng.NextDouble() < c.chanceOuvir)
             {
                 atencao++;
                 susp += c.ganhoRuido;
+                ouviu = true;
             }
-            if (visto && susp >= 100f) return 2;
+            if (visto && (susp >= 100f || c.pegaNaHora)) return 2;
+            if (ouviu && susp >= 65f && c.chanceAchar > 0 && rng.NextDouble() < c.chanceAchar) return 2; // achou o bilhete
             if (susp >= 65f && rng.NextDouble() > caraDePaisagem && susp + 30f >= 100f) return 2; // investigou e você tremeu
             if (rng.NextDouble() < c.chancePerder) return 1;
             return 0;
@@ -191,6 +198,9 @@ namespace ProvaImpossivel.Tests
                 suspSeVe = ProfessorAI.SuspicionIfSeen(s, s.colinhaSuspicion, visRef, s.colinhaTime),
                 chancePerto = perfil.riscoChegaPerto,
                 ganhoPerto = s.colinhaNearSuspicion * mult * s.colinhaTime,
+                // S2: a mesma regra do jogo, na distância de referência (percebeu se a colinha dura o tempo de reação)
+                pegaNaHora = CheatRules.ColinhaCaughtNow(s.colinhaInstantCatch, Infracao.ColinhaNaManga,
+                                                         s.colinhaTime >= s.reactionTime ? 1f : 0f, visRef, s.colinhaCatchVisibility, false),
             };
             var garrafa = new ColaNova
             {
@@ -206,6 +216,7 @@ namespace ProvaImpossivel.Tests
                 chanceOuvir = ChanceDeOuvir(s.bilheteNoiseRadius),
                 ganhoRuido = s.bilheteNoise * mult,
                 chancePerder = Math.Min(1.0, CheatRules.BilheteMissChance(DistanciaNerd, s.bilheteMissChancePerMeter) + perfil.bilhetePerdido),
+                chanceAchar = CheatRules.FindChance(Infracao.Bilhete, s.bilheteFindChance, s.foneRingFindChance),
             };
             // fone: mandar + ler = duas vezes o celular por foneUseTime; o toque é ruído (raramente visto: ele silencia)
             var foneUso = new ColaNova
@@ -534,16 +545,41 @@ namespace ProvaImpossivel.Tests
         }
 
         /// <summary>
-        /// Meta do equilíbrio: no Normal, ~5% passa sem colar e ~50–60% passa colando com cuidado (com as colas novas).
-        /// A faixa aceita (45–70%) é a mesma de antes do Bloco 15: com o orçamento inteiro, 3 respostas dão ~64% e 2 dão ~38%
-        /// (não existe valor inteiro dentro de 50–60%; ver NOTAS, Bloco 15).
+        /// Meta do equilíbrio (S2, Operação Steam): no Normal, ~5% passa sem colar, e quem cola COM CUIDADO passa quase
+        /// sempre (85–97%). Antes a meta era 45–70%, mas esse teto vinha do chute: com 3 conhecidas + 3 de orçamento, o 7
+        /// dependia de acertar um chute de 25%, e o jogador sem nenhum erro reprovava 1 em 3. Agora o orçamento cobre o
+        /// piso (3 + 4 = 7): a reprovação tem que vir dos erros do jogador (flagrantes), que o perfil cuidadoso quase não
+        /// comete. A taxa de aprovação de gente de verdade (meta 40–60% no 1º contato) se confere no partidas.csv.
         /// </summary>
         [Test]
         public void MetaDoNormal_ColaPrecisaSerNecessariaENaoGarantida()
         {
             var r = Simular(gm.normal, ModeloDe(gm.normal), Partidas, 12345);
             Assert.LessOrEqual(r.semCola, 0.08, "Normal: passar sem colar está fácil demais");
-            Assert.That(r.comCola, Is.InRange(0.45, 0.70), "Normal: colando com cuidado deveria passar uns 50–60%");
+            Assert.That(r.comCola, Is.InRange(0.85, 0.97), "Normal: colando sem erros deveria passar quase sempre (o piso é coberto pelo orçamento)");
+        }
+
+        /// <summary>
+        /// S2: quem joga perfeito passa. Em toda dificuldade, as questões que ele sabe + o orçamento de colas alcançam a
+        /// nota mínima (o chute é só margem contra flagrantes, nunca o que decide).
+        /// </summary>
+        [Test]
+        public void OrcamentoCobreONotaMinima()
+        {
+            foreach (var s in new[] { gm.facil, gm.normal, gm.dificil })
+            {
+                float pontos = (s.knownQuestions + s.maxCheatAnswers) * 10f / 10;
+                Assert.GreaterOrEqual(pontos, s.minGrade, s.name + ": conhecidas + orçamento não chegam na nota mínima (o chute decidiria)");
+            }
+        }
+
+        /// <summary>S2: no modelo, o arrojado (que cola sem olhar) paga caro no Difícil, onde a colinha é pega na hora.</summary>
+        [Test]
+        public void NoDificilArriscarSemOlharCustaCaro()
+        {
+            var c = Simular(gm.dificil, ModeloDe(gm.dificil, Cuidadoso), Partidas, 7);
+            var a = Simular(gm.dificil, ModeloDe(gm.dificil, Arrojado), Partidas, 7);
+            Assert.Greater(c.comCola - a.comCola, 0.10, "o cuidado tem que valer pelo menos 10 pontos percentuais de aprovação no Difícil");
         }
 
         /// <summary>Bloco 15: as colas novas dão variedade, não pontos. Quem segura é o orçamento.</summary>

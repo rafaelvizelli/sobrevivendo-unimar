@@ -207,11 +207,60 @@ namespace ProvaImpossivel.Tests
             }
         }
 
+        // ------------------------------------------------------------------ S2: colinha pega na hora, provas achadas
+
+        [Test]
+        public void ColinhaVistaBemDePertoEFlagranteNaHora()
+        {
+            Assert.IsTrue(CheatRules.ColinhaCaughtNow(true, Infracao.ColinhaNaManga, 1f, 0.9f, 0.7f, false));
+            Assert.IsFalse(CheatRules.ColinhaCaughtNow(true, Infracao.ColinhaNaManga, 0.8f, 0.9f, 0.7f, false), "ainda não percebeu (tempo de reação)");
+            Assert.IsFalse(CheatRules.ColinhaCaughtNow(true, Infracao.ColinhaNaManga, 1f, 0.6f, 0.7f, false), "de longe/de relance: só suspeita");
+            Assert.IsFalse(CheatRules.ColinhaCaughtNow(true, Infracao.ColinhaNaManga, 1f, 0.9f, 0.7f, true), "distraído não");
+            Assert.IsFalse(CheatRules.ColinhaCaughtNow(false, Infracao.ColinhaNaManga, 1f, 1.4f, 0.7f, false), "regra desligada");
+            Assert.IsFalse(CheatRules.ColinhaCaughtNow(true, Infracao.Celular, 1f, 1.4f, 0.7f, false), "só vale para a colinha");
+        }
+
+        [Test]
+        public void SoBilheteECelularTocandoDeixamProvaParaAchar()
+        {
+            Assert.IsTrue(CheatRules.LeavesEvidence(Infracao.Bilhete));
+            Assert.IsTrue(CheatRules.LeavesEvidence(Infracao.CelularTocando));
+            Assert.IsFalse(CheatRules.LeavesEvidence(Infracao.Garrafinha), "beber água é desculpa plausível: o gole não deixa prova");
+            Assert.IsFalse(CheatRules.LeavesEvidence(Infracao.Outra));
+            Assert.AreEqual(0.5f, CheatRules.FindChance(Infracao.Bilhete, 0.5f, 0.6f));
+            Assert.AreEqual(0.6f, CheatRules.FindChance(Infracao.CelularTocando, 0.5f, 0.6f));
+            Assert.AreEqual(0f, CheatRules.FindChance(Infracao.Correndo, 0.5f, 0.6f));
+        }
+
+        [Test]
+        public void BilhetePrefereQuestaoQueVoceNaoSabe()
+        {
+            var q = new QuestionState[5];
+            var known = new[] { true, false, true, false, true };
+            for (double roll = 0; roll <= 1.0; roll += 0.05)
+            {
+                int i = ExamSystem.RandomBlankPreferUnknown(q, known, roll);
+                Assert.IsFalse(known[i], "o bilhete caiu numa que ele já sabia (roll " + roll + ")");
+            }
+            // sem nenhuma desconhecida em branco: aí sim, qualquer em branco
+            q[1] = q[3] = QuestionState.Certa;
+            Assert.AreEqual(0, ExamSystem.RandomBlankPreferUnknown(q, known, 0.0));
+            // nada em branco: -1
+            for (int i = 0; i < q.Length; i++) q[i] = QuestionState.Certa;
+            Assert.AreEqual(-1, ExamSystem.RandomBlankPreferUnknown(q, known, 0.5));
+        }
+
         [Test]
         public void OrcamentoECargasDiminuemComADificuldade()
         {
+            // S2: o orçamento cobre a nota mínima em toda dificuldade (OrcamentoCobreONotaMinima). O Difícil não aperta
+            // mais o orçamento: aperta o professor (vê mais, reage mais rápido, pega a colinha de mais longe, acha mais provas)
             Assert.Greater(gm.facil.maxCheatAnswers, gm.normal.maxCheatAnswers);
-            Assert.Greater(gm.normal.maxCheatAnswers, gm.dificil.maxCheatAnswers);
+            Assert.GreaterOrEqual(gm.normal.maxCheatAnswers, gm.dificil.maxCheatAnswers);
+            Assert.Greater(gm.facil.colinhaCatchVisibility, gm.normal.colinhaCatchVisibility, "no Fácil ele só pega a colinha colado em você");
+            Assert.Greater(gm.normal.colinhaCatchVisibility, gm.dificil.colinhaCatchVisibility, "no Difícil ele pega a colinha de mais longe");
+            Assert.Less(gm.facil.bilheteFindChance, gm.dificil.bilheteFindChance);
+            Assert.Less(gm.facil.foneRingFindChance, gm.dificil.foneRingFindChance);
             Assert.GreaterOrEqual(gm.facil.colinhaCharges, gm.normal.colinhaCharges);
             Assert.GreaterOrEqual(gm.normal.colinhaCharges, gm.dificil.colinhaCharges);
             Assert.Less(gm.facil.colinhaDangerDistance, gm.dificil.colinhaDangerDistance, "no Difícil ele percebe de mais longe");
@@ -264,8 +313,10 @@ namespace ProvaImpossivel.Tests
                 foreach (Match m in Regex.Matches(File.ReadAllText(arquivo), @"\b([a-z])Key\b"))
                 {
                     string tecla = m.Groups[1].Value, nome = Path.GetFileName(arquivo);
+                    // S7: todas as teclas moram no Controls.cs (ponto único de entrada); lá cada uma é de uma ação só
                     if (tecla == "q" || tecla == "b" || tecla == "f" || tecla == "g")
-                        Assert.AreEqual("PlayerCheats.cs", nome, "a tecla " + tecla.ToUpper() + " das colas novas também é usada em " + nome);
+                        Assert.AreEqual("Controls.cs", nome, "a tecla " + tecla.ToUpper() + " das colas novas também é usada em " + nome);
+
                 }
             }
         }

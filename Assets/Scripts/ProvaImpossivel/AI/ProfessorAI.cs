@@ -91,7 +91,7 @@ namespace ProvaImpossivel
 
         void OnEnable() => Noise.Emitted += OnNoise;
         void OnDisable() => Noise.Emitted -= OnNoise;
-        void OnNoise(NoiseInfo n) => HearNoise(n.position, n.radius, n.amount, n.what);
+        void OnNoise(NoiseInfo n) => HearNoise(n.position, n.radius, n.amount, n.what, n.kind);
 
         void Start()
         {
@@ -124,7 +124,28 @@ namespace ProvaImpossivel
             turnTellAngle = s.turnTellAngle;
             graceCatchSuspicion = s.graceCatchSuspicion;
             practiceCatchSuspicion = s.practiceCatchSuspicion;
+            colinhaInstantCatch = s.colinhaInstantCatch;
+            colinhaCatchVisibility = s.colinhaCatchVisibility;
+            bilheteFindChance = s.bilheteFindChance;
+            foneRingFindChance = s.foneRingFindChance;
+            evidenceMemorySeconds = s.evidenceMemorySeconds;
+            evidence = Infracao.Nenhuma;
         }
+
+        [Header("Colas que ele pega na hora / provas que ele acha (S2; a dificuldade sobrescreve)")]
+        public bool colinhaInstantCatch = true;
+        public float colinhaCatchVisibility = 0.7f;
+        [Range(0, 1)] public float bilheteFindChance = 0.5f;
+        [Range(0, 1)] public float foneRingFindChance = 0.6f;
+        public float evidenceMemorySeconds = 20f;
+
+        /// <summary>
+        /// Prova que pode estar com o jogador por causa de um barulho que ele ouviu (papel do bilhete, celular vibrando).
+        /// Separada do <see cref="lastInfracao"/> de propósito: um "Dedurado" do Puxa-saco não apaga o que ele ouviu.
+        /// </summary>
+        public Infracao Evidence => Time.time <= evidenceUntil ? evidence : Infracao.Nenhuma;
+        Infracao evidence = Infracao.Nenhuma;
+        float evidenceUntil = -999f;
 
         [Tooltip("Desconfiado, ele ainda pode ser distraído? (a dificuldade sobrescreve)")]
         public bool distractWhileSuspicious;
@@ -250,10 +271,20 @@ namespace ProvaImpossivel
                 Suspicion -= (State == ProfState.Investigando ? decaimentoInvestigando : decaimento) * dt;
             }
             Suspicion = Mathf.Clamp(Suspicion, 0f, 100f);
+            MatchLog.Suspeita(Suspicion);
 
             if (InGrace)
             {
                 Suspicion = Mathf.Min(Suspicion, investigaEm - 1f); // durante a trégua ele não parte pra cima
+                return;
+            }
+
+            // S2: colinha vista bem de perto não espera a suspeita encher: é flagrante na hora
+            if (seesSomething && CheatRules.ColinhaCaughtNow(colinhaInstantCatch, p.CurrentInfracao, Notice, Visibility,
+                                                              colinhaCatchVisibility, State == ProfState.Distraido))
+            {
+                Suspicion = 100f;
+                StartFlagrante(p.CurrentSuspicionReason, Infracao.ColinhaNaManga);
                 return;
             }
 
@@ -341,13 +372,19 @@ namespace ProvaImpossivel
         /// Ouviu um barulho em <paramref name="position"/>. Ele não sabe QUEM fez: só olha/vai até o lugar.
         /// O que ele enxergar lá é que decide o resto.
         /// </summary>
-        public void HearNoise(Vector3 position, float radius, float amount, string what)
+        public void HearNoise(Vector3 position, float radius, float amount, string what, Infracao kind = Infracao.Outra)
         {
             if (Busy || OnPhone) return;
             Vector3 a = transform.position, b = position;
             a.y = b.y = 0f;
             if (Vector3.Distance(a, b) > radius) return;
             if (State == ProfState.Distraido && amount < 8f) return; // distraído ignora barulhinho
+            if (CheatRules.LeavesEvidence(kind))
+            {
+                // S2: ele ouviu o papel / o celular: se for investigar aquele lugar, pode achar a prova
+                evidence = kind;
+                evidenceUntil = Time.time + evidenceMemorySeconds;
+            }
 
             Suspicion = Mathf.Min(Mathf.Max(Suspicion, 0f) + amount * suspicionMultiplier, Mathf.Max(Suspicion, investigaEm + 5f));
             if (InGrace) Suspicion = Mathf.Min(Suspicion, investigaEm - 1f);
@@ -411,6 +448,7 @@ namespace ProvaImpossivel
                     SoundFX.Play(Sfx.Alerta);
                     break;
                 case ProfState.Investigando:
+                    MatchLog.Investigacoes++;
                     if (!silent) Say(Falas.Pick(Falas.ProfInvestigando));
                     GoTo(suspectPos, investigateSpeed);
                     repathTimer = 1f;
@@ -495,6 +533,7 @@ namespace ProvaImpossivel
             if (Suspicion < desconfiadoEm)
             {
                 Say(Falas.Pick(Falas.ProfAlarmeFalso));
+                SoundFX.PlayAt(Sfx.Hmpf, visual.HeadPosition); // S4: contrariado
                 Enter(ProfState.Desconfiado, silent: true);
                 return;
             }
@@ -522,8 +561,17 @@ namespace ProvaImpossivel
                 arrivedHandled = true;
                 decideAt = -1f;
 
+                var found = Evidence;
+                evidence = Infracao.Nenhuma; // procurou: achando ou não, a prova não vale de novo
                 if (Visibility > 0f && p.CurrentSuspicionRate > 0f)
                     StartFlagrante(p.CurrentSuspicionReason, p.CurrentInfracao);
+                else if (playerAtSpot && dPlayer < 4.5f && found != Infracao.Nenhuma
+                         && UnityEngine.Random.value < CheatRules.FindChance(found, bilheteFindChance, foneRingFindChance))
+                {
+                    // S2: ele vasculha a carteira e acha o bilhete / o celular que vibrou
+                    Suspicion = 100f;
+                    StartFlagrante(found == Infracao.Bilhete ? Falas.MotivoBilheteAchado : Falas.MotivoCelularAchado, found);
+                }
                 else if (playerAtSpot && dPlayer < 4.5f && FacePokerChallenge.I != null)
                 {
                     inChallenge = true;
@@ -533,6 +581,7 @@ namespace ProvaImpossivel
                 else
                 {
                     Say(Falas.Pick(Falas.ProfAlarmeFalso));
+                    SoundFX.PlayAt(Sfx.Hmpf, visual.HeadPosition); // S4: contrariado
                     Suspicion = Mathf.Min(Suspicion, 40f);
                     Enter(ProfState.Desconfiado, silent: true);
                 }
@@ -551,6 +600,7 @@ namespace ProvaImpossivel
             if (ok)
             {
                 Say(Falas.Pick(Falas.ProfCaraPaisagemOk));
+                SoundFX.PlayAt(Sfx.Hmpf, visual.HeadPosition); // S4: contrariado
                 Suspicion = Mathf.Max(0f, Suspicion - 45f);
                 Enter(ProfState.Tranquilo);
                 GoTo(NextPatrolPoint(), walkSpeed);
@@ -562,6 +612,7 @@ namespace ProvaImpossivel
             else Enter(ProfState.Desconfiado, silent: true);
         }
 
+        [Tooltip("S4: segundos em que a câmera fica virada para ele no flagrante")] public float flagranteFocusSeconds = 2.2f;
         [Tooltip("Treino: ameaça, mas nunca dá flagrante (a dificuldade do tutorial liga)")] public bool neverCatches;
         [Tooltip("Pego no ato na trégua: suspeita no lugar do flagrante (a dificuldade sobrescreve)")] public float graceCatchSuspicion = 30f;
         [Tooltip("Treino: suspeita depois do 'isso era flagrante' (a dificuldade sobrescreve)")] public float practiceCatchSuspicion = 40f;
@@ -585,6 +636,10 @@ namespace ProvaImpossivel
             Enter(ProfState.Flagrante, silent: true);
             flagApplied = false;
             Say(Falas.Pick(Falas.FlagranteDe(kind)), 3f); // fala própria de cada tipo de cola (Bloco 15)
+            // S4: o momento é DELE: "a-HÁ!" e a câmera vira para ele enquanto ele vem
+            SoundFX.PlayAt(Sfx.Aha, visual.HeadPosition);
+            var cam = Camera.main != null ? Camera.main.GetComponent<ThirdPersonCamera>() : null;
+            if (cam != null) cam.Focus(transform, flagranteFocusSeconds);
             GoTo(PlayerController.I.transform.position, chaseSpeed);
             PlayerController.I.Lock(true);
             lockedPlayer = true;

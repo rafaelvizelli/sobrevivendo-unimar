@@ -18,6 +18,7 @@ namespace ProvaImpossivel
         Bone = 128,          // boné virado para trás
         Topete = 256,
         Gravata = 512,       // gravata vermelha comprida
+        Sobrancelhas = 1024, // S4: sobrancelhas grossas que ATUAM (mexem com a expressão): o rosto do professor
     }
 
     /// <summary>
