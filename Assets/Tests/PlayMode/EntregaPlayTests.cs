@@ -90,6 +90,42 @@ namespace ProvaImpossivel.Tests
         }
 
         [UnityTest]
+        public IEnumerator FazendoAProvaAsMaosFicamEmCimaDaCarteiraEOLapisNaFolha()
+        {
+            yield return ComecaNormalIsolado();
+            yield return Wait(2f);
+            int conferidos = 0;
+            foreach (var e in Object.FindObjectsByType<ExtraStudent>(FindObjectsSortMode.None))
+            {
+                var v = e.visual;
+                var sk = v.Skin;
+                if (sk == null || !v.seated || !v.writing || v.sleeping) continue;
+                Assert.IsNotNull(sk.DeskPaper, e.name + ": não achou a folha da carteira");
+                conferidos++;
+                float tampo = sk.DeskTopY;
+                for (int s = 0; s < 2; s++)
+                {
+                    float y = sk.PalmPoint(s).y - tampo;
+                    Assert.Greater(y, 0.01f, e.name + ": a mão " + s + " entrou na carteira (" + y + " m)");
+                    Assert.Less(y, 0.15f, e.name + ": a mão " + s + " ficou no ar (" + y + " m)");
+                }
+                Vector3 d = sk.PalmPoint(1) - sk.DeskPaper.position;
+                d.y = 0f;
+                Assert.Less(d.magnitude, 0.2f, e.name + ": a mão que escreve está longe da folha (" + d.magnitude + " m)");
+                if (sk.DeskPencil != null)
+                {
+                    Assert.IsTrue(sk.PencilHeld, e.name + ": escrevendo sem o lápis na mão");
+                    var lap = sk.HandPencil;
+                    Vector3 ponta = lap.position - lap.up * lap.lossyScale.y;
+                    Assert.AreEqual(tampo, ponta.y, 0.015f, e.name + ": a ponta do lápis não está na folha");
+                    Assert.Less(Vector3.Distance(lap.position, sk.PalmPoint(1)), 0.12f, e.name + ": o lápis não está na mão");
+                    Assert.IsFalse(sk.DeskPencil.GetComponent<MeshRenderer>().enabled, e.name + ": lápis duplicado (o da mesa continua aparecendo)");
+                }
+            }
+            Assert.GreaterOrEqual(conferidos, 3, "poucos alunos escrevendo para conferir");
+        }
+
+        [UnityTest]
         public IEnumerator AndandoOsPesApontamParaAFrente()
         {
             yield return ComecaNormalIsolado();

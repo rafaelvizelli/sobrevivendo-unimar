@@ -192,6 +192,8 @@ namespace ProvaImpossivel
 
         void OnDestroy()
         {
+            ReturnPencil();
+            if (handPencil != null) Destroy(handPencil.gameObject);
             if (graph.IsValid()) graph.Destroy();
         }
 
@@ -508,7 +510,8 @@ namespace ProvaImpossivel
 
             // tronco: dormir debruçado, encostar na cadeira
             // andando, o tronco vai um pouco à frente (no clipe ele fica jogado para trás)
-            Bend(spine, sleepW * 16f - cv.leanBack * 0.5f + (animated ? walkW * (1f - seatW) * 4f : 0f));
+            // escrevendo, debruça um pouco sobre a prova
+            Bend(spine, sleepW * 16f - cv.leanBack * 0.5f + (animated ? walkW * (1f - seatW) * 4f : 0f) + writeW * (1f - sleepW) * WriteLean);
             Bend(chest, sleepW * 18f - cv.leanBack * 0.5f + phoneW * 6f + colaW * 10f);
 
             // cabeça: o mesmo olhar do boneco invisível (é ele que a visão do jogo usa); bebendo, joga a cabeça para trás.
@@ -532,6 +535,8 @@ namespace ProvaImpossivel
                 grip[s] = Mathf.Lerp(35f, 55f, crossW);
             }
             Arm(1, new Vector3(0.12f, -0.75f, 0.6f), new Vector3(-0.35f + Mathf.Sin(t * 7f) * 0.12f, -0.18f, 1f), writeW); // escrevendo
+            // com a folha achada na carteira: as duas mãos vão para cima do tampo (IK), a direita escreve na folha
+            DeskHands(SeatShift(), t);
             // celular escondido do lado da carteira, tela para cima (e o pescoço torto olhando para ele)
             Arm(1, new Vector3(0.5f, -0.82f, 0.18f), new Vector3(0.3f, 0.12f, 1f), phoneW);
             Palm(1, new Vector3(-0.25f, 1f, -0.15f), phoneW);
@@ -581,16 +586,15 @@ namespace ProvaImpossivel
             grip[1] = Mathf.Lerp(grip[1], 62f, throwW);
             grip[1] = Mathf.Lerp(grip[1], 45f, foneW);
             grip[1] = Mathf.Lerp(grip[1], 8f, raiseW);
+            // escrevendo: dedos em pinça no lápis (só quando o lápis está na mão)
+            if (pencilHeld) grip[1] = Mathf.Lerp(grip[1], 38f, writeW * (1f - phoneW) * (1f - drinkW) * (1f - foneW) * (1f - throwW) * (1f - raiseW));
             grip[0] = Mathf.Lerp(grip[0], 10f, colaW);
             Curl(0, grip[0]);
             Curl(1, grip[1]);
 
             // sentado: o quadril vai para a altura do assento e recua um pouco da carteira
-            if (seatW > 0f)
-            {
-                float hip = hips.position.y - transform.position.y;
-                model.localPosition = new Vector3(0f, seatW * (set.seatHipHeight - hip), -seatW * set.seatBack);
-            }
+            if (seatW > 0f) model.localPosition = SeatShiftLocal();
+            UpdatePencil();
 
             UpdateProp();
 
@@ -602,6 +606,170 @@ namespace ProvaImpossivel
                 sweat.rotation = Quaternion.LookRotation(transform.forward);
                 sweat.localScale = Vector3.one * (scale * 0.85f);
             }
+        }
+
+        // ------------------------------------------------------------------ carteira (mãos na prova)
+
+        /// <summary>Quanto o tronco debruça sobre a prova escrevendo (graus).</summary>
+        public const float WriteLean = 9f;
+        /// <summary>Altura do centro da palma acima do tampo (m): a espessura da mão. Abaixo disso a mão entra na mesa.</summary>
+        public const float PalmAboveDesk = 0.03f;
+
+        // folha e lápis da carteira de quem está sentado (objetos "Prova" e "Lapis" da cena), achados uma vez por assento
+        Transform deskPaper, deskPencil;
+        Vector3 deskSearchedAt;
+        bool deskSearched, pencilHeld;
+        Transform handPencil; // cópia do lápis que vai na mão
+
+        /// <summary>A folha da prova na carteira (null se não há ou se não está sentado).</summary>
+        public Transform DeskPaper => deskPaper;
+        public Transform DeskPencil => deskPencil;
+        /// <summary>true = o lápis da carteira está na mão (escrevendo).</summary>
+        public Transform HandPencil => pencilHeld ? handPencil : null;
+        public bool PencilHeld => pencilHeld;
+        /// <summary>Centro da palma (testes).</summary>
+        public Vector3 PalmPoint(int s) => PalmPos(s);
+        /// <summary>Altura do tampo da carteira (a face de cima da folha).</summary>
+        public float DeskTopY => deskPaper != null ? deskPaper.position.y + deskPaper.lossyScale.y * 0.5f : 0f;
+
+        /// <summary>Deslocamento local do modelo sentado (quadril na altura do assento, um pouco para trás).</summary>
+        Vector3 SeatShiftLocal()
+        {
+            float hip = hips.position.y - transform.position.y;
+            return new Vector3(0f, seatW * (set.seatHipHeight - hip), -seatW * set.seatBack);
+        }
+
+        /// <summary>
+        /// O mesmo deslocamento em mundo. O modelo só desce para o assento DEPOIS das poses dos braços, então um alvo
+        /// em mundo (a folha) tem de ser descontado dele, senão a mão desce junto e atravessa o tampo.
+        /// </summary>
+        Vector3 SeatShift() => seatW > 0f ? transform.TransformVector(SeatShiftLocal()) : Vector3.zero;
+
+        Vector3 FlatForward()
+        {
+            Vector3 f = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            return f.sqrMagnitude > 1e-6f ? f.normalized : Vector3.forward;
+        }
+
+        /// <summary>Acha a folha (e o lápis) na carteira da frente. Refeito só quando o personagem senta em outro lugar.</summary>
+        void FindDesk()
+        {
+            if (deskSearched && (transform.position - deskSearchedAt).sqrMagnitude < 0.09f) return;
+            ReturnPencil();
+            deskSearched = true;
+            deskSearchedAt = transform.position;
+            deskPaper = deskPencil = null;
+            Vector3 f = FlatForward();
+            float best = 1.1f;
+            var all = FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None);
+            foreach (var r in all)
+            {
+                if (r.name != "Prova") continue;
+                Vector3 d = Vector3.ProjectOnPlane(r.transform.position - transform.position, Vector3.up);
+                if (Vector3.Dot(d, f) < 0.2f) continue; // só a da frente
+                if (d.magnitude < best) { best = d.magnitude; deskPaper = r.transform; }
+            }
+            if (deskPaper == null) return;
+            float bp = 0.45f;
+            foreach (var r in all)
+            {
+                if (r.name != "Lapis") continue;
+                float d = Vector3.Distance(r.transform.position, deskPaper.position);
+                if (d < bp) { bp = d; deskPencil = r.transform; }
+            }
+        }
+
+        /// <summary>Puxa o alvo da mão para perto do ombro (na mesma altura) se ele estiver além do braço.</summary>
+        Vector3 Reachable(int s, Vector3 target)
+        {
+            Vector3 sh = upperArm[s].position;
+            float reach = (Vector3.Distance(sh, lowerArm[s].position) + Vector3.Distance(lowerArm[s].position, hand[s].position)) * 0.95f;
+            Vector3 d = target - sh;
+            if (d.magnitude <= reach) return target;
+            float v = d.y;
+            if (Mathf.Abs(v) >= reach) return target;
+            Vector3 h = new Vector3(d.x, 0f, d.z);
+            return sh + h.normalized * Mathf.Sqrt(reach * reach - v * v) + Vector3.up * v;
+        }
+
+        /// <summary>
+        /// Mãos sobre a carteira: a esquerda segura a folha pelo canto, a direita fica do lado dela e, escrevendo, vai
+        /// para a folha com um vaivém pequeno. O centro da palma fica sempre acima do tampo.
+        /// </summary>
+        void DeskHands(Vector3 shift, float t)
+        {
+            float w = seatW * (1f - sleepW) * (1f - crossW);
+            if (seatW > 0.5f) FindDesk();
+            else if (seatW < 0.05f) { ReturnPencil(); deskSearched = false; deskPaper = deskPencil = null; }
+            if (w <= 0.001f || deskPaper == null) return;
+            Vector3 up = Vector3.up, f = FlatForward(), r = Vector3.Cross(up, f);
+            Vector3 p = deskPaper.position;
+            float y = DeskTopY + PalmAboveDesk;
+            for (int s = 0; s < 2; s++)
+            {
+                float m = s == 0 ? -1f : 1f;
+                Vector3 alvo = p - f * 0.12f + r * (m * 0.15f); // canto de baixo da folha
+                if (s == 1)
+                {
+                    Vector3 escreve = p - f * 0.04f + r * (0.03f + Mathf.Sin(t * 6.5f) * 0.025f) + f * (Mathf.Sin(t * 2.3f) * 0.02f);
+                    alvo = Vector3.Lerp(alvo, escreve, writeW);
+                }
+                alvo.y = y;
+                alvo = Reachable(s, alvo - shift);
+                Vector3 dedos = f - r * (m * (s == 1 ? 0.6f * writeW : 0.3f)) - up * 0.2f;
+                Vector3 palma = s == 1 ? Vector3.Lerp(new Vector3(0f, -1f, 0f), new Vector3(-0.6f, -1f, 0f), writeW) : new Vector3(0f, -1f, 0f);
+                // a palma não fica no osso da mão, e girar a mão muda onde ela fica: corrige tudo junto
+                for (int i = 0; i < 3; i++)
+                {
+                    Reach(s, alvo - (PalmPos(s) - hand[s].position), new Vector3(1f, -0.7f, -0.3f), w);
+                    AimFingers(s, dedos, w);
+                    Palm(s, palma, w);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Escrevendo: o lápis da carteira some da mesa e aparece na mão, com a ponta na folha; parou de escrever, volta.
+        /// O lápis da cena é estático (static batching: movê-lo não muda o desenho), por isso a mão usa uma cópia própria.
+        /// </summary>
+        void UpdatePencil()
+        {
+            bool want = deskPencil != null && writeW > 0.5f && seatW > 0.9f && sleepW < 0.1f && crossW < 0.1f
+                        && phoneW < 0.1f && drinkW < 0.1f && foneW < 0.1f && throwW < 0.1f && raiseW < 0.1f;
+            if (!want) { ReturnPencil(); return; }
+            var deskR = deskPencil.GetComponent<MeshRenderer>();
+            if (handPencil == null)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                go.name = "Lapis na Mao";
+                Destroy(go.GetComponent<Collider>());
+                if (deskR != null) go.GetComponent<MeshRenderer>().sharedMaterial = deskR.sharedMaterial;
+                handPencil = go.transform;
+            }
+            if (!pencilHeld)
+            {
+                pencilHeld = true;
+                handPencil.gameObject.SetActive(true);
+                if (deskR != null) deskR.enabled = false;
+            }
+            handPencil.localScale = deskPencil.lossyScale;
+            Vector3 f = FlatForward();
+            Vector3 pega = PalmPos(1) + FingerDir(1) * 0.6f; // entre o polegar e o indicador
+            Vector3 ponta = pega + f * 0.03f;
+            ponta.y = DeskTopY + 0.003f;
+            Vector3 eixo = pega + Vector3.up * 0.05f - f * 0.03f - ponta;
+            if (eixo.sqrMagnitude < 1e-6f) eixo = Vector3.up;
+            eixo.Normalize();
+            float meio = deskPencil.lossyScale.y; // cilindro: altura 2 × escala, metade = escala
+            handPencil.SetPositionAndRotation(ponta + eixo * meio, Quaternion.FromToRotation(Vector3.up, eixo));
+        }
+
+        void ReturnPencil()
+        {
+            if (!pencilHeld) return;
+            pencilHeld = false;
+            if (handPencil != null) handPencil.gameObject.SetActive(false);
+            if (deskPencil != null && deskPencil.TryGetComponent<MeshRenderer>(out var r)) r.enabled = true;
         }
 
         // ------------------------------------------------------------------ objeto na mão

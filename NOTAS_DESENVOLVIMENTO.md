@@ -1024,6 +1024,27 @@ estão **nos clipes do pacote** (também num modelo limpo, sem nada do jogo), me
 - Continua do clipe: o calcanhar sobe alto atrás em alguns passos.
 - **Validar jogando:** olhar o professor andando de trás e de frente (pontas dos pés para a frente) e correr com o
   jogador vendo os pés de lado.
+- Usuário (24/11): "os pés melhoraram bastante".
+
+### Mãos na prova — versão 1.0.5 (24/11, noite)
+Pedido: "a mão dos bonecos enquanto fazem a prova estão meio que atravessando a mesa e não parece que estão fazendo a
+prova". Captura `diag_prova` (ferramenta do trailer: figurante escrevendo de lado, de frente e de cima): as mãos
+paravam na borda da carteira com os dedos dentro do tampo, longe da folha, e o lápis ficava solto na mesa.
+- Causas: a pose sentada/escrevendo era só de direções fixas (não sabia onde está o tampo); e o modelo desce para o
+  assento DEPOIS das poses dos braços, levando as mãos junto para dentro da mesa.
+- Correção (`Visual/CharacterModelSkin.cs`): ao sentar, cada personagem acha a folha da SUA carteira (objeto "Prova"
+  da cena, o mais perto na frente) e o lápis ao lado dela ("Lapis"). Com a folha achada, IK de braço põe o centro da
+  palma 3 cm acima do tampo (`PalmAboveDesk`), descontando o deslocamento do assento (`SeatShift`): a mão esquerda
+  segura o canto da folha e a direita escreve na folha com um vaivém pequeno; escrevendo, o tronco debruça 9°
+  (`WriteLean`). O lápis da cena é estático (static batching: movê-lo não muda o desenho), então ele é escondido e
+  uma cópia vai para a mão, com a ponta na folha e os dedos em pinça; parou de escrever (celular, cola, garrafinha,
+  dormir, braços cruzados...), o lápis volta para a mesa. Sem folha na frente, fica a pose antiga. A cena não mudou.
+- Teste PlayMode `FazendoAProvaAsMaosFicamEmCimaDaCarteiraEOLapisNaFolha`: todo figurante escrevendo — as duas
+  palmas entre 1 e 15 cm acima do tampo, a mão que escreve a menos de 20 cm da folha, lápis na mão com a ponta na
+  folha e o lápis da mesa escondido (sem lápis duplicado).
+- Conferido em captura: figurante (de lado, de frente e de cima) e o Nerd.
+- **Validar jogando:** olhar os colegas fazendo a prova (lápis na mão, mão na folha) e, sentado, abrir a prova (E)
+  e ver a mão do jogador.
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.

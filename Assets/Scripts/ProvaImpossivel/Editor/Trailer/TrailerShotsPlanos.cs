@@ -49,6 +49,7 @@ namespace ProvaImpossivel.EditorTools
             ("diag_jogador", DiagJogador),
             ("diag_nerd", DiagNerd),
             ("diag_lousa", DiagLousa),
+            ("diag_prova", DiagProva),
             ("diag_comparar_tras", () => DiagComparar("diag_comparar_tras", 0)),
             ("diag_comparar_lado", () => DiagComparar("diag_comparar_lado", 1)),
             ("diag_comparar_frente", () => DiagComparar("diag_comparar_frente", 2)),
@@ -157,6 +158,27 @@ namespace ProvaImpossivel.EditorTools
             {
                 if (t < 1f) Pose(centro - f * 3.2f + Vector3.up * 0.1f, centro, 60f);
                 else Pose(olho + Vector3.up * 0.1f, centro, 60f);
+            });
+        }
+
+        /// <summary>Diagnóstico das mãos na prova: um figurante escrevendo, visto de lado, de frente e de cima (1 s cada).</summary>
+        static IEnumerator DiagProva()
+        {
+            StopTpc(true);
+            SetDof(false);
+            ExtraStudent aluno = null;
+            foreach (var e in Object.FindObjectsByType<ExtraStudent>(FindObjectsSortMode.None))
+                if (e.visual.writing && e.visual.seated && (aluno == null || Vector3.Distance(e.transform.position, Player.transform.position) < Vector3.Distance(aluno.transform.position, Player.transform.position))) aluno = e;
+            var v = aluno.visual;
+            var sk = v.Skin;
+            Debug.Log($"[DiagProva] {aluno.name}: folha {(sk.DeskPaper ? sk.DeskPaper.name : "-")} lápis {(sk.DeskPencil ? sk.DeskPencil.name + " a " + Vector3.Distance(sk.DeskPencil.position, sk.DeskPaper.position).ToString("F2") : "-")} na mão {sk.PencilHeld} escrevendo {v.writing} tampo {sk.DeskTopY:F3}");
+            foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None)) if (r.name.StartsWith("Lap") || r.name.StartsWith("Prova")) if (Vector3.Distance(r.transform.position, aluno.transform.position) < 1.5f) Debug.Log($"[DiagProva] perto: {r.name} {r.transform.position} pai {r.transform.parent?.name}");
+            yield return Capture("diag_prova", 3f, (t, p) =>
+            {
+                var alvo = v.HeadPosition - Vector3.up * 0.45f + Facing(v) * 0.3f;
+                if (t < 1f) Pose(Rel(v, 0.25f, 1.25f, -0.3f), alvo, 50f);
+                else if (t < 2f) Pose(Rel(v, 1.7f, 0.5f, 0.1f), alvo, 45f);
+                else Pose(Rel(v, 0.6f, 0.6f, 0.8f), alvo, 45f);
             });
         }
 
