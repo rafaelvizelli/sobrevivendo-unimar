@@ -21,7 +21,7 @@ namespace ProvaImpossivel.Tests
         [Test]
         public void VersaoDeEntregaNoRodapeDoMenu()
         {
-            Assert.AreEqual("1.0.2", PlayerSettings.bundleVersion, "polimento visual de 24/11");
+            Assert.AreEqual("1.0.3", PlayerSettings.bundleVersion, "correção da pelve na caminhada (24/11)");
             string r = Falas.MenuRodape("1.0.0");
             StringAssert.StartsWith("v1.0.0", r);
             StringAssert.Contains("Estúdio Fundão", r);
@@ -36,6 +36,18 @@ namespace ProvaImpossivel.Tests
             float prof = CharacterModelSkin.PlaybackRate(1.1f, CharacterModelSkin.WalkStride, 1.15f, 0.5f, 2.2f);
             Assert.Less(prof, aluno, "maior = passos mais lentos na mesma velocidade");
             Assert.AreEqual(2.2f, CharacterModelSkin.PlaybackRate(99f, CharacterModelSkin.WalkStride, 1f, 0.5f, 2.2f), "limite");
+        }
+
+        [Test]
+        public void GiroDaPelveMedidoPelaLinhaDasCoxas()
+        {
+            Vector3 r = Vector3.right, u = Vector3.up;
+            Assert.AreEqual(0f, CharacterModelSkin.PelvisYaw(new Vector3(-0.1f, 1f, 0f), new Vector3(0.1f, 1f, 0f), r, u), 1e-3f, "reta");
+            // coxa direita 27° para trás (girando em torno do "cima")
+            var dir = Quaternion.AngleAxis(27f, u) * Vector3.right * 0.1f;
+            Assert.AreEqual(27f, CharacterModelSkin.PelvisYaw(-dir, dir, r, u), 0.01f);
+            var outro = Quaternion.AngleAxis(-27f, u) * Vector3.right * 0.1f;
+            Assert.AreEqual(-27f, CharacterModelSkin.PelvisYaw(-outro, outro, r, u), 0.01f, "girada para o outro lado");
         }
 
         [Test]

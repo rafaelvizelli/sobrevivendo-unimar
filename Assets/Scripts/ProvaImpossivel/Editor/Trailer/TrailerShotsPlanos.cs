@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Playables;
 using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
 using static ProvaImpossivel.EditorTools.Rig;
@@ -48,7 +49,100 @@ namespace ProvaImpossivel.EditorTools
             ("diag_jogador", DiagJogador),
             ("diag_nerd", DiagNerd),
             ("diag_lousa", DiagLousa),
+            ("diag_comparar_tras", () => DiagComparar("diag_comparar_tras", 0)),
+            ("diag_comparar_lado", () => DiagComparar("diag_comparar_lado", 1)),
+            ("diag_comparar_frente", () => DiagComparar("diag_comparar_frente", 2)),
         };
+
+        /// <summary>
+        /// Diagnóstico: o MESMO modelo do professor, limpo (só o clipe Walk do pacote, sem nenhum código nosso), andando
+        /// ao lado do professor do jogo. Filma e mede a postura dos dois a cada quadro (log [Postura]).
+        /// vista: 0 = de trás, 1 = de lado, 2 = de frente.
+        /// </summary>
+        static IEnumerator DiagComparar(string id, int vista)
+        {
+            StopTpc(true);
+            SetDof(false);
+            var set = Resources.Load<CharacterModelSet>("Personagens/ModelosPersonagens");
+            var prefab = set.Pick((CharacterLook)1, 0, out var entry);
+            var f = Facing(Jv);
+            var r = Vector3.Cross(Vector3.up, f);
+            var corredor = OnNav(Player.transform.position + r * 0.9f);
+            var de = OnNav(corredor + f * 3.5f);
+            var ate = OnNav(corredor - f * 2.5f);
+            var dir = (ate - de); dir.y = 0f; dir.Normalize();
+            Prof.transform.position = de;
+            Prof.transform.rotation = Quaternion.LookRotation(dir);
+            Prof.WalkTo(ate, false);
+
+            // boneco limpo, 1,1 m ao lado (à direita de quem anda), mesma escala, mesma velocidade
+            var lado = Vector3.Cross(Vector3.up, dir);
+            var puro = Object.Instantiate(prefab);
+            puro.name = "Modelo PURO (diagnostico)";
+            puro.transform.localScale = Vector3.one * entry.scale;
+            puro.transform.SetPositionAndRotation(de + lado * 1.1f, Quaternion.LookRotation(dir));
+            foreach (var c in puro.GetComponentsInChildren<Collider>()) Object.Destroy(c);
+            var an = puro.GetComponent<Animator>();
+            if (an == null) an = puro.AddComponent<Animator>();
+            an.applyRootMotion = false;
+            var graph = UnityEngine.Playables.PlayableGraph.Create("diag_puro");
+            var clip = UnityEngine.Animations.AnimationClipPlayable.Create(graph, set.walk);
+            clip.SetApplyFootIK(false);
+            var outp = UnityEngine.Animations.AnimationPlayableOutput.Create(graph, "puro", an);
+            outp.SetSourcePlayable(clip);
+            graph.Play();
+
+            var pa = Prof.visual.Skin.Model.GetComponent<Animator>();
+            var stats = new Dictionary<string, List<float>>();
+            void Add(string k, float v) { if (!stats.TryGetValue(k, out var l)) stats[k] = l = new List<float>(); l.Add(v); }
+            void Medir(string quem, Animator a, Transform root)
+            {
+                var hips = a.GetBoneTransform(HumanBodyBones.Hips).position;
+                var neck = a.GetBoneTransform(HumanBodyBones.Neck).position;
+                var lL = a.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position;
+                var rL = a.GetBoneTransform(HumanBodyBones.RightUpperLeg).position;
+                var lA = a.GetBoneTransform(HumanBodyBones.LeftUpperArm).position;
+                var rA = a.GetBoneTransform(HumanBodyBones.RightUpperArm).position;
+                var lF = a.GetBoneTransform(HumanBodyBones.LeftFoot).position;
+                var rF = a.GetBoneTransform(HumanBodyBones.RightFoot).position;
+                Vector3 R = root.right, F = root.forward, U = Vector3.up;
+                Vector3 coluna = neck - hips;
+                Add(quem + " inclinacao_lateral", Mathf.Atan2(Vector3.Dot(coluna, R), Vector3.Dot(coluna, U)) * Mathf.Rad2Deg);
+                Add(quem + " inclinacao_frente", Mathf.Atan2(Vector3.Dot(coluna, F), Vector3.Dot(coluna, U)) * Mathf.Rad2Deg);
+                Vector3 pelve = rL - lL, ombro = rA - lA;
+                Add(quem + " giro_pelve", Vector3.SignedAngle(R, Vector3.ProjectOnPlane(pelve, U), U));
+                Add(quem + " giro_ombros", Vector3.SignedAngle(R, Vector3.ProjectOnPlane(ombro, U), U));
+                Add(quem + " ombro_torto", Mathf.Atan2(Vector3.Dot(ombro, U), Vector3.Dot(ombro, R)) * Mathf.Rad2Deg);
+                Add(quem + " pe_esq_lado", Vector3.Dot(lF - hips, R) / root.lossyScale.x);
+                Add(quem + " pe_dir_lado", Vector3.Dot(rF - hips, R) / root.lossyScale.x);
+                Vector3 v = root == Prof.transform ? Prof.GetComponent<NavMeshAgent>().velocity : dir;
+                v.y = 0f;
+                if (v.sqrMagnitude > 0.05f) Add(quem + " corpo_vs_movimento", Vector3.SignedAngle(v, F, U));
+            }
+
+            float velocidade = 1.1f;
+            yield return Capture(id, 4f, (t, p) =>
+            {
+                float dt = 1f / TrailerShots.FPS;
+                clip.SetSpeed(CharacterModelSkin.PlaybackRate(velocidade, CharacterModelSkin.WalkStride, entry.scale, 0.5f, 2.2f));
+                puro.transform.position += dir * velocidade * dt;
+                if (t > 0.6f) // depois que os dois entraram na caminhada
+                {
+                    Medir("JOGO", pa, Prof.transform);
+                    Medir("PURO", an, puro.transform);
+                }
+                var meio = (Prof.transform.position + puro.transform.position) * 0.5f + Vector3.up * 0.95f;
+                Vector3 cam = vista == 0 ? meio - dir * 3.4f : vista == 1 ? meio - lado * 4.2f : meio + dir * 3.4f;
+                Pose(cam + Vector3.up * 0.15f, meio, 50f);
+            });
+            foreach (var kv in stats.OrderBy(k => k.Key.Substring(5)).ThenBy(k => k.Key))
+            {
+                var l = kv.Value;
+                Debug.Log($"[Postura] {id} {kv.Key,-32} média {l.Average(),7:F2}  min {l.Min(),7:F2}  max {l.Max(),7:F2}");
+            }
+            graph.Destroy();
+            Object.Destroy(puro);
+        }
 
         /// <summary>Diagnóstico da lousa: de frente (perto) e de onde o jogador senta (longe).</summary>
         static IEnumerator DiagLousa()

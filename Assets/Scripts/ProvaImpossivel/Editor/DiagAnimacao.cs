@@ -42,6 +42,39 @@ namespace ProvaImpossivel.EditorTools
                           + $"velocidade implícita ≈ {2f * range / c.length:F2} m/s (escala 1)");
             }
             Object.DestroyImmediate(go);
+            Pelve();
+        }
+
+        /// <summary>Giro da pelve (linha entre as coxas) e dos ombros, em graus, na pose de repouso e em cada clipe.</summary>
+        public static void Pelve()
+        {
+            var clips = AssetDatabase.LoadAllAssetsAtPath("Assets/Art/Personagens/Quaternius/Animacoes_Homem.fbx").OfType<AnimationClip>().ToList();
+            foreach (var modelo in new[] { "Homem_Suit", "Homem_Casual" })
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Personagens/Quaternius/" + modelo + ".fbx");
+                var go = Object.Instantiate(prefab);
+                var an = go.GetComponent<Animator>();
+                string Medir()
+                {
+                    Vector3 pel = an.GetBoneTransform(HumanBodyBones.RightUpperLeg).position - an.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position;
+                    Vector3 omb = an.GetBoneTransform(HumanBodyBones.RightUpperArm).position - an.GetBoneTransform(HumanBodyBones.LeftUpperArm).position;
+                    float p = Vector3.SignedAngle(Vector3.right, Vector3.ProjectOnPlane(pel, Vector3.up), Vector3.up);
+                    float o = Vector3.SignedAngle(Vector3.right, Vector3.ProjectOnPlane(omb, Vector3.up), Vector3.up);
+                    return $"pelve {p,7:F1}°  ombros {o,7:F1}°";
+                }
+                Debug.Log($"[Pelve] {modelo} repouso (sem animação): {Medir()}");
+                foreach (var nome in new[] { "Idle", "Walk", "Run", "Idle_Neutral" })
+                {
+                    var c = clips.FirstOrDefault(x => x.name == nome);
+                    if (c == null) continue;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        c.SampleAnimation(go, c.length * i / 4f);
+                        Debug.Log($"[Pelve] {modelo} {nome} t={i / 4f:F2}: {Medir()}");
+                    }
+                }
+                Object.DestroyImmediate(go);
+            }
         }
     }
 }

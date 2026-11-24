@@ -53,6 +53,41 @@ namespace ProvaImpossivel.Tests
             Assert.Less(skin.RunWeight, 0.05f, "andando devagar não toca a corrida");
         }
 
+        /// <summary>
+        /// Causa raiz do "andar torto": os clipes Walk/Run giram a pelve ~27° (constante). Andando, a pelve final tem que
+        /// ficar alinhada com o corpo, e os ombros não podem ter sido arrastados junto.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator AndandoAPelveFicaAlinhadaComOCorpo()
+        {
+            yield return ComecaNormalIsolado();
+            var prof = ProfessorAI.I;
+            var skin = prof.visual.Skin;
+            var an = skin.Model.GetComponent<Animator>();
+            prof.WalkTo(prof.transform.position + prof.transform.forward * 4f, false);
+            float piorPelve = 0f, maiorCorrecao = 0f, piorOmbro = 0f;
+            int quadros = 0;
+            float fim = Time.time + 2f;
+            while (Time.time < fim)
+            {
+                yield return null; // aqui os ossos ainda têm o resultado final do quadro anterior (animação + correção)
+                if (skin.WalkWeight < 0.9f) continue;
+                quadros++;
+                var t = prof.transform;
+                float pelve = CharacterModelSkin.PelvisYaw(an.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position,
+                                                           an.GetBoneTransform(HumanBodyBones.RightUpperLeg).position, t.right, t.up);
+                float ombro = CharacterModelSkin.PelvisYaw(an.GetBoneTransform(HumanBodyBones.LeftUpperArm).position,
+                                                           an.GetBoneTransform(HumanBodyBones.RightUpperArm).position, t.right, t.up);
+                piorPelve = Mathf.Max(piorPelve, Mathf.Abs(pelve));
+                piorOmbro = Mathf.Max(piorOmbro, Mathf.Abs(ombro));
+                maiorCorrecao = Mathf.Max(maiorCorrecao, Mathf.Abs(skin.PelvisCorrection));
+            }
+            Assert.Greater(quadros, 10, "a caminhada não chegou a entrar");
+            Assert.Greater(maiorCorrecao, 15f, "o clipe gira a pelve (~27°): a correção tinha que estar agindo");
+            Assert.Less(piorPelve, 3f, "a pelve ficou girada em relação ao corpo: " + piorPelve + "°");
+            Assert.Less(piorOmbro, 15f, "os ombros foram arrastados pela correção: " + piorOmbro + "°");
+        }
+
         [UnityTest]
         public IEnumerator ProfessorParadoContinuaCruzandoOsBracos()
         {

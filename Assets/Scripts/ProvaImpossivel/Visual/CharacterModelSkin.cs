@@ -365,8 +365,30 @@ namespace ProvaImpossivel
             center = cap + axis * (0.14f * k);
         }
 
+        /// <summary>Giro da pelve (graus, em torno do "cima" do personagem) que foi desfeito no último quadro. Testes.</summary>
+        public float PelvisCorrection { get; private set; }
+
+        /// <summary>Giro da pelve em relação ao corpo: ângulo entre a linha das coxas e a direita do personagem. Puro.</summary>
+        public static float PelvisYaw(Vector3 leftHip, Vector3 rightHip, Vector3 right, Vector3 up) =>
+            Vector3.SignedAngle(right, Vector3.ProjectOnPlane(rightHip - leftHip, up), up);
+
+        /// <summary>
+        /// Alinha a pelve com o corpo: gira o quadril (e com ele as pernas) de volta e devolve o mesmo giro ao abdômen, para
+        /// o tronco, os braços e a cabeça ficarem exatamente onde a animação os pôs.
+        /// </summary>
+        void AlignPelvis()
+        {
+            Vector3 up = transform.up;
+            float ang = PelvisYaw(upperLeg[0].position, upperLeg[1].position, transform.right, up);
+            PelvisCorrection = Mathf.Abs(ang) < 0.5f || Mathf.Abs(ang) > 60f ? 0f : ang; // >60°: algo estranho, não mexe
+            if (PelvisCorrection == 0f) return;
+            var q = Quaternion.AngleAxis(-PelvisCorrection, up);
+            hips.rotation = q * hips.rotation;
+            spine.rotation = Quaternion.Inverse(q) * spine.rotation;
+        }
+
         /// <summary>Folga mínima de cada pé para o seu lado, a partir do meio do quadril (m, modelo em escala 1).</summary>
-        public const float MinFootOut = 0.09f; // 0,06 deixava o andar de passarela do clipe (o pé ia 16 cm para o outro lado)
+        public const float MinFootOut = 0.06f; // com a pelve alinhada (AlignPelvis), a folga original basta
 
         /// <summary>Gira a coxa para fora (em torno do eixo da frente) até o pé ficar do seu lado do quadril.</summary>
         void KeepFootOut(int s, float w)
@@ -398,6 +420,9 @@ namespace ProvaImpossivel
                 for (int i = 0; i < poseBones.Length; i++) poseBones[i].localRotation = restPose[i];
             for (int i = 0; i < fingerBones.Length; i++) fingerBones[i].localRotation = fingerRest[i];
             model.localPosition = Vector3.zero;
+            // os clipes Walk/Run do pacote giram a pelve ~27° para o lado (constante, medido em Editor/DiagAnimacao.Pelve):
+            // as pernas andavam na diagonal e o tronco ficava torcido. Desfaz o giro medido agora, antes das poses.
+            if (animated) AlignPelvis();
 
             // de pé sem animação: braços para baixo, respiração e (andando) passos por código
             if (!animated)
