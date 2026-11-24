@@ -477,7 +477,7 @@ namespace ProvaImpossivel.Tests
             var hud = HUD.I;
             Assert.IsTrue(hud.CheatsPanel.gameObject.activeInHierarchy, "o painel das colas não apareceu");
             // Bloco 16: uma etiqueta de tecla por cola, na ordem do painel
-            CollectionAssert.AreEqual(new[] { "Q", "G", "B", "F" }, hud.CheatKeys());
+            CollectionAssert.AreEqual(new[] { "Q", "G", "B", "F", "V" }, hud.CheatKeys(), "V = borracha (favor com mira, 1.1.2)");
             Assert.IsTrue(hud.CheatsTextFits(), "o texto não cabe no painel");
 
             Rect R(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y); }

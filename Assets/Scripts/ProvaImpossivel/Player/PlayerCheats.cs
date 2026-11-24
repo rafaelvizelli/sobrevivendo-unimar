@@ -831,7 +831,11 @@ namespace ProvaImpossivel
                        : fone.Waiting ? f + " Esperando resposta... " + Mathf.CeilToInt(fone.SecondsLeft) + " s"
                        : !player.HasPhone ? f + " Fone: sem celular"
                        : f + " Fone ×" + FoneCharges;
-            return head + "\n" + colinha + "\n" + garrafa + "\n" + bil + "\n" + fon;
+            // borracha com mira (favor): V / D-pad; o número é o de favores que sobram
+            string v = Controls.Tag(Acao.Borracha);
+            int fav = GameManager.I != null ? GameManager.I.Favors : 0;
+            string bor = fav > 0 ? v + " Borracha ×" + fav + " (favor)" : v + " Borracha: sem favores";
+            return head + "\n" + colinha + "\n" + garrafa + "\n" + bil + "\n" + fon + "\n" + bor;
         }
     }
 }

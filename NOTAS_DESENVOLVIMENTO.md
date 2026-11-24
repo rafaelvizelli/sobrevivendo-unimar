@@ -1178,6 +1178,18 @@ O usuário estranhou a borracha no B ("mas B não é o botão da bolinha"). Agor
   EditMode (acabamento, controles, personagens): 43/43.
 - A suíte completa da 1.1.0 foi interrompida (mudei o código durante ela); roda inteira na 1.1.1.
 
+### Tecla V no painel das colas — versão 1.1.2 (24/11, noite)
+Usuário: "não está aparecendo a tecla V como nova utilidade, escrito para o player ver (mas a funcionalidade está bem
+legal)". O painel COLAS (direita, embaixo da NOTA) listava só Q/G/B/F.
+- `PlayerCheats.PanelText` ganhou a 5ª linha: "[V] Borracha ×N (favor)" (N = favores que sobram; no controle a
+  etiqueta é "D-pad") ou "Borracha: sem favores" (em cinza, como "confiscada").
+- `HUD.SetCheats`: a folha agora cresce com o número de linhas (era fixa para 4); o pivô é em cima, então cresce para
+  baixo, sem encostar na NOTA.
+- Testes: `PainelDasColasApareceSemEncostarNaNota` agora espera Q, G, B, F, **V** (o painel mudou de verdade) e continua
+  exigindo que tudo caiba e não cubra a NOTA; `IdentidadeVisualPlayTests` (nenhum painel da HUD se sobrepõe nem sai da
+  tela) passou com a folha maior. 40/40 (colas, identidade visual, interface, entrega).
+- A suíte completa da 1.1.1 foi interrompida para esta mudança; roda inteira na 1.1.2.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

@@ -426,10 +426,15 @@ namespace ProvaImpossivel
                 row.key.gameObject.SetActive(key != null);
                 if (key != null) row.keyText.text = key;
                 row.text.text = rest;
-                row.text.color = rest.Contains("!") ? UITheme.StampRed : rest.Contains("confiscad") || rest.Contains("sem celular") ? UITheme.InkFaint : UITheme.Ink;
+                row.text.color = rest.Contains("!") ? UITheme.StampRed
+                               : rest.Contains("confiscad") || rest.Contains("sem celular") || rest.Contains("sem favores") ? UITheme.InkFaint : UITheme.Ink;
                 row.rect.gameObject.SetActive(true);
             }
             for (int i = n; i < cheatRows.Count; i++) cheatRows[i].rect.gameObject.SetActive(false);
+            // a folha cresce com o número de linhas (eram 4 colas; a borracha do V é a 5ª)
+            var sd = cheatsBox.rectTransform.sizeDelta;
+            float h = 44f + CheatRowH * Mathf.Max(4, n) + 10f;
+            if (!Mathf.Approximately(sd.y, h)) cheatsBox.rectTransform.sizeDelta = new Vector2(sd.x, h);
         }
 
         CheatRow CheatRowAt(int i)
