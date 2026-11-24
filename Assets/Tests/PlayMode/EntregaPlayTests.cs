@@ -24,6 +24,50 @@ namespace ProvaImpossivel.Tests
             yield return null;
         }
 
+        // ------------------------------------------------------------------ caminhada (polimento visual)
+
+        [UnityTest]
+        public IEnumerator ProfessorAndaSemBracoCruzadoESemPesNaLinhaDoMeio()
+        {
+            yield return ComecaNormalIsolado();
+            var prof = ProfessorAI.I;
+            var skin = prof.visual.Skin;
+            prof.WalkTo(prof.transform.position + prof.transform.forward * 4f, false);
+            float piorBraco = 0f, piorPe = 1f;
+            int quadros = 0;
+            float fim = Time.time + 2f;
+            while (Time.time < fim)
+            {
+                yield return null;
+                if (skin.WalkWeight < 0.9f) continue;
+                quadros++;
+                piorBraco = Mathf.Max(piorBraco, prof.visual.armsCrossed);
+                Vector3 r = prof.transform.right;
+                piorPe = Mathf.Min(piorPe, -Vector3.Dot(skin.LeftFoot.position - skin.Hips.position, r),
+                                   Vector3.Dot(skin.RightFoot.position - skin.Hips.position, r));
+            }
+            Assert.Greater(quadros, 10, "a caminhada não chegou a entrar");
+            Assert.Less(piorBraco, 0.05f, "andando, ele não pode estar de braços cruzados (mão na barriga)");
+            Assert.Greater(piorPe, 0.04f, "cada pé fica do seu lado do quadril (sem andar de passarela): " + piorPe);
+            Assert.Less(skin.RunWeight, 0.05f, "andando devagar não toca a corrida");
+        }
+
+        [UnityTest]
+        public IEnumerator ProfessorParadoContinuaCruzandoOsBracos()
+        {
+            yield return ComecaNormalIsolado();
+            var prof = ProfessorAI.I;
+            yield return Wait(2.5f);
+            if (prof.State == ProfState.Tranquilo && UnityEngine.AI.NavMesh.SamplePosition(prof.transform.position, out _, 1f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                // parado e tranquilo por mais de 0,6 s: os braços cruzam como antes
+                prof.WalkTo(prof.transform.position, false);
+                yield return Wait(1.8f);
+                if (prof.visual.Skin.WalkWeight < 0.1f)
+                    Assert.Greater(prof.visual.armsCrossed, 0.5f, "parado e tranquilo, ele cruza os braços");
+            }
+        }
+
         // ------------------------------------------------------------------ Cara de Paisagem
 
         [UnityTest]

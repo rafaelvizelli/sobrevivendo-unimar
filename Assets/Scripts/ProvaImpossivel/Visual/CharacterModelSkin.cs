@@ -36,9 +36,9 @@ namespace ProvaImpossivel
 
         PlayableGraph graph;
         AnimationMixerPlayable mixer;
-        const int Idle = 0, Walk = 1;
+        const int Idle = 0, Walk = 1, Run = 2;
 
-        float walkW, seatW, sleepW, writeW, crossW, raiseW, phoneW, earW, colaW, drinkW, throwW, foneW;
+        float walkW, runW, seatW, sleepW, writeW, crossW, raiseW, phoneW, earW, colaW, drinkW, throwW, foneW;
         HandProp propKind;
         Transform propObj;
 
@@ -144,9 +144,11 @@ namespace ProvaImpossivel
             {
                 graph = PlayableGraph.Create(name + "_Modelo");
                 graph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
-                mixer = AnimationMixerPlayable.Create(graph, 2);
+                mixer = AnimationMixerPlayable.Create(graph, 3);
                 Connect(set.idle, Idle, 1f);
                 Connect(set.walk != null ? set.walk : set.idle, Walk, 0f);
+                Connect(set.run != null ? set.run : set.walk != null ? set.walk : set.idle, Run, 0f);
+                hasRun = set.run != null;
                 var output = AnimationPlayableOutput.Create(graph, "Modelo", animator);
                 output.SetSourcePlayable(mixer);
                 // cada um começa num ponto diferente do ciclo (a turma não respira em coro)
@@ -203,18 +205,36 @@ namespace ProvaImpossivel
 
         static float Ease(float cur, float target, float rate, float dt) => Mathf.MoveTowards(cur, target, rate * dt);
 
+        // Passada dos clipes do pacote (medida nos pés, modelo em escala 1; Editor/DiagAnimacao): em 1× o clipe
+        // "anda" a esta velocidade. Tocar mais rápido ou mais devagar que isso faz o pé deslizar no chão.
+        public const float WalkStride = 1.3f, RunStride = 2.7f;
+        bool hasRun;
+
+        /// <summary>Velocidade de reprodução para o pé acompanhar o chão: velocidade / (passada × tamanho). Pura.</summary>
+        public static float PlaybackRate(float speed, float stride, float scale, float min, float max) =>
+            Mathf.Clamp(speed / (stride * Mathf.Max(0.1f, scale)), min, max);
+
+        /// <summary>Quanto da corrida entra (0–1): só acima da caminhada rápida (o jogador correndo). Pura.</summary>
+        public static float RunBlend(float speed) => Mathf.InverseLerp(2.8f, 3.6f, speed);
+
+        /// <summary>Peso atual da corrida (0–1). Testes.</summary>
+        public float RunWeight => runW;
+
         void Update()
         {
             if (cv == null) return;
             float dt = Time.deltaTime;
             float tWalk = !cv.seated && cv.IsWalking ? 1f : 0f;
             walkW = Ease(walkW, tWalk, 6f, dt);
+            runW = Ease(runW, hasRun ? RunBlend(cv.Speed) : 0f, 4f, dt);
             if (animated && graph.IsValid())
             {
                 mixer.SetInputWeight(Idle, 1f - walkW);
-                mixer.SetInputWeight(Walk, walkW);
-                // passo da caminhada acompanha a velocidade
-                mixer.GetInput(Walk).SetSpeed(Mathf.Clamp(cv.Speed / 1.3f, 0.6f, 2.2f));
+                mixer.SetInputWeight(Walk, walkW * (1f - runW));
+                mixer.SetInputWeight(Run, walkW * runW);
+                // o ritmo dos passos acompanha a velocidade E o tamanho (pé que não desliza no chão)
+                mixer.GetInput(Walk).SetSpeed(PlaybackRate(cv.Speed, WalkStride, scale, 0.5f, 2.2f));
+                mixer.GetInput(Run).SetSpeed(PlaybackRate(cv.Speed, RunStride, scale, 0.6f, 1.8f));
             }
             else if (walkW > 0f) walkPhase += dt * (3.2f + cv.Speed * 2.2f);
 
@@ -346,7 +366,7 @@ namespace ProvaImpossivel
         }
 
         /// <summary>Folga mínima de cada pé para o seu lado, a partir do meio do quadril (m, modelo em escala 1).</summary>
-        public const float MinFootOut = 0.06f;
+        public const float MinFootOut = 0.09f; // 0,06 deixava o andar de passarela do clipe (o pé ia 16 cm para o outro lado)
 
         /// <summary>Gira a coxa para fora (em torno do eixo da frente) até o pé ficar do seu lado do quadril.</summary>
         void KeepFootOut(int s, float w)
@@ -408,7 +428,8 @@ namespace ProvaImpossivel
                 for (int s = 0; s < 2; s++) KeepFootOut(s, walkW * (1f - seatW));
 
             // tronco: dormir debruçado, encostar na cadeira
-            Bend(spine, sleepW * 16f - cv.leanBack * 0.5f);
+            // andando, o tronco vai um pouco à frente (no clipe ele fica jogado para trás)
+            Bend(spine, sleepW * 16f - cv.leanBack * 0.5f + (animated ? walkW * (1f - seatW) * 4f : 0f));
             Bend(chest, sleepW * 18f - cv.leanBack * 0.5f + phoneW * 6f + colaW * 10f);
 
             // cabeça: o mesmo olhar do boneco invisível (é ele que a visão do jogo usa); bebendo, joga a cabeça para trás.

@@ -42,7 +42,53 @@ namespace ProvaImpossivel.EditorTools
             ("17_expulso", () => Resultado("17_expulso", LevelResult.Flagrado)),
             ("18_dp_final", AlunoDP),
             ("19_sala", SalaLarga),
+            // diagnóstico (só rodam pedidos pelo nome com -trailerOnly; nunca entram no trailer)
+            ("diag_prof_lado", () => DiagProf("diag_prof_lado", false)),
+            ("diag_prof_frente", () => DiagProf("diag_prof_frente", true)),
+            ("diag_jogador", DiagJogador),
         };
+
+        /// <summary>Diagnóstico da caminhada: o professor anda em linha reta pelo corredor; câmera de lado ou de frente.</summary>
+        static IEnumerator DiagProf(string id, bool deFrente)
+        {
+            StopTpc(true);
+            SetDof(false);
+            var f = Facing(Jv);
+            var r = Vector3.Cross(Vector3.up, f);
+            var corredor = OnNav(Player.transform.position + r * 0.9f);
+            var de = OnNav(corredor + f * 3.5f);
+            var ate = OnNav(corredor - f * 2.5f);
+            Prof.transform.position = de;
+            Prof.WalkTo(ate, false);
+            yield return null;
+            yield return Capture(id, 4f, (t, p) =>
+            {
+                var c = Prof.transform.position + Vector3.up * 0.9f;
+                var pos = deFrente ? c - (de - ate).normalized * -2.8f + Vector3.up * 0.2f : c + r * 3f + Vector3.up * 0.3f;
+                Pose(pos, c, 50f);
+            });
+        }
+
+        /// <summary>Diagnóstico da caminhada do jogador: levanta e anda para o lado da câmera (D), visto de lado.</summary>
+        static IEnumerator DiagJogador()
+        {
+            StopTpc(true);
+            SetDof(false);
+            Player.StandUp();
+            yield return null;
+            var f = Facing(Jv);
+            var r = Vector3.Cross(Vector3.up, f);
+            var c0 = Player.transform.position + Vector3.up * 0.9f;
+            Pose(c0 - f * 3f + Vector3.up * 0.3f, c0, 55f); // câmera atrás: D anda para a direita da tela
+            Press(Key.D);
+            yield return Capture("diag_jogador", 3f, (t, p) =>
+            {
+                var c = Player.transform.position + Vector3.up * 0.9f;
+                if (t > 1.6f) Press(Key.W);
+                Pose(c - f * 3f + Vector3.up * 0.4f, c, 55f);
+            });
+            Release();
+        }
 
         public static IEnumerator Run(List<string> only)
         {
@@ -50,6 +96,7 @@ namespace ProvaImpossivel.EditorTools
             foreach (var (id, shot) in Planos)
             {
                 if (only.Count > 0 && !only.Contains(id)) continue;
+                if (only.Count == 0 && id.StartsWith("diag_")) continue; // diagnóstico nunca entra no trailer
                 Ui = TrailerUi.Nada;
                 ShowBubbles = true;
                 PlayerHeadYaw = 0f;

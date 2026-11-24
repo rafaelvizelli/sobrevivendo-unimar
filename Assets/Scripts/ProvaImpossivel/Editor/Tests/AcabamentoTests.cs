@@ -28,6 +28,28 @@ namespace ProvaImpossivel.Tests
         }
 
         [Test]
+        public void RitmoDaAnimacaoAcompanhaAPassadaEOTamanho()
+        {
+            // na velocidade da passada, o clipe toca em 1×; o professor (15% maior) dá passos mais lentos
+            Assert.AreEqual(1f, CharacterModelSkin.PlaybackRate(1.3f, CharacterModelSkin.WalkStride, 1f, 0.5f, 2.2f), 1e-4f);
+            float aluno = CharacterModelSkin.PlaybackRate(1.1f, CharacterModelSkin.WalkStride, 1f, 0.5f, 2.2f);
+            float prof = CharacterModelSkin.PlaybackRate(1.1f, CharacterModelSkin.WalkStride, 1.15f, 0.5f, 2.2f);
+            Assert.Less(prof, aluno, "maior = passos mais lentos na mesma velocidade");
+            Assert.AreEqual(2.2f, CharacterModelSkin.PlaybackRate(99f, CharacterModelSkin.WalkStride, 1f, 0.5f, 2.2f), "limite");
+        }
+
+        [Test]
+        public void CorridaSoEntraQuandoOJogadorCorre()
+        {
+            Assert.AreEqual(0f, CharacterModelSkin.RunBlend(2.2f), "andando (2,2 m/s) não corre");
+            Assert.AreEqual(0f, CharacterModelSkin.RunBlend(2.6f), "o professor perseguindo (2,6 m/s) anda rápido, não corre");
+            Assert.AreEqual(1f, CharacterModelSkin.RunBlend(4.2f), "correndo (4,2 m/s) é corrida inteira");
+            var set = Resources.Load<CharacterModelSet>("Personagens/ModelosPersonagens");
+            Assert.IsNotNull(set.run, "o clipe Run do pacote tem que estar ligado");
+            Assert.AreEqual("Run", set.run.name);
+        }
+
+        [Test]
         public void MensagemCinzaEhAMenosPrioritaria()
         {
             Assert.IsTrue(HUD.IsInformative(HUD.Gray, false), "cinza comum é só informação");

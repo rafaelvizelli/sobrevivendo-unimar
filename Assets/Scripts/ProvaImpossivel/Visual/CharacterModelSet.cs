@@ -74,6 +74,7 @@ namespace ProvaImpossivel
         [Header("Animações (rig Humanoid; os modelos Generic usam só as poses por código)")]
         public AnimationClip idle;
         public AnimationClip walk;
+        [Tooltip("Corrida (opcional; sem ela, a corrida usa a caminhada acelerada)")] public AnimationClip run;
 
         [Header("Ajustes")]
         [Tooltip("Altura do quadril (m) quando sentado na cadeira")]

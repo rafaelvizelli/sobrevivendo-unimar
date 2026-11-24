@@ -743,16 +743,23 @@ namespace ProvaImpossivel
             return agent.remainingDistance <= agent.stoppingDistance + 0.15f;
         }
 
+        [Tooltip("Velocidade com que o corpo vira para onde ele anda / olha")] public float turnRate = 8f;
+        float stillFor;
+
         void UpdateRotation(float dt)
         {
             Vector3 v = agent.velocity;
             v.y = 0f;
+            // andando, o corpo segue a direção que o caminho QUER (estável); a velocidade real oscila quando o agente
+            // desvia de cadeiras e alunos, e ele parecia andar de lado
+            Vector3 want = agent.desiredVelocity;
+            want.y = 0f;
             Vector3 dir;
-            if (v.sqrMagnitude > 0.04f) dir = v;
+            if (v.sqrMagnitude > 0.04f) dir = want.sqrMagnitude > 0.04f ? want : v;
             else if (hasFace) { dir = faceTarget - transform.position; dir.y = 0f; }
             else return;
             if (dir.sqrMagnitude < 0.001f) return;
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 6f * dt);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), turnRate * dt);
         }
 
         void UpdateVisual()
@@ -765,7 +772,10 @@ namespace ProvaImpossivel
                 _ => staring || Notice > 0.3f ? Expression.Desconfiado : Expression.Neutro,
             };
             bool still = agent.velocity.sqrMagnitude < 0.04f;
-            visual.armsCrossed = Mathf.MoveTowards(visual.armsCrossed, still && (State == ProfState.Tranquilo || staring || inChallenge) ? 1f : 0f, Time.deltaTime * 3f);
+            // só cruza os braços parado DE VERDADE: nas curvas e desvios ele quase para e andava com a mão na barriga
+            stillFor = still ? stillFor + Time.deltaTime : 0f;
+            bool parado = stillFor > 0.6f;
+            visual.armsCrossed = Mathf.MoveTowards(visual.armsCrossed, parado && (State == ProfState.Tranquilo || staring || inChallenge) ? 1f : 0f, Time.deltaTime * 3f);
             visual.handRaise = Mathf.MoveTowards(visual.handRaise, OnPhone ? 0.6f : 0f, Time.deltaTime * 3f);
             visual.prop = OnPhone ? HandProp.Celular : HandProp.Nenhum; // ao telefone: o celular aparece na orelha
 

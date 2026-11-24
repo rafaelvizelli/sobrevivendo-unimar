@@ -114,6 +114,7 @@ MonoBehaviour:
   - {r: 0.95, g: 0.95, b: 0.95, a: 1}
   idle: {fileID: 9061338213343248790, guid: 4527ca902a1fece4684a460b656199ff, type: 3}
   walk: {fileID: -5599002979973759676, guid: 4527ca902a1fece4684a460b656199ff, type: 3}
+  run: {fileID: 1395189703230314720, guid: 4527ca902a1fece4684a460b656199ff, type: 3}
   seatHipHeight: 0.62
   seatBack: 0.05
   headPitchFactor: 0.8
