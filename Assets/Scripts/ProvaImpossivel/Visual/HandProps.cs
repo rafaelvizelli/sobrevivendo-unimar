@@ -36,8 +36,8 @@ namespace ProvaImpossivel
                     Part(PrimitiveType.Cylinder, "Tampa", root, new Vector3(0f, 0.135f, 0f), new Vector3(0.032f, 0.015f, 0.032f), new Color(0.1f, 0.3f, 0.9f), 0.4f);
                     break;
                 case HandProp.Bilhete:
-                    Part(PrimitiveType.Sphere, "Bolinha", root, Vector3.zero, new Vector3(0.095f, 0.085f, 0.09f), new Color(0.98f, 0.97f, 0.9f), 0.1f);
-                    Part(PrimitiveType.Cube, "Dobra", root, new Vector3(0.015f, 0.02f, 0.01f), new Vector3(0.04f, 0.03f, 0.04f), new Color(0.92f, 0.9f, 0.82f), 0.1f, 0f, new Vector3(30f, 20f, 45f));
+                    // papel de caderno amassado (malha facetada com as linhas do caderno), o mesmo que voa no arremesso
+                    PaperBall.Create(root, PlayerCheats.BallSize);
                     break;
                 case HandProp.Fone:
                 {

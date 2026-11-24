@@ -144,6 +144,28 @@ namespace ProvaImpossivel
         public bool Ringing => ringLeft > 0f;
         public bool Throwing => throwLeft > 0f;
 
+        // --- mira do bilhete: B arma (bolinha na mão, linha até o alvo), B de novo joga; Espaço ou outra cola cancela
+        /// <summary>Quanto tempo do arremesso a bolinha ainda fica na mão antes de sair voando (s).</summary>
+        public const float ReleaseTime = 0.12f;
+        /// <summary>Diâmetro da bolinha de papel (m): maior que a real, para dar para ver de longe.</summary>
+        public const float BallSize = 0.09f;
+        bool aiming;
+        int aimEndedFrame = -1;
+        float releaseLeft;
+        BilheteMira mira;
+        PaperBallFlight flight;
+        /// <summary>Mirando o bilhete agora.</summary>
+        public bool Aiming => aiming;
+        /// <summary>A bolinha está na mão (mirando, ou no começo do arremesso, antes de soltar).</summary>
+        public bool BallInHand => aiming || (Throwing && releaseLeft > 0f);
+        /// <summary>Espaço neste quadro é "cancelar a mira", não "levantar".</summary>
+        public bool AimBlocksStandUp => aiming || aimEndedFrame == Time.frameCount;
+        /// <summary>A mira (visual) e a bolinha voando agora (testes).</summary>
+        public BilheteMira Mira => mira;
+        public PaperBallFlight Flight => flight;
+        /// <summary>Nome de quem está na mira agora ("" se ninguém).</summary>
+        public string AimTargetName { get; private set; } = "";
+
         // --- o que o PlayerController repassa para o professor
         public float CurrentRate { get; private set; }
         public string CurrentReason { get; private set; } = "";
@@ -168,6 +190,9 @@ namespace ProvaImpossivel
             fone.Clear();
             throwLeft = ringLeft = 0f;
             foneRingAt = -1f;
+            StopAim();
+            releaseLeft = 0f;
+            if (flight != null) { Destroy(flight.gameObject); flight = null; }
         }
 
         static bool Playing => GameManager.I != null && GameManager.I.IsPlaying;
@@ -177,7 +202,7 @@ namespace ProvaImpossivel
         {
             if (!Playing)
             {
-                if (GameManager.I == null || GameManager.I.Phase != Phase.Paused) HUD.I?.SetCheats(null);
+                if (GameManager.I == null || GameManager.I.Phase != Phase.Paused) { HUD.I?.SetCheats(null); StopAim(); }
                 CurrentRate = 0f;
                 return;
             }
@@ -187,8 +212,9 @@ namespace ProvaImpossivel
 
             bool quizOpen = QuizChallenge.I != null && QuizChallenge.I.Active;
             bool canAct = player.IsSeated && !player.InputLocked && !quizOpen && !player.UsingPhone;
-            if (!canAct) CancelHold();
+            if (!canAct) { CancelHold(); StopAim(); }
             else HandleInput(dt);
+            UpdateMira();
 
             UpdateRisk();
             HUD.I.SetCheats(PanelText());
@@ -198,6 +224,7 @@ namespace ProvaImpossivel
 
         void HandleInput(float dt)
         {
+            if (aiming) { HandleAim(); return; }
             // segurando alguma: só aquela tecla conta (sem duas colas ao mesmo tempo)
             if (Holding != Hold.Nenhum)
             {
@@ -212,7 +239,113 @@ namespace ProvaImpossivel
             if (Controls.Pressed(Acao.Colinha)) TryStart(Hold.Colinha);
             else if (Controls.Pressed(Acao.Garrafinha)) TryStart(Hold.Garrafinha);
             else if (Controls.Pressed(Acao.Fone)) PressFone();
-            else if (Controls.Pressed(Acao.Bilhete)) TryThrow();
+            else if (Controls.Pressed(Acao.Bilhete)) StartAim();
+        }
+
+        /// <summary>Por que não dá para jogar um bilhete agora, sem contar a mira (null = dá).</summary>
+        string WhyNotThrow() =>
+            BilheteCharges <= 0 ? Falas.BilheteAcabou
+            : bilhete.Busy ? Falas.BilheteEsperando
+            : !ExamSystem.I.HasBlank ? Falas.SoEmBranco
+            : !CheatBudget.CanAnswer ? Falas.OrcamentoAcabou : null;
+
+        /// <summary>B: arma o arremesso (só se daria para jogar). A mira aparece e o braço sobe com a bolinha.</summary>
+        public bool StartAim()
+        {
+            if (aiming || Throwing) return false;
+            string no = WhyNotThrow();
+            if (no != null) { HUD.I.Toast(no, HUD.Gray, 2.5f); return false; }
+            aiming = true;
+            SoundFX.PlayAt(Sfx.Papel, transform.position, 0.35f, 1.4f); // amassando a bolinha
+            return true;
+        }
+
+        /// <summary>Sai da mira sem jogar (a bolinha volta para o bolso; nada gasto).</summary>
+        public void StopAim()
+        {
+            if (!aiming) return;
+            aiming = false;
+            aimEndedFrame = Time.frameCount;
+            AimTargetName = "";
+            if (mira != null) mira.Hide();
+        }
+
+        /// <summary>Mirando: B de novo joga (se tiver alvo); Espaço, outra cola ou responder cancela.</summary>
+        void HandleAim()
+        {
+            if (Controls.Pressed(Acao.Bilhete)) { ConfirmAim(AimTarget()); return; }
+            if (Controls.Pressed(Acao.Levantar) || Controls.Pressed(Acao.Colinha) || Controls.Pressed(Acao.Garrafinha)
+                || Controls.Pressed(Acao.Fone) || Controls.Pressed(Acao.Responder))
+                StopAim();
+        }
+
+        /// <summary>
+        /// Mirando, apertou B de novo: sem alvo, avisa e continua mirando; com alvo, joga.
+        /// true = jogou.
+        /// </summary>
+        public bool ConfirmAim(StudentBase target)
+        {
+            if (!aiming) return false;
+            if (target == null) { HUD.I.Toast(Falas.MiraSemAlvo, HUD.Gray, 2f); return false; }
+            StopAim();
+            return ThrowAt(target);
+        }
+
+        /// <summary>Onde a bolinha cai na carteira do colega: em cima da folha dele (ou na frente dele, sem folha).</summary>
+        public static Vector3 LandingPoint(StudentBase t)
+        {
+            var paper = t != null && t.visual != null && t.visual.Skin != null ? t.visual.Skin.DeskPaper : null;
+            if (paper != null) return paper.position + Vector3.up * (BallSize * 0.5f + 0.005f);
+            return t.transform.position + t.transform.forward * 0.45f + Vector3.up * 1.05f;
+        }
+
+        /// <summary>De onde a bolinha sai: a bolinha na mão (ou um pouco acima do ombro, no boneco simples).</summary>
+        Vector3 HandPoint()
+        {
+            var skin = player.visual != null ? player.visual.Skin : null;
+            if (skin != null && skin.PropObject != null) return skin.PropObject.position;
+            return player.HeadPosition + transform.right * 0.25f + Vector3.up * 0.15f;
+        }
+
+        /// <summary>Desenha a mira enquanto arma o arremesso.</summary>
+        void UpdateMira()
+        {
+            if (!aiming) { if (mira != null) mira.Hide(); return; }
+            if (mira == null)
+            {
+                var go = new GameObject("Mira do Bilhete");
+                mira = go.AddComponent<BilheteMira>();
+            }
+            var t = AimTarget();
+            AimTargetName = t != null ? t.displayName : "";
+            Vector3 from = HandPoint(), to;
+            if (t != null) to = LandingPoint(t);
+            else
+            {
+                // sem alvo: mostra onde cairia (no chão, 3 m à frente da câmera), em vermelho
+                var cam = Camera.main;
+                Vector3 look = cam != null ? cam.transform.forward : transform.forward;
+                look.y = 0f;
+                to = transform.position + look.normalized * 3f + Vector3.up * 0.02f;
+            }
+            mira.Show(from, to, t != null);
+        }
+
+        /// <summary>Solta a bolinha da mão: ela voa em arco até a carteira do alvo, no tempo que falta do arremesso.</summary>
+        void LaunchFlight()
+        {
+            if (throwTarget == null) return;
+            if (flight != null) Destroy(flight.gameObject);
+            var go = PaperBall.Create(null, BallSize, "Bilhete Voando");
+            flight = go.AddComponent<PaperBallFlight>();
+            flight.Launch(HandPoint(), LandingPoint(throwTarget), throwLeft);
+        }
+
+        /// <summary>O que acontece com a bolinha que estava voando (só visual).</summary>
+        void EndFlight(PaperBallFlight.End how)
+        {
+            if (flight != null) flight.Finish(how);
+            flight = null;
         }
 
         static Acao ActionFor(Hold h) =>
@@ -392,6 +525,7 @@ namespace ProvaImpossivel
             MatchLog.BilheteUsos++;
             throwTarget = target;
             throwLeft = Mathf.Max(0.05f, s.bilheteThrowTime);
+            releaseLeft = Mathf.Min(ReleaseTime, throwLeft * 0.5f); // a bolinha sai da mão logo depois do braço descer
             player.MakeNoise(s.bilheteNoiseRadius, s.bilheteNoise, Falas.RuidoPapel, Infracao.Bilhete);
             SoundFX.PlayAt(Sfx.Papel, transform.position);
             return true;
@@ -401,6 +535,11 @@ namespace ProvaImpossivel
         {
             if (throwLeft > 0f)
             {
+                if (releaseLeft > 0f)
+                {
+                    releaseLeft -= dt;
+                    if (releaseLeft <= 0f) LaunchFlight();
+                }
                 throwLeft -= dt;
                 if (throwLeft <= 0f) Land();
             }
@@ -412,7 +551,7 @@ namespace ProvaImpossivel
         {
             var t = throwTarget;
             throwTarget = null;
-            if (t == null) { Lose(Falas.BilheteSumiu); return; }
+            if (t == null) { EndFlight(PaperBallFlight.End.Chao); Lose(Falas.BilheteSumiu); return; }
             var prof = ProfessorAI.I;
             float dist = Flat.Distance(transform.position, t.transform.position);
             if (prof != null && CheatRules.BilheteLost(Flat.Distance(prof.transform.position, transform.position),
@@ -420,15 +559,16 @@ namespace ProvaImpossivel
                                                        s.bilheteLostDistance, prof.OnPhone))
             {
                 // ele estava perto: o papel some no bolso dele. Se ainda por cima te viu jogando, é flagrante.
+                EndFlight(PaperBallFlight.End.Some);
                 if (prof.Visibility > 0f && prof.CatchRedHanded(Falas.MotivoBilhete, Infracao.Bilhete)) { Budget?.Cancel(); MatchLog.BilheteErradas++; return; }
                 Lose(Falas.BilheteInterceptado);
                 return;
             }
-            if (Random.value < CheatRules.BilheteMissChance(dist, s.bilheteMissChancePerMeter)) { Lose(Falas.BilheteErrouAMesa); return; }
+            if (Random.value < CheatRules.BilheteMissChance(dist, s.bilheteMissChancePerMeter)) { EndFlight(PaperBallFlight.End.Chao); Lose(Falas.BilheteErrouAMesa); return; }
 
             if (t is NerdStudent nerd)
             {
-                if (!nerd.AcceptsNote) { nerd.RefuseNote(); Lose(Falas.BilheteNerdRecusou); return; }
+                if (!nerd.AcceptsNote) { EndFlight(PaperBallFlight.End.Chao); nerd.RefuseNote(); Lose(Falas.BilheteNerdRecusou); return; }
                 nerd.ReceiveNote();
                 bilheteGood = true;
                 bilheteFrom = "o Nerd";
@@ -440,6 +580,7 @@ namespace ProvaImpossivel
                 bilheteGood = Random.value < s.backRowGoodColaChance;
                 bilheteFrom = "o Fundão";
             }
+            EndFlight(PaperBallFlight.End.Mesa); // chegou: a bolinha pousa na carteira do colega
             bilhete.Begin(s.bilheteDelay);
         }
 
@@ -536,6 +677,7 @@ namespace ProvaImpossivel
                 case Hold.FoneLer: Use(player.phoneSuspicion, Falas.MotivoFone, Infracao.Celular); break;
             }
             if (Throwing) Use(s.bilheteThrowSuspicion, Falas.MotivoBilhete, Infracao.Bilhete);
+            if (aiming) Use(s.bilheteAimSuspicion, Falas.MotivoMirandoBilhete, Infracao.Bilhete);
             if (Ringing) Use(s.foneRingSuspicion, Falas.MotivoCelularTocando, Infracao.CelularTocando);
         }
 
@@ -563,6 +705,9 @@ namespace ProvaImpossivel
                 Budget?.Cancel();
                 throwTarget = null;
             }
+            EndFlight(PaperBallFlight.End.Some); // o professor pegou a bolinha
+            StopAim();                           // e a que estava na mão volta para o bolso
+            releaseLeft = 0f;
             CancelHold();
             throwLeft = 0f;
             ringLeft = 0f;

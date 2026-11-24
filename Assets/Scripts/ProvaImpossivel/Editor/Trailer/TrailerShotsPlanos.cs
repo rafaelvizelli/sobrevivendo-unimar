@@ -51,6 +51,7 @@ namespace ProvaImpossivel.EditorTools
             ("diag_lousa", DiagLousa),
             ("diag_prova", DiagProva),
             ("diag_turma", DiagTurma),
+            ("diag_bilhete", DiagBilhete),
             ("diag_comparar_tras", () => DiagComparar("diag_comparar_tras", 0)),
             ("diag_comparar_lado", () => DiagComparar("diag_comparar_lado", 1)),
             ("diag_comparar_frente", () => DiagComparar("diag_comparar_frente", 2)),
@@ -159,6 +160,37 @@ namespace ProvaImpossivel.EditorTools
             {
                 if (t < 1f) Pose(centro - f * 3.2f + Vector3.up * 0.1f, centro, 60f);
                 else Pose(olho + Vector3.up * 0.1f, centro, 60f);
+            });
+        }
+
+        /// <summary>
+        /// Diagnóstico do bilhete: 1,2 s mirando no Nerd (linha amarela, bolinha na mão), depois joga e acompanha o voo
+        /// até a carteira; no fim, a bolinha de perto. Câmera atrás do ombro do jogador.
+        /// </summary>
+        static IEnumerator DiagBilhete()
+        {
+            StopTpc(true);
+            SetDof(false);
+            var nerd = Find<NerdStudent>();
+            var c = Player.Cheats;
+            var olho = Player.HeadPosition;
+            Vector3 paraNerd = nerd.transform.position - Player.transform.position;
+            paraNerd.y = 0f;
+            paraNerd.Normalize();
+            var ombro = olho - paraNerd * 1.3f + Vector3.up * 0.35f + Vector3.Cross(Vector3.up, paraNerd) * 0.45f;
+            Pose(ombro, nerd.visual.HeadPosition, 55f);
+            yield return null;
+            c.StartAim();
+            bool jogou = false;
+            yield return Capture("diag_bilhete", 3.2f, (t, p) =>
+            {
+                if (t < 2.4f) Pose(ombro, nerd.visual.HeadPosition - Vector3.up * 0.3f, 55f);
+                else
+                {
+                    var alvo = PlayerCheats.LandingPoint(nerd);
+                    Pose(alvo + new Vector3(0.35f, 0.25f, -0.35f), alvo, 40f);
+                }
+                if (!jogou && t > 1.2f) { jogou = true; c.ConfirmAim(nerd); }
             });
         }
 

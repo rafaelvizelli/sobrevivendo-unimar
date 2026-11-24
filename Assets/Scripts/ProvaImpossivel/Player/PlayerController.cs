@@ -146,11 +146,13 @@ namespace ProvaImpossivel
             if (canAct && !quizOpen && !waitMenuKeyRelease)
             {
                 bool spaceFree = FacePokerChallenge.I == null || FacePokerChallenge.I.FinishedFrame != Time.frameCount;
-                if (spaceFree && Controls.Pressed(Acao.Levantar)) { StandUp(); return; }
+                // mirando o bilhete, Espaço cancela a mira (quem cuida é o PlayerCheats), não levanta
+                bool aimingNote = Cheats != null && Cheats.AimBlocksStandUp;
+                if (spaceFree && !aimingNote && Controls.Pressed(Acao.Levantar)) { StandUp(); return; }
 
                 if (Controls.Pressed(Acao.Responder)) TryAnswer();
 
-                bool otherCheat = Cheats != null && Cheats.Holding != PlayerCheats.Hold.Nenhum; // uma cola de cada vez
+                bool otherCheat = Cheats != null && (Cheats.Holding != PlayerCheats.Hold.Nenhum || Cheats.Aiming); // uma cola de cada vez
                 if (HasPhone && !otherCheat && Controls.Held(Acao.Celular))
                 {
                     if (phoneCooldown > 0f) HUD.I.SetHold(-1f, "");
@@ -179,7 +181,7 @@ namespace ProvaImpossivel
             }
 
             visual.prop = CheatRules.PropInHand(holdingPhone, Cheats != null ? Cheats.Holding : PlayerCheats.Hold.Nenhum,
-                                                Cheats != null && Cheats.Throwing);
+                                                Cheats != null && Cheats.BallInHand); // mirando ou soltando: bolinha na mão
             visual.phone = Mathf.MoveTowards(visual.phone, visual.prop == HandProp.Celular ? 1f : 0f, dt * 5f);
             visual.writing = !holdingPhone && QuizChallenge.I != null && QuizChallenge.I.Active;
 
@@ -201,6 +203,13 @@ namespace ProvaImpossivel
                   : PhoneCharges <= 0 ? "    " + c + " Celular sem bateria"
                   : "    " + c + " Celular (segure; bateria p/ " + PhoneCharges + ")";
             help += "    " + Controls.Tag(Acao.Levantar) + " Levantar";
+            if (Cheats != null && Cheats.Aiming)
+            {
+                string b = Controls.Tag(Acao.Bilhete);
+                help = Cheats.AimTargetName != ""
+                    ? "MIRANDO: " + b + " joga no " + Cheats.AimTargetName + "    " + Controls.Tag(Acao.Levantar) + " Cancelar"
+                    : "MIRANDO: vire a câmera pro Nerd ou pro Fundão    " + Controls.Tag(Acao.Levantar) + " Cancelar";
+            }
             HUD.I.SetSeatedHelp(InputLocked ? null : help);
         }
 

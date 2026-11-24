@@ -21,7 +21,7 @@ namespace ProvaImpossivel.Tests
         [Test]
         public void VersaoDeEntregaNoRodapeDoMenu()
         {
-            Assert.AreEqual("1.0.7", PlayerSettings.bundleVersion, "ir entregar a prova não é passear (24/11)");
+            Assert.AreEqual("1.0.8", PlayerSettings.bundleVersion, "bilhete com mira e bolinha de papel amassado (24/11)");
             string r = Falas.MenuRodape("1.0.0");
             StringAssert.StartsWith("v1.0.0", r);
             StringAssert.Contains("Estúdio Fundão", r);
@@ -48,6 +48,30 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual(27f, CharacterModelSkin.PelvisYaw(-dir, dir, r, u), 0.01f);
             var outro = Quaternion.AngleAxis(-27f, u) * Vector3.right * 0.1f;
             Assert.AreEqual(-27f, CharacterModelSkin.PelvisYaw(-outro, outro, r, u), 0.01f, "girada para o outro lado");
+        }
+
+        [Test]
+        public void BolinhaDePapelAmassadoEArcoDoArremesso()
+        {
+            var m = PaperBall.BuildMesh(7);
+            StringAssert.StartsWith("Sphere", m.name, "a checagem de mão a trata como esfera");
+            Assert.AreEqual(80 * 3, m.vertexCount, "80 faces planas (vértices separados = facetado)");
+            float maior = 0f, menor = 1f;
+            foreach (var v in m.vertices) { maior = Mathf.Max(maior, v.magnitude); menor = Mathf.Min(menor, v.magnitude); }
+            Assert.LessOrEqual(maior, 0.5001f, "não passa do raio da esfera (tamanho = diâmetro)");
+            Assert.Greater(maior - menor, 0.05f, "tem amassados (não é uma esfera lisa)");
+            Assert.AreEqual(PaperBall.Crumple(Vector3.up, 3), PaperBall.Crumple(Vector3.up, 3), "mesma semente, mesmo amassado");
+
+            Vector3 a = Vector3.zero, b = new Vector3(4f, 0f, 0f);
+            float h = PaperBallFlight.ArcHeight(4f);
+            Assert.AreEqual(a, PaperBallFlight.Arc(a, b, h, 0f));
+            Assert.AreEqual(b, PaperBallFlight.Arc(a, b, h, 1f));
+            Assert.AreEqual(h, PaperBallFlight.Arc(a, b, h, 0.5f).y, 1e-4f, "no meio está no alto do arco");
+            Assert.Greater(PaperBallFlight.ArcHeight(6f), PaperBallFlight.ArcHeight(2f), "mais longe, arco mais alto");
+
+            var s = new DifficultySettings();
+            Assert.Greater(s.bilheteAimSuspicion, 0f, "mirar com a bolinha armada chama atenção");
+            Assert.Less(s.bilheteAimSuspicion, s.bilheteThrowSuspicion, "mas bem menos que o arremesso");
         }
 
         [Test]

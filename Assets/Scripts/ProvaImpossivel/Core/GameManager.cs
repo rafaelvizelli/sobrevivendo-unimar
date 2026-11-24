@@ -132,6 +132,7 @@ namespace ProvaImpossivel
         [Tooltip("Bilhetes por partida")] public int bilheteCharges = 2;
         [Tooltip("Segundos até a resposta voltar")] public float bilheteDelay = 8f;
         [Tooltip("Segundos do arremesso (a ação suspeita)")] public float bilheteThrowTime = 0.6f;
+        [Tooltip("Suspeita/s mirando o bilhete (braço armado com a bolinha na mão, antes de jogar)")] public float bilheteAimSuspicion = 10f;
         [Tooltip("Suspeita/s se o professor vê o arremesso")] public float bilheteThrowSuspicion = 60f;
         [Tooltip("Raio (m) em que o arremesso é ouvido")] public float bilheteNoiseRadius = 5f;
         [Tooltip("Suspeita do barulho do papel")] public float bilheteNoise = 6f;

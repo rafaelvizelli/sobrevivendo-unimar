@@ -1091,6 +1091,33 @@ fazer. (Não dá para afirmar que foi isso na partida dele; mas era possível e 
 - **Validar jogando:** com a nota já suficiente, levantar e andar até a mesa do professor com ele olhando: a suspeita
   não deve subir; correr até lá ou ir para o fundo da sala continua chamando atenção.
 
+### Bilhete com mira e bolinha de papel amassado — versão 1.0.8 (24/11, noite)
+Pedido: "pra jogar a bolinha de papel tenha uma espécie de mira e ter que apertar o botão novamente para jogar, e
+quero que a bolinha seja mais bonitinha, está muito feia". Antes: B jogava na hora no Nerd/Fundão mais perto da
+direção da câmera; a bolinha (esfera + cubo) só aparecia na mão por 0,6 s e não voava.
+- **Mira** (`Player/PlayerCheats.cs`): B arma (`StartAim`, só se daria para jogar: cargas, bilhete esperando, questão
+  em branco, orçamento — nada é gasto ainda); a bolinha fica na mão com o braço armado (pose `throwW` que já existia)
+  e aparece a mira (`Visual/BilheteMira.cs`): arco da mão até a carteira do alvo + anel pulsando onde cai, amarelo com
+  alvo (Nerd/Fundão), vermelho sem alvo (o arco aponta para o chão 3 m à frente). A barra de ajuda mostra
+  "MIRANDO: B joga no NERD    Espaço Cancelar". **B de novo** joga (`ConfirmAim`; sem alvo avisa e continua mirando).
+  **Espaço**, outra cola ou responder cancela; Espaço mirando NÃO levanta (`AimBlocksStandUp`, vale nos dois sentidos
+  da ordem dos Updates). Celular bloqueado mirando. Mirar com o braço armado é suspeito: `bilheteAimSuspicion`
+  (novo em `DifficultySettings`, 10/s; o arremesso é 45–60/s), tipo `Infracao.Bilhete`. Flagrante cancela a mira.
+- **Voo** (`Visual/PaperBall.cs`, `PaperBallFlight`): a bolinha sai da mão 0,12 s depois de jogar (`ReleaseTime`) e voa
+  em arco girando até a folha do colega (`LandingPoint`), no tempo do arremesso. O resultado continua decidido no
+  `Land()` (regras iguais): acertou = pousa na folha e fica 3 s; errou a mesa / o Nerd recusou = quica e cai no chão;
+  professor pegou = some.
+- **Bolinha nova**: malha feita por código — icosfera com amassados, 80 faces planas, cada face com um pedaço de
+  folha de caderno (pauta azul, margem vermelha, rabisco de caneta) em direção diferente. Raio máx. 0,5 e nome
+  "Sphere…" (a checagem de objeto na mão a trata como esfera). Mesma bolinha na mão e no voo. Cache estático zerado
+  a cada Play.
+- Textos: instruções e tutorial dizem "B bilhete (B mira, B joga)".
+- Testes: EditMode `BolinhaDePapelAmassadoEArcoDoArremesso`; PlayMode `BilheteBArmaAMiraEEspacoCancelaSemLevantar`
+  (tecla B virtual: mira, bolinha na mão, linha visível, suspeita de mira, nada gasto; Espaço cancela sem levantar) e
+  `BilheteMiradoVoaEmArcoEPousaNaCarteiraDoNerd`. Colas/personagens/risco: 52/52.
+- Conferido em captura `diag_bilhete` (mirando no Nerd de trás do ombro, voo e a bolinha pousada de perto).
+- **Validar jogando:** sentado, B, girar a câmera até o Nerd (linha amarela), B de novo; testar Espaço cancelando.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

@@ -193,6 +193,79 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual((1, 1, 0), (MatchLog.BilheteUsos, MatchLog.BilheteCertas, MatchLog.BilheteErradas), "registro no partidas.csv (Bloco 15b)");
         }
 
+        IEnumerator Tecla(Key k)
+        {
+            InputSystem.QueueStateEvent(kb, new KeyboardState(k));
+            yield return null;
+            InputSystem.QueueStateEvent(kb, new KeyboardState());
+            yield return null;
+        }
+
+        /// <summary>B arma a mira (bolinha na mão, linha na tela, sem gastar nada); Espaço cancela SEM levantar.</summary>
+        [UnityTest]
+        public IEnumerator BilheteBArmaAMiraEEspacoCancelaSemLevantar()
+        {
+            yield return Comecar(Difficulty.Normal, s => s.nerdGlanceInterval = new Vector2(999f, 999f));
+            var p = PlayerController.I;
+            var c = p.Cheats;
+            int cargas = c.BilheteCharges;
+            Assert.IsTrue(p.IsSeated);
+
+            yield return Tecla(Key.B);
+            Assert.IsTrue(c.Aiming, "B tem que armar a mira, não jogar direto");
+            Assert.IsFalse(c.Throwing, "armar não é jogar");
+            yield return null;
+            Assert.AreEqual(HandProp.Bilhete, p.visual.prop, "mirando, a bolinha fica na mão");
+            Assert.IsNotNull(c.Mira);
+            Assert.IsTrue(c.Mira.Visible, "a linha da mira tem que aparecer");
+            Assert.AreEqual(Infracao.Bilhete, c.CurrentKind, "braço armado com a bolinha é suspeito");
+            Assert.AreEqual(GameManager.I.Settings.bilheteAimSuspicion, c.CurrentRate, 1e-4f);
+            Assert.AreEqual(cargas, c.BilheteCharges, "mirar não gasta bilhete");
+            Assert.AreEqual(0, GameManager.I.Cheats.Reserved, "mirar não reserva o orçamento");
+
+            yield return Tecla(Key.Space);
+            Assert.IsFalse(c.Aiming, "Espaço cancela a mira");
+            Assert.IsTrue(p.IsSeated, "cancelar a mira não pode levantar o jogador");
+            Assert.IsFalse(c.Mira.Visible, "a linha some");
+            Assert.AreEqual(cargas, c.BilheteCharges);
+            yield return null;
+            Assert.AreEqual(HandProp.Nenhum, p.visual.prop, "a bolinha volta pro bolso");
+        }
+
+        /// <summary>Mirando: B de novo sem alvo não joga; com alvo, a bolinha (papel amassado) voa em arco e pousa na carteira.</summary>
+        [UnityTest]
+        public IEnumerator BilheteMiradoVoaEmArcoEPousaNaCarteiraDoNerd()
+        {
+            yield return Comecar(Difficulty.Normal, s =>
+            {
+                s.bilheteDelay = 5f;
+                s.bilheteMissChancePerMeter = 0f;
+                s.bilheteLostDistance = 0f;
+                s.nerdGlanceInterval = new Vector2(999f, 999f);
+            });
+            var c = PlayerController.I.Cheats;
+            var nerd = UnityEngine.Object.FindAnyObjectByType<NerdStudent>();
+            Assert.IsTrue(c.StartAim());
+            Assert.IsFalse(c.ConfirmAim(null), "sem alvo não joga");
+            Assert.IsTrue(c.Aiming, "sem alvo continua mirando");
+            Assert.IsTrue(c.ConfirmAim(nerd), "com o Nerd na mira, joga");
+            Assert.IsFalse(c.Aiming);
+            Assert.IsTrue(c.Throwing);
+
+            yield return Wait(PlayerCheats.ReleaseTime + 0.08f);
+            var voo = c.Flight;
+            Assert.IsNotNull(voo, "a bolinha tem que sair voando da mão");
+            Assert.AreEqual(PaperBallFlight.End.Voando, voo.State);
+            StringAssert.StartsWith("Sphere_PapelAmassado", voo.GetComponent<MeshFilter>().sharedMesh.name, "a bolinha nova (papel amassado)");
+            float subiu = voo.transform.position.y;
+            yield return WaitUntil(() => !c.Throwing, 3f, "o arremesso não terminou");
+            yield return null;
+            Assert.IsTrue(voo != null, "pousou: a bolinha fica uns segundos na carteira");
+            Assert.AreEqual(PaperBallFlight.End.Mesa, voo.State, "acertou o Nerd: pousa na carteira");
+            Assert.Less(Vector3.Distance(voo.transform.position, PlayerCheats.LandingPoint(nerd)), 0.05f, "pousa em cima da folha dele");
+            Assert.Greater(subiu, PlayerController.I.ChestPosition.y - 0.6f, "voou por cima, não rente ao chão");
+        }
+
         [UnityTest]
         public IEnumerator NerdOlhandoDevolveOBilhete()
         {

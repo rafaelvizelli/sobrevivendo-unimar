@@ -276,6 +276,8 @@ namespace ProvaImpossivel
         // motivo do flagrante (aparece no "FLAGRANTE! (...)") e o que o professor "ouve"
         public const string MotivoColinha = "colinha na manga";
         public const string MotivoBilhete = "bilhete voando";
+        public const string MotivoMirandoBilhete = "mirando um bilhete";
+        public const string MiraSemAlvo = "Sem alvo! Mire no Nerd ou no Fundão (a linha fica amarela).";
         public const string MotivoFone = "mexendo no celular";
         public const string MotivoCelularTocando = "celular tocando na prova";
         public const string MotivoGarrafinha = "lendo o rótulo da garrafinha";
@@ -347,7 +349,7 @@ namespace ProvaImpossivel
         // S3: o treino começa sentado (andar e sentar se aprendem no caminho até o Nerd e até a mesa)
         public const string TutorialResponder = "Aperte 1 e responda a questão que você estudou (moldura amarela). Sim, UMA.";
         public const string TutorialCelular = "Segure 2 pra pesquisar no celular. De preferência com o professor olhando pro outro lado.";
-        public const string TutorialColasDeBolso = "Sentado: Q colinha, G garrafinha, B bilhete (mire), F fone. Use uma: cada uma gasta 1 do orçamento.";
+        public const string TutorialColasDeBolso = "Sentado: Q colinha, G garrafinha, B bilhete (B mira, B de novo joga), F fone. Use uma: cada uma gasta 1 do orçamento.";
         /// <summary>Aviso que acompanha o passo das colas de bolso: o orçamento é o que nenhum passo explicava antes.</summary>
         public const string TutorialOrcamento = "ORÇAMENTO DE COLAS: na prova, a turma só cobre algumas respostas (painel da direita). Escolha bem QUAIS riscos correr.";
         public const string TutorialNerd = "Levante (Espaço), ande (WASD) até o Nerd e segure E pra espiar. Se ele PARAR de escrever, solta!";
@@ -423,7 +425,7 @@ namespace ProvaImpossivel
             "WASD andar • Mouse câmera • Shift correr • Esc pausar\n"
           + "E interagir (alguns: segure) • Sentado: Espaço levanta\n"
           + "1 responder o que sabe / chutar • 2 celular (segure)\n"
-          + "Colas: Q colinha • G garrafinha • B bilhete (mire) • F fone\n"
+          + "Colas: Q colinha • G garrafinha • B bilhete (B mira, B joga) • F fone\n"
           + "Cara de Paisagem: ESPAÇO com o ponteiro no verde\n"
           // S7: controle (Xbox/PlayStation/Steam Deck)
           + "Controle: X responde • Y celular • LB RB LT RT colas • A interage • B levanta";
