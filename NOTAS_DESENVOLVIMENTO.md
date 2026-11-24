@@ -1004,6 +1004,27 @@ execução no canvas que já existe na cena (a cena não mudou). Textos em `Fala
 **Validar jogando:** andar e correr com o jogador (vira bem? desliza?); ver o professor andando de frente e de lado; o
 olho do Nerd; um balão de fala curta do professor; ler a lousa sentado na carteira.
 
+### Caminhada — versões 1.0.3 e 1.0.4 (24/11, tarde)
+O usuário testou a 1.0.2 e a caminhada continuava torta; depois, na 1.0.3, "o pé fica virando de lado". As duas causas
+estão **nos clipes do pacote** (também num modelo limpo, sem nada do jogo), medidas por `Editor/DiagAnimacao.Pelve` e
+`DiagAnimacao.Pes`:
+- **1.0.3 — pelve** (commit `663fb80`): Walk/Run/Idle_Neutral giram a pelve ~26,7° (constante; Idle −0,3°, repouso 0°).
+  `CharacterModelSkin.AlignPelvis` mede o giro a cada quadro, gira o quadril de volta e devolve o giro ao abdômen (o
+  tronco fica onde a animação pôs). Medido depois: pelve 0,0°, ombros ~2° (o modelo limpo tem 1,9°).
+- **1.0.4 — pés**: com a pelve alinhada, as pontas dos pés ficavam viradas para dentro (andando: esquerdo ~35°,
+  direito ~20°; parado: esquerdo ~15°). `StraightenFoot` endireita cada pé para 6° para fora (`FootOutAngle`): metade
+  do giro na canela (em torno dela mesma; o tornozelo não sai do lugar) e o resto no pé. A direção é medida pela linha
+  tornozelo → ponta (`Foot.X_end`) vista de cima: um eixo do osso dizia "reto" no impulso, mas o pé também tomba de lado
+  e a ponta estava 25° para fora (o pé de trás "de lado" na visão de trás). Pé quase na vertical (`FootFlatness`
+  < 0,4) não é corrigido.
+- Medido no jogo (professor andando, 498 quadros): ponta dos pés sempre em ±6,0°. Captura de trás, de lado e do
+  jogador conferida.
+- Testes: EditMode `GiroDaPelveMedidoPelaLinhaDasCoxas`, `PeVoltaParaAFrenteUmPoucoParaFora`; PlayMode
+  `AndandoAPelveFicaAlinhadaComOCorpo`, `AndandoOsPesApontamParaAFrente` (andando e parado, erro < 4°).
+- Continua do clipe: o calcanhar sobe alto atrás em alguns passos.
+- **Validar jogando:** olhar o professor andando de trás e de frente (pontas dos pés para a frente) e correr com o
+  jogador vendo os pés de lado.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

@@ -21,7 +21,7 @@ namespace ProvaImpossivel.Tests
         [Test]
         public void VersaoDeEntregaNoRodapeDoMenu()
         {
-            Assert.AreEqual("1.0.3", PlayerSettings.bundleVersion, "correção da pelve na caminhada (24/11)");
+            Assert.AreEqual("1.0.4", PlayerSettings.bundleVersion, "pés retos na caminhada (24/11)");
             string r = Falas.MenuRodape("1.0.0");
             StringAssert.StartsWith("v1.0.0", r);
             StringAssert.Contains("Estúdio Fundão", r);
@@ -48,6 +48,17 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual(27f, CharacterModelSkin.PelvisYaw(-dir, dir, r, u), 0.01f);
             var outro = Quaternion.AngleAxis(-27f, u) * Vector3.right * 0.1f;
             Assert.AreEqual(-27f, CharacterModelSkin.PelvisYaw(-outro, outro, r, u), 0.01f, "girada para o outro lado");
+        }
+
+        [Test]
+        public void PeVoltaParaAFrenteUmPoucoParaFora()
+        {
+            float o = CharacterModelSkin.FootOutAngle;
+            Assert.AreEqual(0f, CharacterModelSkin.FootCorrection(-o, 0), 1e-3f, "esquerdo já certo (ponta um pouco para a esquerda)");
+            Assert.AreEqual(0f, CharacterModelSkin.FootCorrection(o, 1), 1e-3f, "direito já certo");
+            Assert.AreEqual(35f + o, CharacterModelSkin.FootCorrection(35f, 0), 1e-3f, "esquerdo virado 35° para dentro");
+            Assert.AreEqual(-20f - o, CharacterModelSkin.FootCorrection(-20f, 1), 1e-3f, "direito virado 20° para dentro");
+            Assert.AreEqual(0f, CharacterModelSkin.FootCorrection(150f, 0), 1e-3f, "leitura absurda: não mexe");
         }
 
         [Test]

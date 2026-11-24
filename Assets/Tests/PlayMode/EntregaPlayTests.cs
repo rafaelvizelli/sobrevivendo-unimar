@@ -27,6 +27,7 @@ namespace ProvaImpossivel.Tests
 
         // ------------------------------------------------------------------ caminhada (polimento visual)
 
+
         [UnityTest]
         public IEnumerator ProfessorAndaSemBracoCruzadoESemPesNaLinhaDoMeio()
         {
@@ -86,6 +87,33 @@ namespace ProvaImpossivel.Tests
             Assert.Greater(maiorCorrecao, 15f, "o clipe gira a pelve (~27°): a correção tinha que estar agindo");
             Assert.Less(piorPelve, 3f, "a pelve ficou girada em relação ao corpo: " + piorPelve + "°");
             Assert.Less(piorOmbro, 15f, "os ombros foram arrastados pela correção: " + piorOmbro + "°");
+        }
+
+        [UnityTest]
+        public IEnumerator AndandoOsPesApontamParaAFrente()
+        {
+            yield return ComecaNormalIsolado();
+            var prof = ProfessorAI.I;
+            var skin = prof.visual.Skin;
+            prof.WalkTo(prof.transform.position + prof.transform.forward * 4f, false);
+            float pior = 0f, piorParado = 0f;
+            int quadros = 0;
+            float fim = Time.time + 2f;
+            while (Time.time < fim)
+            {
+                yield return null; // ossos com o resultado final do quadro anterior
+                for (int s = 0; s < 2; s++)
+                {
+                    if (skin.FootFlatness(s) < 0.4f) continue; // pé quase na vertical: a direção vista de cima não vale
+                    float erro = Mathf.Abs(CharacterModelSkin.FootCorrection(skin.FootYaw(s), s));
+                    if (skin.WalkWeight > 0.9f) pior = Mathf.Max(pior, erro);
+                    else if (skin.WalkWeight < 0.05f) piorParado = Mathf.Max(piorParado, erro);
+                }
+                if (skin.WalkWeight > 0.9f) quadros++;
+            }
+            Assert.Greater(quadros, 10, "a caminhada não chegou a entrar");
+            Assert.Less(pior, 4f, "andando, a ponta do pé ficou virada de lado: " + pior + "°");
+            Assert.Less(piorParado, 4f, "parado, a ponta do pé ficou virada de lado: " + piorParado + "°");
         }
 
         [UnityTest]

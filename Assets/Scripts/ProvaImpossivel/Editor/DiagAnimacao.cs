@@ -76,5 +76,51 @@ namespace ProvaImpossivel.EditorTools
                 Object.DestroyImmediate(go);
             }
         }
+
+        /// <summary>Para onde aponta cada pé (graus em torno do "cima"; 0 = frente, + = para a direita), cru e com a pelve alinhada.</summary>
+        public static void Pes()
+        {
+            var clips = AssetDatabase.LoadAllAssetsAtPath("Assets/Art/Personagens/Quaternius/Animacoes_Homem.fbx").OfType<AnimationClip>().ToList();
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Personagens/Quaternius/Homem_Suit.fbx");
+            var go = Object.Instantiate(prefab);
+            var an = go.GetComponent<Animator>();
+            Transform Fim(Transform t) { while (t.childCount > 0) t = t.GetChild(0); return t; }
+            var pe = new[] { an.GetBoneTransform(HumanBodyBones.LeftFoot), an.GetBoneTransform(HumanBodyBones.RightFoot) };
+            var ponta = new[] { Fim(pe[0]), Fim(pe[1]) };
+            var hips = an.GetBoneTransform(HumanBodyBones.Hips);
+            var spine = an.GetBoneTransform(HumanBodyBones.Spine);
+            var ul = an.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+            var ur = an.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+            Debug.Log($"[Pes] ponta do pé: {ponta[0].name} / {ponta[1].name}");
+            // eixo "dobradiça" de cada osso (o que aponta para a direita no repouso): não muda quando o osso só inclina
+            var ossos = new[] { ul, an.GetBoneTransform(HumanBodyBones.LeftLowerLeg), pe[0], ur, an.GetBoneTransform(HumanBodyBones.RightLowerLeg), pe[1] };
+            var eixo = ossos.Select(o => o.InverseTransformDirection(Vector3.right)).ToArray();
+            string Med()
+            {
+                string r = "";
+                for (int k = 0; k < 6; k++)
+                {
+                    Vector3 d = Vector3.ProjectOnPlane(ossos[k].TransformDirection(eixo[k]), Vector3.up);
+                    r += $"{(k < 3 ? "E" : "D")}{"cjp"[k % 3]} {Vector3.SignedAngle(Vector3.right, d, Vector3.up),6:F1} ";
+                }
+                return r;
+            }
+            Debug.Log($"[Pes] repouso: {Med()}");
+            foreach (var nome in new[] { "Idle", "Walk", "Run" })
+            {
+                var c = clips.First(x => x.name == nome);
+                for (int i = 0; i < 8; i++)
+                {
+                    c.SampleAnimation(go, c.length * i / 8f);
+                    string cru = Med();
+                    float ang = CharacterModelSkin.PelvisYaw(ul.position, ur.position, Vector3.right, Vector3.up);
+                    var q = Quaternion.AngleAxis(-ang, Vector3.up);
+                    hips.rotation = q * hips.rotation;
+                    spine.rotation = Quaternion.Inverse(q) * spine.rotation;
+                    Debug.Log($"[Pes] {nome} t={i / 8f:F2} pelve {ang,6:F1}°  cru: {cru} | alinhado: {Med()}");
+                }
+            }
+            Object.DestroyImmediate(go);
+        }
     }
 }

@@ -31,6 +31,8 @@ namespace ProvaImpossivel
         bool animated;
         float scale = 1f, walkPhase;
         Vector3 headFacingLocal;
+        // ponta de cada pé (osso Foot.X_end do pacote): é ela que mostra para onde o pé aponta
+        readonly Transform[] footTip = new Transform[2];
         // orelha direita e eixos da cabeça (espaço do osso da cabeça, guardados antes do cabeção): onde vai o fone
         Vector3 earLocal, earOutLocal, headUpLocal, mouthLocal;
 
@@ -123,6 +125,7 @@ namespace ProvaImpossivel
 
             // no modelo recém-criado o personagem olha para a frente: guarda para onde o rosto aponta
             headFacingLocal = Quaternion.Inverse(head.rotation) * transform.forward;
+            for (int s = 0; s < 2; s++) footTip[s] = Deep(foot[s], "Foot." + Side[s] + "_end");
             // orelha direita (antes do cabeção: o ponto cresce junto com a cabeça)
             earLocal = head.InverseTransformPoint(head.position + Dir(EarOffset) * scale);
             mouthLocal = head.InverseTransformPoint(head.position + Dir(MouthOffset) * scale);
@@ -406,6 +409,52 @@ namespace ProvaImpossivel
             upperLeg[s].rotation = Quaternion.AngleAxis(ang * m, transform.forward) * upperLeg[s].rotation;
         }
 
+        /// <summary>Ponta do pé levemente para fora (graus): o pé reto de verdade parece de robô.</summary>
+        public const float FootOutAngle = 6f;
+
+        /// <summary>
+        /// Para onde a ponta do pé aponta agora (linha tornozelo → ponta, vista de cima), em graus em torno do "cima"
+        /// (0 = frente, + = para a direita). Mede a ponta de verdade: no impulso o pé também tomba de lado, e um eixo
+        /// do osso dizia "reto" enquanto a ponta estava 25° para fora.
+        /// </summary>
+        public float FootYaw(int s) =>
+            footTip[s] == null ? 0f
+            : Vector3.SignedAngle(transform.forward, Vector3.ProjectOnPlane(footTip[s].position - foot[s].position, transform.up), transform.up);
+
+        /// <summary>Quanto o pé está "deitado" (0 = em pé na vertical, 1 = plano): com ele quase em pé, a direção vista de cima não vale.</summary>
+        public float FootFlatness(int s)
+        {
+            if (footTip[s] == null) return 0f;
+            Vector3 d = footTip[s].position - foot[s].position;
+            return d.sqrMagnitude < 1e-8f ? 0f : Vector3.ProjectOnPlane(d, transform.up).magnitude / d.magnitude;
+        }
+
+        /// <summary>Quanto falta girar o pé (graus) para ele apontar para a frente, um pouco para fora. 0 se a medida não serve. Puro.</summary>
+        public static float FootCorrection(float yaw, int side)
+        {
+            float target = (side == 0 ? -1f : 1f) * FootOutAngle; // esquerdo: ponta para a esquerda; direito: para a direita
+            float err = Mathf.DeltaAngle(target, yaw);
+            return Mathf.Abs(err) > 80f ? 0f : err; // >80°: pé de pé na vertical ou leitura estranha, não mexe
+        }
+
+        /// <summary>
+        /// Endireita o pé: metade do giro vai na canela (em torno dela mesma, o tornozelo não sai do lugar) e o resto
+        /// no pé, para a pele do tornozelo não torcer.
+        /// </summary>
+        void StraightenFoot(int s, float w)
+        {
+            w *= Mathf.InverseLerp(0.15f, 0.4f, FootFlatness(s));
+            if (w <= 0.001f) return;
+            Vector3 up = transform.up;
+            float err = FootCorrection(FootYaw(s), s) * w;
+            if (Mathf.Abs(err) < 0.5f) return;
+            Vector3 shin = lowerLeg[s].position - foot[s].position; // tornozelo → joelho
+            if (Vector3.Dot(shin.normalized, up) > 0.5f) // canela em pé: torcer nela é o mesmo que girar em torno do "cima"
+                lowerLeg[s].rotation = Quaternion.AngleAxis(-err * 0.5f, shin.normalized) * lowerLeg[s].rotation;
+            err = FootCorrection(FootYaw(s), s) * w;
+            foot[s].rotation = Quaternion.AngleAxis(-err, up) * foot[s].rotation;
+        }
+
         void Bend(Transform bone, float pitch, float yaw = 0f)
         {
             if (Mathf.Abs(pitch) > 0.01f) bone.rotation = Quaternion.AngleAxis(pitch, transform.right) * bone.rotation;
@@ -451,6 +500,11 @@ namespace ProvaImpossivel
             // do professor, as pernas pareciam trançar. Afasta cada pé para o seu lado até a folga mínima.
             if (animated && walkW > 0.001f && seatW < 0.999f)
                 for (int s = 0; s < 2; s++) KeepFootOut(s, walkW * (1f - seatW));
+
+            // de pé: os clipes do pacote deixam as pontas dos pés viradas para dentro (andando, o esquerdo ~35° e o
+            // direito ~20°; parado, o esquerdo ~15°; medido em Editor/DiagAnimacao.Pes). Endireita cada pé.
+            if (animated && seatW < 0.999f)
+                for (int s = 0; s < 2; s++) StraightenFoot(s, 1f - seatW);
 
             // tronco: dormir debruçado, encostar na cadeira
             // andando, o tronco vai um pouco à frente (no clipe ele fica jogado para trás)
