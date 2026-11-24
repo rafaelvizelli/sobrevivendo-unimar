@@ -89,6 +89,67 @@ namespace ProvaImpossivel.Tests
             Assert.Less(piorOmbro, 15f, "os ombros foram arrastados pela correção: " + piorOmbro + "°");
         }
 
+        /// <summary>
+        /// Com a nota mínima garantida o professor relaxa: zera a suspeita, para de investigar, não liga para o jogador
+        /// andando/correndo nem para passos e cadeira. Mas colar continua contando (decisão do dono, 24/11).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ComNotaMinimaOProfessorRelaxaMasColarAindaConta()
+        {
+            yield return ComecaNormalIsolado();
+            var gm = GameManager.I;
+            var prof = ProfessorAI.I;
+            var p = PlayerController.I;
+            var exam = ExamSystem.I;
+            yield return null;
+            Assert.IsFalse(gm.JaPassou, "começa sem a nota");
+
+            // ele já estava desconfiado de algo
+            prof.Alert(p.transform.position, 30f, "teste");
+            Assert.Greater(prof.Suspicion, 0f);
+
+            while (exam.Grade < gm.Settings.minGrade && exam.HasBlank) exam.MarkCorrectBlank();
+            yield return null;
+            yield return null;
+            Assert.IsTrue(gm.JaPassou, "com a nota mínima");
+            Assert.AreEqual(0f, prof.Suspicion, 1e-3f, "relaxou: esqueceu a suspeita");
+            Assert.AreNotEqual(ProfState.Investigando, prof.State);
+            Assert.AreNotEqual(ProfState.Desconfiado, prof.State);
+            Assert.IsTrue(HUD.I.ToastTexts().Exists(t => t == Falas.NotaGarantida), "avisa o jogador que pode ir entregar");
+
+            // de pé, longe da carteira e da mesa, correndo e fazendo barulho: nada disso conta mais
+            p.StandUp();
+            var cc = p.GetComponent<CharacterController>();
+            cc.enabled = false;
+            p.transform.position = p.seatPoint.position - p.seatPoint.forward * 2.5f;
+            cc.enabled = true;
+            yield return null;
+            yield return null;
+            Assert.AreEqual(Infracao.Nenhuma, p.CurrentInfracao, "fora do lugar não é mais suspeito");
+            Assert.AreEqual(0f, p.CurrentSuspicionRate, 1e-4f);
+            p.MakeNoise(30f, 10f, "passos correndo");
+            yield return null;
+            Assert.AreEqual(0f, prof.Suspicion, 1e-3f, "passos/cadeira do jogador não chamam mais atenção");
+
+            // colar continua valendo: sentado, armando o bilhete, a taxa de suspeita volta
+            p.SitDown(silent: true);
+            yield return null;
+            Assert.IsTrue(p.Cheats.StartAim() || p.Cheats.Aiming || !exam.HasBlank,
+                          "precisa conseguir armar o bilhete (ou não há questão em branco para colar)");
+            if (p.Cheats.Aiming)
+            {
+                yield return null;
+                yield return null;
+                Assert.AreEqual(Infracao.Bilhete, p.CurrentInfracao, "colando: o professor ainda pega");
+                Assert.Greater(p.CurrentSuspicionRate, 0f);
+                p.Cheats.StopAim();
+            }
+            // barulho de cola (papel) continua chamando atenção
+            p.MakeNoise(30f, 10f, Falas.RuidoPapel, Infracao.Bilhete);
+            yield return null;
+            Assert.Greater(prof.Suspicion, 0f, "barulho de cola ainda é ouvido");
+        }
+
         [UnityTest]
         public IEnumerator IrEntregarAProvaNaoContaComoPassear()
         {

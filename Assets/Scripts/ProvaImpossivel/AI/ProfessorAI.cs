@@ -91,7 +91,40 @@ namespace ProvaImpossivel
 
         void OnEnable() => Noise.Emitted += OnNoise;
         void OnDisable() => Noise.Emitted -= OnNoise;
-        void OnNoise(NoiseInfo n) => HearNoise(n.position, n.radius, n.amount, n.what, n.kind);
+        void OnNoise(NoiseInfo n)
+        {
+            if (IgnoresNoiseAfterPassing(n)) return;
+            HearNoise(n.position, n.radius, n.amount, n.what, n.kind);
+        }
+
+        /// <summary>
+        /// Com a nota mínima garantida, barulho do jogador que não é cola (passos, cadeira) não chama mais atenção.
+        /// Barulho de cola (papel do bilhete, celular vibrando) ou feito colando continua valendo.
+        /// </summary>
+        bool IgnoresNoiseAfterPassing(NoiseInfo n)
+        {
+            var gm = GameManager.I;
+            var p = PlayerController.I;
+            return gm != null && gm.JaPassou && n.byPlayer && !CheatRules.LeavesEvidence(n.kind)
+                   && (p == null || p.CurrentSuspicionRate <= 0f);
+        }
+
+        /// <summary>
+        /// O jogador chegou na nota mínima: o professor relaxa — esquece a suspeita, para de investigar e volta à ronda.
+        /// (Flagrante, Cara de Paisagem em andamento e distração/telefone seguem como estão.)
+        /// </summary>
+        public void Relax()
+        {
+            Suspicion = 0f;
+            Notice = 0f;
+            evidence = Infracao.Nenhuma;
+            if (State == ProfState.Desconfiado || State == ProfState.Investigando)
+            {
+                Enter(ProfState.Tranquilo);
+                GoTo(NextPatrolPoint(), walkSpeed);
+            }
+            if (State == ProfState.Tranquilo) Say(Falas.Pick(Falas.ProfRelaxou), 2.5f);
+        }
 
         void Start()
         {

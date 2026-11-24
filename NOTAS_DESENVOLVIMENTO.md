@@ -1118,6 +1118,25 @@ direção da câmera; a bolinha (esfera + cubo) só aparecia na mão por 0,6 s e
 - Conferido em captura `diag_bilhete` (mirando no Nerd de trás do ombro, voo e a bolinha pousada de perto).
 - **Validar jogando:** sentado, B, girar a câmera até o Nerd (linha amarela), B de novo; testar Espaço cancelando.
 
+### Com a nota mínima, o professor relaxa — versão 1.0.9 (24/11, noite)
+Pedido: "depois que o aluno terminar as questões necessárias, quero que o professor pare de ficar achando que estou
+colando, para eu entregar a prova sem ele desconfiar, independente do nível de dificuldade". Decisão do dono
+(pergunta feita): **colar depois disso ainda dá flagrante**; o resto não.
+- `GameManager.JaPassou` = prova de verdade em andamento (não o treino) e nota ≥ nota mínima, em qualquer
+  dificuldade. Ao chegar lá (cada vez que chega, se um flagrante derrubar a nota e ela voltar): `ProfessorAI.Relax()`
+  zera suspeita, "percepção" e prova ouvida; se estava desconfiado/investigando, volta à ronda; fala uma de
+  `Falas.ProfRelaxou`. Toast verde importante `Falas.NotaGarantida` ("vá entregar... colar ainda é flagrante").
+- Enquanto `JaPassou`: fora do lugar / correndo não gera suspeita (`PlayerController`); barulho do jogador que não é
+  cola (passos, cadeira) é ignorado pelo professor (`IgnoresNoiseAfterPassing`); barulho de cola (papel do bilhete,
+  celular vibrando) ou feito colando continua valendo. O Puxa-saco só dedura com taxa > 10 (só cola), então também
+  não dedura mais andar/correr. Colas (celular, colinha, garrafinha, bilhete, fone, Nerd, Fundão) seguem iguais.
+  Flagrante em andamento, Cara de Paisagem em andamento e distração/telefone não são interrompidos.
+- Teste PlayMode `ComNotaMinimaOProfessorRelaxaMasColarAindaConta`: desconfiado → nota mínima → suspeita 0, saiu de
+  desconfiado/investigando, toast; de pé longe da carteira sem infração; passos não sobem a suspeita; armando o
+  bilhete volta a ser `Infracao.Bilhete` com taxa > 0; barulho de papel ainda sobe a suspeita.
+- **Validar jogando:** responder/colar até "já dá!", ver o aviso verde, levantar e ir (até correndo) para a mesa:
+  a suspeita não sobe. Usar o celular na frente dele ainda dá flagrante.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

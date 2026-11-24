@@ -369,7 +369,9 @@ namespace ProvaImpossivel
             GoingToDeliver = !IsSeated && !IsRunning && desk != null
                              && HeadingToDesk(transform.position, moveDir, desk.transform.position, deliverWalkAngle, deliverDeskRadius);
 
-            if (!IsSeated && rate <= 0f && seatPoint != null && !GoingToDeliver)
+            // nota mínima garantida: andar, levantar ou correr não é mais suspeito (só colar)
+            bool jaPassou = GameManager.I != null && GameManager.I.JaPassou;
+            if (!IsSeated && rate <= 0f && seatPoint != null && !GoingToDeliver && !jaPassou)
             {
                 Vector3 a = transform.position, b = seatPoint.position;
                 a.y = b.y = 0f;

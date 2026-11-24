@@ -440,6 +440,13 @@ namespace ProvaImpossivel
         public const string HudTempo = "TEMPO";
         public const string HudNota = "NOTA";
         public const string HudNotaJaDa = "já dá! Entregue na mesa (E)";
+        public const string NotaGarantida = "NOTA GARANTIDA! O professor relaxou: vá entregar na mesa dele. (Colar na frente dele ainda é flagrante.)";
+        public static readonly string[] ProfRelaxou =
+        {
+            "Hm. Essa turma até que está quietinha hoje.",
+            "Bom, bom. Parece que alguém estudou.",
+            "*boceja* Que prova tranquila...",
+        };
         /// <summary>"faltam {0} pra passar" (anotação à mão no painel da NOTA).</summary>
         public const string HudNotaFaltam = "faltam {0} pra passar";
         public const string HudTreino = "TREINO";

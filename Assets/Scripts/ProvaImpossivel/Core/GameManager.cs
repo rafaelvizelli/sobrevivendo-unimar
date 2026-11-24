@@ -271,6 +271,15 @@ namespace ProvaImpossivel
 
         /// <summary>Está na prova de treino (tutorial)?</summary>
         public bool InTutorial { get; private set; }
+
+        /// <summary>
+        /// Já tem a nota mínima (prova de verdade, em andamento): o professor para de desconfiar de você andar,
+        /// levantar, correr ou fazer barulho — vale em qualquer dificuldade. COLAR na frente dele continua dando flagrante.
+        /// Se um flagrante zerar questão e a nota cair, volta ao normal.
+        /// </summary>
+        public bool JaPassou => Phase == Phase.Playing && !InTutorial && ExamSystem.I != null && Settings != null
+                                && ExamSystem.I.Grade >= Settings.minGrade;
+        bool avisouPassou;
         TutorialDirector tutorialDirector;
 
         /// <summary>
@@ -334,6 +343,7 @@ namespace ProvaImpossivel
             Settings = s;
             TimeLeft = Settings.duration;
             Favors = Settings.favors;
+            avisouPassou = false;
             Cheats = new CheatBudget(Settings.maxCheatAnswers);
             MatchLog.Reset();
             // espalha os números da dificuldade para quem usa
@@ -410,6 +420,14 @@ namespace ProvaImpossivel
             if (Phase != Phase.Playing) return;
 
             TimeLeft -= Time.deltaTime;
+            // nota mínima garantida: o professor relaxa (uma vez a cada vez que a nota chega lá)
+            bool passou = JaPassou;
+            if (passou && !avisouPassou)
+            {
+                ProfessorAI.I?.Relax();
+                HUD.I.Toast(Falas.NotaGarantida, HUD.Green, 4f, important: true);
+            }
+            avisouPassou = passou;
             if (!warned60 && TimeLeft <= 60f)
             {
                 warned60 = true;
