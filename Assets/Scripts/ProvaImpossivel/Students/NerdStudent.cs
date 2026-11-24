@@ -43,6 +43,7 @@ namespace ProvaImpossivel
             base.Start();
             displayName = "NERD";
             hint = MoodIcon.For(this, 1.85f);
+            if (PlayerController.I != null) hint.lookTarget = PlayerController.I.transform; // a pupila olha para o jogador
             nextBrag = Random.Range(40f, 70f);
             nextGlance = Random.Range(glanceInterval.x, glanceInterval.y);
         }

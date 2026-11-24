@@ -68,6 +68,33 @@ namespace ProvaImpossivel.Tests
             }
         }
 
+        // ------------------------------------------------------------------ olho desenhado do Nerd
+
+        [UnityTest]
+        public IEnumerator NerdOlhandoDeLadoMostraOOlhoDesenhadoQueOlhaParaOJogador()
+        {
+            yield return EnterGame();
+            GameManager.I.Begin(Difficulty.Normal);
+            yield return null;
+            var nerd = Object.FindAnyObjectByType<NerdStudent>();
+            var icon = nerd.GetComponent<MoodIcon>();
+            nerd.GlanceSoon();
+            yield return WaitUntil(() => nerd.Glancing, 4f, "o Nerd não chegou a olhar de lado");
+            yield return Wait(0.5f);
+            Assert.AreEqual(MoodIcon.EyeKey, icon.Symbol, "a lógica continua mandando o mesmo sinal");
+            Assert.IsTrue(icon.EyeVisible, "o olho desenhado tinha que aparecer");
+            var texto = icon.GetComponentInChildren<Canvas>().transform.Find("Simbolo").GetComponent<UnityEngine.UI.Text>();
+            Assert.AreEqual("", texto.text, "nada de texto 'O_O' por cima do olho");
+            var cam = Camera.main.transform;
+            float lado = Vector3.Dot(PlayerController.I.transform.position - nerd.transform.position, cam.right);
+            if (Mathf.Abs(lado) > 0.3f)
+                Assert.AreEqual(Mathf.Sign(lado), Mathf.Sign(icon.EyeLook), "a pupila olha para o lado do jogador na tela");
+
+            yield return WaitUntil(() => !nerd.Glancing, 8f, "o Nerd não voltou a escrever");
+            yield return Wait(0.6f);
+            Assert.IsFalse(icon.EyeVisible, "o olho sai depois que ele volta a escrever");
+        }
+
         // ------------------------------------------------------------------ Cara de Paisagem
 
         [UnityTest]

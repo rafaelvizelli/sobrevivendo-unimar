@@ -46,7 +46,22 @@ namespace ProvaImpossivel.EditorTools
             ("diag_prof_lado", () => DiagProf("diag_prof_lado", false)),
             ("diag_prof_frente", () => DiagProf("diag_prof_frente", true)),
             ("diag_jogador", DiagJogador),
+            ("diag_nerd", DiagNerd),
         };
+
+        /// <summary>Diagnóstico do indicador do Nerd: mesmo enquadramento do plano 03, em pasta própria.</summary>
+        static IEnumerator DiagNerd()
+        {
+            StopTpc(true);
+            var nerd = Find<NerdStudent>();
+            var nv = nerd.visual;
+            nerd.GlanceSoon();
+            yield return Capture("diag_nerd", 4f, (t, p) =>
+            {
+                Pose(Rel(nv, 2.1f, -0.4f, 0.15f), nv.HeadPosition + Vector3.up * 0.25f, 44f,
+                     Vector3.Distance(Rel(nv, 2f, -0.4f, 0.15f), nv.HeadPosition));
+            });
+        }
 
         /// <summary>Diagnóstico da caminhada: o professor anda em linha reta pelo corredor; câmera de lado ou de frente.</summary>
         static IEnumerator DiagProf(string id, bool deFrente)

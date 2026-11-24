@@ -50,6 +50,19 @@ namespace ProvaImpossivel.Tests
         }
 
         [Test]
+        public void OlhoDoNerdEntraComPopEFormaDeAmendoa()
+        {
+            Assert.AreEqual(0f, MoodIcon.PopIn(0f), 1e-4f);
+            Assert.AreEqual(1f, MoodIcon.PopIn(1f), 1e-4f);
+            float max = 0f;
+            for (int i = 0; i <= 20; i++) max = Mathf.Max(max, MoodIcon.PopIn(i / 20f));
+            Assert.Greater(max, 1f, "passa um pouco do tamanho (pop)");
+            Assert.Less(max, 1.25f, "mas sem exagero");
+            Assert.Less(MoodIcon.AlmondField(0f, 0f), 0f, "centro dentro do olho");
+            Assert.Greater(MoodIcon.AlmondField(0.95f, 0.5f), 0f, "canto de cima fora (ponta da amêndoa)");
+        }
+
+        [Test]
         public void MensagemCinzaEhAMenosPrioritaria()
         {
             Assert.IsTrue(HUD.IsInformative(HUD.Gray, false), "cinza comum é só informação");
