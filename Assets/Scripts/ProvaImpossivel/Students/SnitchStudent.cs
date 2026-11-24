@@ -129,7 +129,7 @@ namespace ProvaImpossivel
                 seen = 0f;
                 Say(Falas.Pick(Falas.PuxaSacoDedura), 3.5f);
                 SoundFX.Play(Sfx.Alerta);
-                HUD.I.Toast("O PUXA-SACO TE DEDUROU! O professor está vindo!", HUD.Red, 3.5f);
+                HUD.I.Toast("O PUXA-SACO TE DEDUROU! O professor está vindo!", HUD.Red, 3.5f, important: true);
                 Prof?.Say(Falas.Pick(Falas.ProfDedurado), 2f);
                 Prof?.Alert(p.transform.position, 40f, "dedurado pelo Puxa-saco", Infracao.Dedurado);
             }

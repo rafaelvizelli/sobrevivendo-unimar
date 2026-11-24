@@ -43,6 +43,48 @@ namespace ProvaImpossivel.Tests
             Assert.IsFalse(avisou, "fechar sem resultado não conta como acerto nem erro");
         }
 
+        [UnityTest]
+        public IEnumerator PainelDaCaraDePaisagemNoPapelComTextosQueCabem()
+        {
+            yield return ComecaNormalIsolado();
+            var fp = FacePokerChallenge.I;
+            fp.Begin(1f, _ => { });
+            yield return null;
+            var painel = GameObject.Find("Desafio A");
+            Assert.IsNotNull(painel);
+            var titulo = painel.transform.Find("Titulo").GetComponent<UnityEngine.UI.Text>();
+            Assert.AreEqual(UITheme.StampRed, titulo.color, "título carimbado em vermelho, como a HUD de papel");
+            foreach (var nome in new[] { "Titulo", "Ajuda", "Status", "Tempo", "Feedback" })
+            {
+                var t = painel.transform.Find(nome).GetComponent<UnityEngine.UI.Text>();
+                var r = t.rectTransform.rect;
+                Assert.GreaterOrEqual(UITheme.Contrast(t.color, UITheme.Paper), 4.5f, nome + " ilegível no papel");
+                Assert.LessOrEqual(t.preferredHeight, r.height + 2f, nome + " não cabe na altura");
+            }
+            // espera o status ser escrito e confere a largura dele (a linha mais longa do painel)
+            yield return Wait(0.2f);
+            var status = painel.transform.Find("Status").GetComponent<UnityEngine.UI.Text>();
+            Assert.LessOrEqual(status.cachedTextGenerator.lineCount, 1, "status quebrou em duas linhas");
+            fp.Cancel();
+        }
+
+        // ------------------------------------------------------------------ HUD
+
+        [UnityTest]
+        public IEnumerator MensagemCinzaNaoTiraOutraDaTela()
+        {
+            yield return ComecaNormalIsolado();
+            var hud = HUD.I;
+            hud.Toast("primeira", HUD.Yellow, 10f);
+            hud.Toast("segunda", HUD.Red, 10f);
+            hud.Toast("informativa", HUD.Gray, 10f);
+            yield return null;
+            var textos = hud.ToastTexts();
+            CollectionAssert.Contains(textos, "primeira");
+            CollectionAssert.Contains(textos, "segunda");
+            CollectionAssert.DoesNotContain(textos, "informativa", "com a pilha cheia, a cinza fica de fora");
+        }
+
         // ------------------------------------------------------------------ trilha
 
         [UnityTest]

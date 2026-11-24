@@ -412,14 +412,14 @@ namespace ProvaImpossivel
             if (!warned60 && TimeLeft <= 60f)
             {
                 warned60 = true;
-                HUD.I.Toast("FALTA 1 MINUTO!", HUD.Red, 3f);
+                HUD.I.Toast("FALTA 1 MINUTO!", HUD.Red, 3f, important: true);
                 ProfessorAI.I.Say(Falas.Pick(Falas.ProfTempo), 3f);
                 SoundFX.Play(Sfx.Alerta);
             }
             if (!warned30 && TimeLeft <= 30f)
             {
                 warned30 = true;
-                HUD.I.Toast("30 SEGUNDOS! É agora ou DP!", HUD.Red, 3f);
+                HUD.I.Toast("30 SEGUNDOS! É agora ou DP!", HUD.Red, 3f, important: true);
                 SoundFX.Play(Sfx.Alerta);
             }
             if (TimeLeft <= 0f && InTutorial)

@@ -42,35 +42,37 @@ namespace ProvaImpossivel
 
         void Build()
         {
-            var box = UIFactory.Box("Desafio A", HUD.I.PanelRoot, HUD.PanelColor);
+            // Entrega 1.0: folha de papel como o resto da HUD ("prova impressa"), não mais o painel escuro antigo
+            var box = UIFactory.Paper("Desafio A", HUD.I.PanelRoot, margin: false);
+            UIFactory.Frame("Moldura", box.transform, UITheme.StampRed).rectTransform.Stretch(4f);
             box.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 230f), new Vector2(900f, 260f));
             panel = box.gameObject;
             var tr = box.transform;
 
-            var title = UIFactory.Label("Titulo", tr, "DESAFIO A — CARA DE PAISAGEM!", 30, HUD.Yellow);
+            var title = UIFactory.Ink("Titulo", tr, "DESAFIO A — CARA DE PAISAGEM!", UITheme.SizeHeading, UITheme.StampRed);
             title.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -12f), new Vector2(860f, 40f));
-            help = UIFactory.Label("Ajuda", tr, HelpText(), 20, HUD.Gray, TextAnchor.MiddleCenter, FontStyle.Italic);
-            help.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -54f), new Vector2(860f, 30f));
+            help = UIFactory.Ink("Ajuda", tr, HelpText(), UITheme.SizeSmall, UITheme.InkSoft);
+            help.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -52f), new Vector2(860f, 58f));
 
             var trackImg = UIFactory.Box("Trilho", tr, new Color(0.75f, 0.2f, 0.2f));
-            track = trackImg.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -104f), new Vector2(780f, 44f));
+            track = trackImg.rectTransform.Place(new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -116f), new Vector2(780f, 44f));
             var zoneImg = UIFactory.Box("ZonaVerde", track, new Color(0.25f, 0.8f, 0.35f), false);
             zone = zoneImg.rectTransform;
             zone.anchorMin = new Vector2(0f, 0f);
             zone.anchorMax = new Vector2(0f, 1f);
             zone.pivot = new Vector2(0.5f, 0.5f);
-            var ptrImg = UIFactory.Box("Ponteiro", track, Color.white);
+            var ptrImg = UIFactory.Box("Ponteiro", track, UITheme.Ink);
             pointer = ptrImg.rectTransform;
             pointer.anchorMin = new Vector2(0f, 0f);
             pointer.anchorMax = new Vector2(0f, 1f);
             pointer.pivot = new Vector2(0.5f, 0.5f);
             pointer.sizeDelta = new Vector2(10f, 22f);
 
-            statusText = UIFactory.Label("Status", tr, "", 24, Color.white, TextAnchor.MiddleLeft);
-            statusText.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(60f, 50f), new Vector2(500f, 34f));
-            timerText = UIFactory.Label("Tempo", tr, "", 24, Color.white, TextAnchor.MiddleRight);
-            timerText.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-60f, 50f), new Vector2(300f, 34f));
-            feedbackText = UIFactory.Label("Feedback", tr, "", 24, HUD.Green);
+            statusText = UIFactory.Ink("Status", tr, "", UITheme.SizeSmall, UITheme.Ink, TextAnchor.MiddleLeft);
+            statusText.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(60f, 50f), new Vector2(540f, 34f));
+            timerText = UIFactory.Ink("Tempo", tr, "", UITheme.SizeSmall, UITheme.Ink, TextAnchor.MiddleRight);
+            timerText.rectTransform.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-60f, 50f), new Vector2(240f, 34f));
+            feedbackText = UIFactory.Ink("Feedback", tr, "", UITheme.SizeSmall, UITheme.InkGreen);
             feedbackText.rectTransform.Place(new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 10f), new Vector2(860f, 34f));
             panel.SetActive(false);
         }
@@ -175,7 +177,7 @@ namespace ProvaImpossivel
         void Feedback(string s, Color c, float seconds = 1f)
         {
             feedbackText.text = s;
-            feedbackText.color = c;
+            feedbackText.color = UITheme.OnPaper(c); // cores de sinal viram tinta legível no papel
             feedbackUntil = Time.time + seconds;
         }
 

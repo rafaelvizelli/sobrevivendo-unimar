@@ -503,6 +503,8 @@ namespace ProvaImpossivel
                 same.until = Time.unscaledTime + seconds;
                 return;
             }
+            // Entrega 1.0: mensagem só informativa (cinza: "favor não gasto", "bateria acabou") nunca tira outra da tela
+            if (IsInformative(color, important) && toasts.Count >= maxToasts) return;
             // abre espaço: descarta primeiro a mais antiga não importante
             while (toasts.Count >= maxToasts)
             {
@@ -534,6 +536,12 @@ namespace ProvaImpossivel
             box.rectTransform.sizeDelta = new Vector2(980f, h);
             toasts.Insert(0, new Toast_ { rect = box.rectTransform, group = group, text = t, until = Time.unscaledTime + seconds, important = important, raw = text });
         }
+
+        /// <summary>Mensagem de menor prioridade: cinza (recusa / informação) e não importante. Pura (testes).</summary>
+        public static bool IsInformative(Color color, bool important) => !important && color == Gray;
+
+        /// <summary>Textos das mensagens na tela agora, da mais nova à mais antiga (testes).</summary>
+        public List<string> ToastTexts() => toasts.ConvertAll(t => t.raw);
 
         void UpdateToasts()
         {

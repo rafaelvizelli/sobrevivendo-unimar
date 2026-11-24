@@ -28,6 +28,22 @@ namespace ProvaImpossivel.Tests
         }
 
         [Test]
+        public void MensagemCinzaEhAMenosPrioritaria()
+        {
+            Assert.IsTrue(HUD.IsInformative(HUD.Gray, false), "cinza comum é só informação");
+            Assert.IsFalse(HUD.IsInformative(HUD.Gray, true), "importante nunca é descartável");
+            Assert.IsFalse(HUD.IsInformative(HUD.Red, false));
+            Assert.IsFalse(HUD.IsInformative(HUD.Yellow, false));
+        }
+
+        [Test]
+        public void AvisoDePularTutorialLegivelNoPapel()
+        {
+            Assert.IsTrue(ColorUtility.TryParseHtmlString("#3C372F", out var c));
+            Assert.GreaterOrEqual(UITheme.Contrast(c, UITheme.Paper), 4.5f, "[T] pular tutorial precisa de contraste de texto");
+        }
+
+        [Test]
         public void PacotesSemUsoSairamDoManifest()
         {
             string manifest = File.ReadAllText(Path.Combine("Packages", "manifest.json"));

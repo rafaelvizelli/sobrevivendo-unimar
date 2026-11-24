@@ -143,7 +143,7 @@ namespace ProvaImpossivel
 
         void ShowStep()
         {
-            HUD.I.SetTutorial(TutorialSteps.Text(Step) + "    <color=#999999>[T] pular tutorial</color>");
+            HUD.I.SetTutorial(TutorialSteps.Text(Step) + "    <color=#3C372F>[T] pular tutorial</color>");
             if (Step == TutorialStep.ColasDeBolso) HUD.I.Toast(Falas.TutorialOrcamento, HUD.Yellow, 7f, important: true);
         }
 
