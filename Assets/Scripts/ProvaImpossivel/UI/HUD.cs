@@ -354,11 +354,19 @@ namespace ProvaImpossivel
 
         // =================================================================== prompts
 
+        string promptRaw;
+
         public void SetPrompt(string text)
         {
             bool on = !string.IsNullOrEmpty(text);
             if (promptBox.gameObject.activeSelf != on) promptBox.gameObject.SetActive(on);
-            if (on) promptText.text = KeysInPen(text);
+            if (!on || text == promptRaw) return; // todo quadro: só mede de novo quando o texto muda
+            promptRaw = text;
+            promptText.text = KeysInPen(text);
+            // a caixa acompanha o texto: mais larga (até 1100) e, se ainda quebrar, mais alta (nunca menor que antes)
+            var pr = promptBox.rectTransform;
+            pr.sizeDelta = new Vector2(Mathf.Clamp(promptText.preferredWidth + 40f, 820f, 1100f), 58f);
+            pr.sizeDelta = new Vector2(pr.sizeDelta.x, Mathf.Max(58f, promptText.preferredHeight + 16f));
         }
 
         /// <summary>Risco da ação que o jogador está segurando: quem chama decide (o HUD não lê o professor).</summary>
@@ -390,7 +398,8 @@ namespace ProvaImpossivel
             bool on = !string.IsNullOrEmpty(text);
             seatedHelp.text = on ? KeysInPen(text) : "";
             if (seatedHelpBox.gameObject.activeSelf != on) seatedHelpBox.gameObject.SetActive(on);
-            if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1300f, seatedHelp.preferredWidth + 40f), 44f);
+            // sem quebra de linha: a caixa vai até quase a largura da tela (1300 cortava as ajudas mais longas)
+            if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1840f, seatedHelp.preferredWidth + 40f), 44f);
         }
 
         // ------------------------------------------------------------------ colas de bolso
@@ -487,7 +496,11 @@ namespace ProvaImpossivel
         {
             bool on = !string.IsNullOrEmpty(text);
             if (tutorialBox.gameObject.activeSelf != on) tutorialBox.gameObject.SetActive(on);
-            if (on) tutorialText.text = text;
+            if (!on) return;
+            tutorialText.text = text;
+            // texto longo (passo + "[T] pular tutorial") quebra em duas linhas: a folha cresce para cima em vez de cortar
+            var tr = tutorialBox.rectTransform;
+            tr.sizeDelta = new Vector2(tr.sizeDelta.x, Mathf.Max(60f, tutorialText.preferredHeight + 18f));
         }
 
         // =================================================================== mensagens
@@ -649,6 +662,10 @@ namespace ProvaImpossivel
             b.name.color = nameColor;
             b.text.text = text;
             float w = Mathf.Clamp(text.Length * 11f + 40f, 160f, 400f);
+            // fala curta com nome comprido ("Hm." do PROF. TAKANERVOSO): o nome saía do balão. O balão tem pelo menos
+            // a largura do nome (até o máximo), e o nome ocupa a largura do balão.
+            if (!string.IsNullOrEmpty(speaker)) w = Mathf.Clamp(Mathf.Max(w, b.name.preferredWidth + 28f), 160f, 400f);
+            b.name.rectTransform.sizeDelta = new Vector2(w - 24f, 22f);
             b.text.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(12f, string.IsNullOrEmpty(speaker) ? -8f : -28f), new Vector2(w - 24f, 10f));
             float h = b.text.preferredHeight + (string.IsNullOrEmpty(speaker) ? 18f : 38f);
             b.text.rectTransform.sizeDelta = new Vector2(w - 24f, h);

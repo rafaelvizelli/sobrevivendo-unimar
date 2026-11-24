@@ -209,5 +209,15 @@ namespace ProvaImpossivel
 
         /// <summary>Quantas perguntas de chute existem (para testes).</summary>
         public static int ChuteCount => chutes.Length;
+
+        /// <summary>Todas as perguntas (prova + chutes), só leitura: auditoria de layout nos testes.</summary>
+        public static IEnumerable<Question> AllForAudit
+        {
+            get
+            {
+                foreach (var q in all) yield return q;
+                foreach (var q in chutes) yield return q;
+            }
+        }
     }
 }

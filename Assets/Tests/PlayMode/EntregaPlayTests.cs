@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -66,6 +67,102 @@ namespace ProvaImpossivel.Tests
                 if (prof.visual.Skin.WalkWeight < 0.1f)
                     Assert.Greater(prof.visual.armsCrossed, 0.5f, "parado e tranquilo, ele cruza os braços");
             }
+        }
+
+        // ------------------------------------------------------------------ auditoria das caixas de texto
+
+        static float Altura(UnityEngine.UI.Text t, string s)
+        {
+            t.text = s;
+            return t.preferredHeight;
+        }
+
+        /// <summary>Cada pergunta e cada alternativa do jogo, no painel real da prova, cabe na sua caixa.</summary>
+        [UnityTest]
+        public IEnumerator TodasAsPerguntasEAlternativasCabemNoPainelDaProva()
+        {
+            yield return ComecaNormalIsolado();
+            var quiz = QuizChallenge.I;
+            quiz.Begin(30f, _ => { });
+            yield return null;
+            var painel = GameObject.Find("Desafio B").transform;
+            var pergunta = painel.Find("Pergunta").GetComponent<UnityEngine.UI.Text>();
+            var problemas = new System.Collections.Generic.List<string>();
+            foreach (var q in QuizBank.AllForAudit)
+            {
+                float h = Altura(pergunta, q.text);
+                if (h > pergunta.rectTransform.rect.height + 1f) problemas.Add("pergunta (" + h + " px): " + q.text);
+                for (int i = 0; i < 4; i++)
+                {
+                    var opt = painel.Find("Opcao" + (i + 1) + "/Texto").GetComponent<UnityEngine.UI.Text>();
+                    foreach (var o in q.options)
+                    {
+                        float ho = Altura(opt, "D)  " + o);
+                        if (ho > opt.rectTransform.rect.height + 1f) problemas.Add("alternativa (" + ho + " px): " + o);
+                    }
+                }
+            }
+            Assert.IsEmpty(problemas, string.Join("\n", problemas.Distinct()));
+        }
+
+        /// <summary>Balão de fala: nome e fala sempre dentro do balão, com fala curta ou longa.</summary>
+        [UnityTest]
+        public IEnumerator BalaoDeFalaSempreContemNomeEFala()
+        {
+            yield return ComecaNormalIsolado();
+            var hud = HUD.I;
+            var alvo = ProfessorAI.I.transform;
+            var falas = new System.Collections.Generic.List<string> { "Hm.", "Ok", "Silêncio!" };
+            foreach (var f in typeof(Falas).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+                if (f.FieldType == typeof(string[])) falas.AddRange((string[])f.GetValue(null));
+            var problemas = new System.Collections.Generic.List<string>();
+            var baloes = GameObject.Find("Baloes").transform;
+            foreach (var fala in falas)
+            {
+                hud.Say(alvo, "PROF. TAKANERVOSO", fala, 5f, HUD.Red, 2);
+                Transform b = null;
+                foreach (Transform c in baloes) if (c.gameObject.activeSelf) b = c;
+                var caixa = (RectTransform)b;
+                var nome = b.Find("Nome").GetComponent<UnityEngine.UI.Text>();
+                var texto = b.Find("Fala").GetComponent<UnityEngine.UI.Text>();
+                float w = caixa.rect.width;
+                if (nome.preferredWidth + 12f > w + 1f) problemas.Add("nome sai do balão com a fala: " + fala);
+                float topo = -texto.rectTransform.anchoredPosition.y; // a fala começa abaixo do nome
+                if (topo + texto.preferredHeight > caixa.rect.height + 1f) problemas.Add("fala passa do fundo do balão: " + fala);
+                if (texto.rectTransform.anchoredPosition.x + texto.rectTransform.rect.width > w + 1f) problemas.Add("fala passa da largura: " + fala);
+            }
+            Assert.IsEmpty(problemas, string.Join("\n", problemas.Distinct()));
+        }
+
+        /// <summary>Texto do tutorial (todos os passos + "[T] pular tutorial"), prompt longo e ajuda longa cabem nas caixas.</summary>
+        [UnityTest]
+        public IEnumerator TutorialPromptEAjudaCabemNasCaixas()
+        {
+            yield return ComecaNormalIsolado();
+            var hud = HUD.I;
+            var problemas = new System.Collections.Generic.List<string>();
+            var hudRoot = GameObject.Find("HUD").transform;
+
+            foreach (var passo in TutorialSteps.Order)
+            {
+                if (passo == TutorialStep.Concluido) continue;
+                hud.SetTutorial(TutorialSteps.Text(passo) + "    <color=#3C372F>[T] pular tutorial</color>");
+                var t = hudRoot.Find("Tutorial/Texto").GetComponent<UnityEngine.UI.Text>();
+                if (t.preferredHeight > t.rectTransform.rect.height + 1f) problemas.Add("tutorial " + passo + ": " + t.preferredHeight + " > " + t.rectTransform.rect.height);
+            }
+            hud.SetTutorial(null);
+
+            string longo = "[E] Segure para pedir ao colega da frente que finja uma crise de tosse bem alta enquanto você confere a resposta da questão sete";
+            hud.SetPrompt(longo);
+            var p = hudRoot.Find("Prompt/Texto").GetComponent<UnityEngine.UI.Text>();
+            if (p.preferredHeight > p.rectTransform.rect.height + 1f) problemas.Add("prompt longo: " + p.preferredHeight + " > " + p.rectTransform.rect.height);
+            hud.SetPrompt(null);
+
+            hud.SetSeatedHelp("[1] Responder (sabe 3)    [2] Celular (segure; bateria p/ 3)    [Espaço] Levantar    [Q] Colinha    [G] Garrafinha    [B] Bilhete    [F] Fone");
+            var a = hudRoot.Find("AjudaFundo/Ajuda").GetComponent<UnityEngine.UI.Text>();
+            if (a.preferredWidth > a.rectTransform.rect.width + 1f) problemas.Add("ajuda longa: " + a.preferredWidth + " > " + a.rectTransform.rect.width);
+            yield return null;
+            Assert.IsEmpty(problemas, string.Join("\n", problemas));
         }
 
         // ------------------------------------------------------------------ olho desenhado do Nerd
