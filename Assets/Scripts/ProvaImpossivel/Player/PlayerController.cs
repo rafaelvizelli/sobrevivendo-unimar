@@ -32,6 +32,10 @@ namespace ProvaImpossivel
         public float outOfSeatSuspicion = 4f;
         public float runningSuspicion = 12f;
         public float outOfSeatDistance = 1.4f;
+        [Tooltip("Indo entregar: andando (sem correr) na direção da mesa do professor não conta como passear. Desvio máximo do passo em relação à mesa (graus)")]
+        public float deliverWalkAngle = 55f;
+        [Tooltip("Perto da mesa do professor (segurando E para entregar) também não conta como passear (m)")]
+        public float deliverDeskRadius = 2.5f;
 
         public bool IsSeated { get; private set; }
         public bool IsRunning { get; private set; }
@@ -49,6 +53,8 @@ namespace ProvaImpossivel
         public string CurrentSuspicionReason { get; private set; } = "";
         /// <summary>Tipo do que ele está fazendo agora (as regras usam isto; o texto acima é só para exibir).</summary>
         public Infracao CurrentInfracao { get; private set; }
+        /// <summary>De pé indo entregar a prova (andando para a mesa do professor ou parado nela): não é "passear".</summary>
+        public bool GoingToDeliver { get; private set; }
         /// <summary>Consultas que ainda cabem na bateria do celular (a dificuldade define no começo da prova).</summary>
         public int PhoneCharges { get; set; } = 2;
         public bool CanUsePhone => HasPhone && PhoneCharges > 0;
@@ -58,6 +64,8 @@ namespace ProvaImpossivel
         public Vector3 ChestPosition => transform.position + Vector3.up * (IsSeated ? 0.95f : 1.25f);
 
         CharacterController cc;
+        TeacherDesk desk;   // achada uma vez (a cena tem uma só)
+        Vector3 moveDir;    // para onde o jogador está andando agora (plano do chão)
         Transform cam;
         float vy, phoneProgress, phoneCooldown, quizTimer, noiseTimer;
         int lockCount;
@@ -297,6 +305,7 @@ namespace ProvaImpossivel
             fwd.Normalize(); right.Normalize();
             Vector3 dir = fwd * mv.y + right * mv.x;
             if (dir.sqrMagnitude > 1f) dir.Normalize();
+            moveDir = dir;
 
             IsRunning = run && dir.sqrMagnitude > 0.01f;
             float speed = IsRunning ? runSpeed : walkSpeed;
@@ -321,6 +330,20 @@ namespace ProvaImpossivel
 
         // ---------------------------------------------------------------- suspeita / visual
 
+        /// <summary>
+        /// true = perto da mesa (raio <paramref name="nearRadius"/>) ou andando na direção dela (desvio até
+        /// <paramref name="maxAngle"/> graus). Parado longe da mesa é false (aí é passear). Puro.
+        /// </summary>
+        public static bool HeadingToDesk(Vector3 pos, Vector3 move, Vector3 deskPos, float maxAngle, float nearRadius)
+        {
+            Vector3 d = deskPos - pos;
+            d.y = 0f;
+            if (d.magnitude <= nearRadius) return true;
+            move.y = 0f;
+            if (move.sqrMagnitude < 0.01f) return false;
+            return Vector3.Angle(move, d) <= maxAngle;
+        }
+
         void UpdateSuspicion()
         {
             float rate = 0f;
@@ -331,7 +354,13 @@ namespace ProvaImpossivel
             if (interactionRate > rate) { rate = interactionRate; reason = interactionReason; kind = interactionKind; }
             if (Cheats != null && Cheats.CurrentRate > rate) { rate = Cheats.CurrentRate; reason = Cheats.CurrentReason; kind = Cheats.CurrentKind; }
 
-            if (!IsSeated && rate <= 0f && seatPoint != null)
+            // indo entregar a prova (o jogo manda levar até a mesa): andar até lá não é "passear". Correr continua contando,
+            // e qualquer cola no caminho também (rate > 0 acima vem antes disto)
+            if (desk == null) desk = FindAnyObjectByType<TeacherDesk>();
+            GoingToDeliver = !IsSeated && !IsRunning && desk != null
+                             && HeadingToDesk(transform.position, moveDir, desk.transform.position, deliverWalkAngle, deliverDeskRadius);
+
+            if (!IsSeated && rate <= 0f && seatPoint != null && !GoingToDeliver)
             {
                 Vector3 a = transform.position, b = seatPoint.position;
                 a.y = b.y = 0f;

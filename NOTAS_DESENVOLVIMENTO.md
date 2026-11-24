@@ -1069,6 +1069,27 @@ paravam na borda da carteira com os dedos dentro do tampo, longe da folha, e o l
 - Conferido em captura (`diag_prova` agora prefere um aluno que apoia o queixo; `diag_turma` mostra a turma da frente).
 - **Validar jogando:** olhar a turma fazendo a prova (punho fechado com o lápis, uns pensando com a mão no queixo,
   ritmos e pausas diferentes).
+- Usuário (24/11): "salve tudo, mas não suba ainda" → tag local `v1.0.6-ref` e backup em
+  `C:\Users\rafae\JogoFaculdade_backups\2026-11-24_v1.0.6\` (git bundle + .zip + partidas.csv). Nada enviado ao GitHub.
+
+### Ir entregar a prova não é "passear" — versão 1.0.7 (24/11, noite)
+Achado na análise geral (pedido: "analise todo o jogo e vê se tem algum errinho"): na partida do usuário na 1.0.6
+(Normal, reprovado 4,0) os DOIS flagrantes foram `ForaDoLugar`. Pelo código, de pé a mais de 1,4 m da carteira a
+suspeita subia sempre ("passeando fora do lugar"), **inclusive indo entregar a prova** — que o próprio jogo manda
+fazer. (Não dá para afirmar que foi isso na partida dele; mas era possível e injusto.)
+- Correção (`Player/PlayerController.cs`): `GoingToDeliver` = de pé, sem correr, e andando na direção da mesa do
+  professor (desvio até `deliverWalkAngle` 55°, para caber o caminho pelos corredores) ou parado perto dela
+  (`deliverDeskRadius` 2,5 m, segurando E). Nesse caso não conta como passear. Correr continua contando, e qualquer
+  cola no caminho também (a taxa da cola vem antes). Parado longe da mesa, ou andando para o fundo/para os lados,
+  continua sendo passear. Função pura `HeadingToDesk`. A mesa é achada uma vez (sem estado estático).
+- Testes: EditMode `AndarAteAMesaDoProfessorEIrEntregarNaoPassear` (reto, pelo corredor, de lado, para trás, parado
+  longe, parado na mesa); PlayMode `IrEntregarAProvaNaoContaComoPassear` (parado atrás da carteira = ForaDoLugar;
+  na frente da mesa = nenhuma infração e taxa 0).
+- Outros pontos da análise (sem mudança): textos revisados (ortografia e números/teclas batem com o código); log das
+  partidas sem erros; sem `Debug.Log` sobrando no jogo. Pequenos: dicas/tutorial citam teclas do teclado mesmo no
+  controle; números de suspeita do jogador ficam no `PlayerController` (não em `DifficultySettings`) — dívida antiga.
+- **Validar jogando:** com a nota já suficiente, levantar e andar até a mesa do professor com ele olhando: a suspeita
+  não deve subir; correr até lá ou ir para o fundo da sala continua chamando atenção.
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.

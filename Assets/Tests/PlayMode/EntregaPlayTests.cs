@@ -90,6 +90,39 @@ namespace ProvaImpossivel.Tests
         }
 
         [UnityTest]
+        public IEnumerator IrEntregarAProvaNaoContaComoPassear()
+        {
+            yield return ComecaNormalIsolado();
+            var p = PlayerController.I;
+            var mesa = Object.FindAnyObjectByType<TeacherDesk>();
+            Assert.IsNotNull(mesa, "a cena precisa da mesa do professor");
+            Vector3 assento = p.seatPoint.position, alvo = mesa.transform.position;
+            Vector3 paraMesa = alvo - assento;
+            paraMesa.y = 0f;
+            p.StandUp();
+            var cc = p.GetComponent<CharacterController>();
+
+            // parado atrás da própria carteira, longe da mesa: continua sendo "passear"
+            cc.enabled = false;
+            p.transform.position = assento - paraMesa.normalized * 2.2f;
+            cc.enabled = true;
+            yield return null;
+            yield return null;
+            Assert.IsFalse(p.GoingToDeliver, "parado longe da mesa não é ir entregar");
+            Assert.AreEqual(Infracao.ForaDoLugar, p.CurrentInfracao, "fora do lugar, parado, ainda conta");
+
+            // na frente da mesa do professor (entregando): não conta
+            cc.enabled = false;
+            p.transform.position = alvo - paraMesa.normalized * 1.6f;
+            cc.enabled = true;
+            yield return null;
+            yield return null;
+            Assert.IsTrue(p.GoingToDeliver, "perto da mesa é ir entregar");
+            Assert.AreEqual(Infracao.Nenhuma, p.CurrentInfracao, "entregando a prova não pode virar flagrante por passear");
+            Assert.AreEqual(0f, p.CurrentSuspicionRate, 1e-4f);
+        }
+
+        [UnityTest]
         public IEnumerator FazendoAProvaAsMaosFicamEmCimaDaCarteiraEOLapisNaFolha()
         {
             yield return ComecaNormalIsolado();

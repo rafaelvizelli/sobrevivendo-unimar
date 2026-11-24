@@ -21,7 +21,7 @@ namespace ProvaImpossivel.Tests
         [Test]
         public void VersaoDeEntregaNoRodapeDoMenu()
         {
-            Assert.AreEqual("1.0.6", PlayerSettings.bundleVersion, "mão fechada e cada aluno escreve do seu jeito (24/11)");
+            Assert.AreEqual("1.0.7", PlayerSettings.bundleVersion, "ir entregar a prova não é passear (24/11)");
             string r = Falas.MenuRodape("1.0.0");
             StringAssert.StartsWith("v1.0.0", r);
             StringAssert.Contains("Estúdio Fundão", r);
@@ -48,6 +48,18 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual(27f, CharacterModelSkin.PelvisYaw(-dir, dir, r, u), 0.01f);
             var outro = Quaternion.AngleAxis(-27f, u) * Vector3.right * 0.1f;
             Assert.AreEqual(-27f, CharacterModelSkin.PelvisYaw(-outro, outro, r, u), 0.01f, "girada para o outro lado");
+        }
+
+        [Test]
+        public void AndarAteAMesaDoProfessorEIrEntregarNaoPassear()
+        {
+            Vector3 mesa = new Vector3(0f, 0f, 10f), aqui = Vector3.zero;
+            Assert.IsTrue(PlayerController.HeadingToDesk(aqui, Vector3.forward, mesa, 55f, 2.5f), "andando reto para a mesa");
+            Assert.IsTrue(PlayerController.HeadingToDesk(aqui, new Vector3(0.6f, 0f, 1f), mesa, 55f, 2.5f), "desviando pelo corredor (~31°)");
+            Assert.IsFalse(PlayerController.HeadingToDesk(aqui, Vector3.right, mesa, 55f, 2.5f), "andando de lado (90°) é passear");
+            Assert.IsFalse(PlayerController.HeadingToDesk(aqui, Vector3.back, mesa, 55f, 2.5f), "indo para o fundo da sala é passear");
+            Assert.IsFalse(PlayerController.HeadingToDesk(aqui, Vector3.zero, mesa, 55f, 2.5f), "parado longe da mesa é passear");
+            Assert.IsTrue(PlayerController.HeadingToDesk(new Vector3(0f, 0f, 8f), Vector3.zero, mesa, 55f, 2.5f), "parado na mesa, entregando");
         }
 
         [Test]
