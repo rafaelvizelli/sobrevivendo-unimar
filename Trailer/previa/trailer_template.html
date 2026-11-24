@@ -345,7 +345,8 @@ function keyCard(key, name, note, tl) {
   g.restore();
 }
 
-// celular: elemento gráfico do trailer. O jogo não tem modelo do aparelho (segurar a tecla 2 só muda a pose dos braços e da
+// celular desenhado (v2): sem uso desde a v3, porque o jogo agora mostra o aparelho na mão do jogador. Mantido para referência.
+// celular: elemento gráfico do trailer. Na v2 o jogo não tinha modelo do aparelho (segurar a tecla 2 só mudava a pose dos braços e da
 // cabeça, e as mãos ficam atrás da carteira), então ele é desenhado por cima do plano, no estilo "prova impressa": recorte de
 // papel com contorno à caneta, tela acesa, a busca com o texto do próprio HUD ("Pesquisando no celular...") e uma notificação.
 function roundRect(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
@@ -438,8 +439,8 @@ const L = {
   q7: 'Professor, a questão 7 tem um erro de digitação. Grave.',
 };
 const N = { prof: 'PROF. TAKANERVOSO', voce: 'VOCÊ', nerd: 'NERD', fundao: 'FUNDÃO', dorm: 'DORMINHOCO', puxa: 'PUXA-SACO' };
-const COLAS = [['Q', 'Colinha', 'na manga', '06_colinha', .2], ['G', 'Garrafinha', 'o rótulo sabe tudo', '07_garrafinha', .6],
-               ['B', 'Bilhete', 'mire bem!', '08_bilhete', .45], ['F', 'Fone', 'reze pra não tocar', '09_fone', .6]];
+const COLAS = [['Q', 'Colinha', 'na manga', '06_colinha', .2], ['G', 'Garrafinha', 'o rótulo sabe tudo', '07_garrafinha', .15],
+               ['B', 'Bilhete', 'mire bem!', '08_bilhete', .45], ['F', 'Fone', 'reze pra não tocar', '09_fone', .05]];
 const TRES = [['Celular.', '02_celular', .6, false], ['Nerd.', '03_nerd', 1.7, false], ['Fundão.', '04_fundao', .4, false], ['Fé.', '05_fe', .6, true]];
 
 function planoPapel(t0, t1, strikeAt, popAt) {
@@ -533,7 +534,7 @@ function cutMestre() {
   TRES.forEach(([w, clip, from, hand], i) => {
     const t0 = 9 + i * 1.5;
     S.push({ t0, t1: t0 + 1.5, clip, from, z: [1.02, 1.1], img: 'Regra de três: ' + w, fala: w,
-      draw(t) { if (clip === '02_celular') phone(t - t0 - .12, 1.5); bigWord(w, t - t0 - .05, hand); if (clip === '04_fundao') subtitle(N.fundao, L.fundao, t - t0 - .1, 1.4, '#9a6a00'); } });
+      draw(t) { bigWord(w, t - t0 - .05, hand); if (clip === '04_fundao') subtitle(N.fundao, L.fundao, t - t0 - .1, 1.4, '#9a6a00'); } });
   });
   COLAS.forEach(([k, nome, nota, clip, from], i) => {
     const t0 = 15 + i * 1.5;
@@ -577,7 +578,7 @@ function cut30(vert) {
   S.push(planoPapel(2.5, 4.5, 2.95, 3.5));
   TRES.forEach(([w, clip, from, hand], i) => {
     const t0 = 4.5 + i;
-    S.push({ t0, t1: t0 + 1, clip, from: from + .1, z: [1.02, 1.08], img: 'Regra de três: ' + w, fala: w, draw(t) { if (clip === '02_celular') phone(t - t0 - .08, 1); bigWord(w, t - t0 - .03, hand); } });
+    S.push({ t0, t1: t0 + 1, clip, from: from + .1, z: [1.02, 1.08], img: 'Regra de três: ' + w, fala: w, draw(t) { bigWord(w, t - t0 - .03, hand); } });
   });
   COLAS.forEach(([k, nome, nota, clip, from], i) => {
     const t0 = 8.5 + i;

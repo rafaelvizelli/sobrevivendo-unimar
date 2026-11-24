@@ -112,8 +112,9 @@ namespace ProvaImpossivel.EditorTools
             Prof.WalkTo(OnNav(corredor + f * 1.2f), false);
             yield return Capture("01_prof_anda", 4.5f, (t, p) =>
             {
-                // câmera baixa atrás da fileira do jogador, deslizando de lado; os encostos das cadeiras no primeiro plano
-                var pos = Player.transform.position - f * 0.75f + lado * Mathf.Lerp(0.15f, 0.55f, Ease(p)) + Vector3.up * 0.95f;
+                // câmera baixa no próprio corredor, atrás da fileira do jogador, deslizando um pouco de lado: com os
+                // personagens novos (mais altos) a câmera entre as cadeiras tinha um aluno tapando o professor
+                var pos = corredor - f * 0.8f + lado * Mathf.Lerp(-0.15f, 0.1f, Ease(p)) + Vector3.up * 1.0f;
                 Pose(pos, Pv.HeadPosition - Vector3.up * 0.3f, 42f);
             });
         }
@@ -126,7 +127,8 @@ namespace ProvaImpossivel.EditorTools
             yield return Capture("02_celular", 2.5f, (t, p) =>
             {
                 var e = Ease(p);
-                Pose(Rel(Jv, Mathf.Lerp(1.35f, 1.0f, e), 0.45f, -0.05f), Jv.HeadPosition - Vector3.up * 0.4f, 42f);
+                // o celular agora aparece na mão (modelo do jogo): enquadra rosto e aparelho juntos
+                Pose(Rel(Jv, Mathf.Lerp(1.7f, 1.35f, e), 0.45f, 0.05f), Jv.HeadPosition - Vector3.up * 0.35f, 44f);
             });
         }
 
@@ -153,6 +155,7 @@ namespace ProvaImpossivel.EditorTools
             StopTpc(true);
             var fundao = Find<BackRowStudent>();
             var fv = fundao.visual;
+            ShowBubbles = false; // o balão saía cortado no topo; a legenda do trailer leva a fala
             fundao.Say(Falas.FundaoColaBoa[0], 3f);
             yield return Capture("04_fundao", 2.5f, (t, p) =>
             {
@@ -271,8 +274,9 @@ namespace ProvaImpossivel.EditorTools
             yield return Capture("11_puxasaco", 3.6f, (t, p) =>
             {
                 if (!falou && (sn.Watching || t >= 1.6f)) { falou = true; sn.Say(PuxaSacoNova, 3f); }
+                // ela se vira para trás (para o jogador): a câmera fica do lado de trás, para pegar o rosto
                 var e = EaseOut(p);
-                Pose(Rel(v, Mathf.Lerp(1.9f, 1.3f, e), 0.35f, -0.1f), v.HeadPosition - Vector3.up * 0.1f, 44f);
+                Pose(Rel(v, -Mathf.Lerp(1.9f, 1.3f, e), 0.35f, -0.1f), v.HeadPosition - Vector3.up * 0.1f, 44f);
             });
         }
 
@@ -290,7 +294,8 @@ namespace ProvaImpossivel.EditorTools
             {
                 Pv.expression = Expression.Desconfiado;
                 var e = Ease(p);
-                Pose(Rel(Pv, Mathf.Lerp(1.9f, 1.35f, e), 0.25f, -0.3f), Pv.HeadPosition - Vector3.up * 0.2f, 40f);
+                // professor 1,15× com cabelo alto: a câmera recua e mira mais alto para não cortar a cabeça
+                Pose(Rel(Pv, Mathf.Lerp(2.3f, 1.75f, e), 0.25f, -0.25f), Pv.HeadPosition - Vector3.up * 0.3f, 40f);
             });
         }
 
@@ -299,6 +304,7 @@ namespace ProvaImpossivel.EditorTools
         {
             StopTpc(true);
             SetDof(false);
+            ShowBubbles = false; // com a câmera andando, os balões do jogo pulavam de canto e saíam cortados
             var f = Facing(Jv);
             var c = Player.transform.position;
             bool alertou = false;
@@ -318,13 +324,32 @@ namespace ProvaImpossivel.EditorTools
             StopTpc(true);
             Ui = TrailerUi.Nada; // o clarão fica fora dos painéis
             ShowBubbles = false;
-            bool pegou = false;
+            bool pegou = false, parado = false;
             yield return Capture("14_flagrante", 3.2f, (t, p) =>
             {
                 if (!pegou && t >= 0.7f)
                 {
                     pegou = true;
                     if (!Prof.CatchRedHanded("celular na mão", Infracao.Celular)) Debug.LogWarning("[Trailer] Flagrante não aconteceu (trégua?).");
+                }
+                // A IA partiria andando até o jogador; a captura desenha o corpo (malha com esqueleto) um quadro atrás
+                // dos enfeites presos ao osso (bigode, sobrancelhas), e com ele andando o bigode "descolava" do rosto.
+                // Uns quadros depois do flagrante (o "!!!" já apareceu) ele para onde está e vira de frente para o jogador.
+                if (pegou && !parado && t >= 0.8f)
+                {
+                    parado = true;
+                    Prof.enabled = false;
+                    var ag = Prof.GetComponent<NavMeshAgent>();
+                    if (ag != null && ag.enabled) { ag.isStopped = true; ag.velocity = Vector3.zero; ag.updateRotation = false; ag.ResetPath(); }
+                }
+                if (parado)
+                {
+                    var alvo = Player.transform.position - Pv.transform.position; alvo.y = 0f;
+                    if (alvo.sqrMagnitude > 0.01f)
+                        Pv.transform.rotation = Quaternion.RotateTowards(Pv.transform.rotation, Quaternion.LookRotation(alvo), 240f / 30f);
+                    Pv.expression = Expression.Bravo;
+                    Pv.headYaw = 0f;
+                    Pv.headPitch = 0f;
                 }
                 var toPlayer = (Player.transform.position - Pv.transform.position); toPlayer.y = 0f; toPlayer.Normalize();
                 float push = t < 0.7f ? 0f : EaseOut((t - 0.7f) / 0.25f);

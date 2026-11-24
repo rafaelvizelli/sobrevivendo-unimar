@@ -1,5 +1,8 @@
-# Trailer v2.1 — Sobrevivendo à UNIMAR (Fase 1: A Prova Impossível)
+# Trailer v3 — Sobrevivendo à UNIMAR (Fase 1: A Prova Impossível)
 
+- **v3 (23/11):** mesmo roteiro, regravado no jogo atual: personagens 3D (Quaternius) com objetos na mão, professor com
+  sobrancelhas que atuam, sala de fim de tarde com cartazes, ventiladores e campus pela janela. A v2.1 (13/11) está guardada fora
+  do projeto, na pasta `JogoFaculdade_trailer_v1` ao lado do projeto (planos e vídeos).
 - **Conceito:** a prova é o cofre, a cola é o plano. Comédia de assalto.
 - **Cortes:** mestre de 45 s + gag de 2,5 s (16:9), 30 s 16:9 e 30 s 9:16 (vertical, para redes).
 - **Imagem:** planos em movimento gravados na cena real (`Prova Impossível > Trailer > Gerar planos`), com câmera de cinema,
@@ -17,7 +20,7 @@
 | 0:00 | Folha da prova na carteira, câmera descendo (`00_folha`) | Datilografado: "Você tinha três semanas." **[NOVA]** · carimbo vermelho NÃO ESTUDOU (1,9 s) | Relógio, papel, máquina de escrever, carimbo grave |
 | 0:03 | Professor andando entre as carteiras, câmera baixa atrás das cadeiras (`01_prof_anda`) | PROF.: "Boa sorte. Vocês vão precisar." | Murmúrio da sala |
 | 0:06 | Letreiro na folha | "Você não estudou." riscado à caneta → "Você tem um PLANO." | Entra o tema do plano (120 BPM) |
-| 0:09 | Regra de três, uma por batida (1,5 s cada): `02_celular`, `03_nerd` (com "O_O"), `04_fundao`, `05_fe` | Celular. (com o aparelho desenhado por cima do plano: tela acesa, "Pesquisando no celular...", notificação, tecla 2) / Nerd. / Fundão. / Fé. **["Fé" é piada de texto]** · FUNDÃO: "Toma a cola. Confia no pai." | Prato a cada corte |
+| 0:09 | Regra de três, uma por batida (1,5 s cada): `02_celular`, `03_nerd` (com "O_O"), `04_fundao`, `05_fe` | Celular. (o aparelho de verdade na mão do jogador, tecla 2) / Nerd. / Fundão. / Fé. **["Fé" é piada de texto]** · FUNDÃO: "Toma a cola. Confia no pai." | Prato a cada corte |
 | 0:15 | Colas de bolso, cartão de tecla + plano curto, entradas em chicote: `06_colinha`, `07_garrafinha`, `08_bilhete`, `09_fone` | Q Colinha "na manga" · G Garrafinha "o rótulo sabe tudo" · B Bilhete "mire bem!" · F Fone "reze pra não tocar" | "Tic" + nota a cada cartão, "whoosh" no chicote |
 | 0:21 | Dorminhoco cabeceando (zZZ crescendo) e roncando (`10_dorminhoco`) | DORMINHOCO: "ZZZzzz... resposta C... zzz" | Ronco |
 | 0:23 | Puxa-saco se vira para delatar (`11_puxasaco`) | PUXA-SACO: "PROFESSOOOR! Ele tá respirando na direção da minha prova!" **[NOVA]** | |
@@ -55,11 +58,11 @@ No vertical, cada plano é reenquadrado no centro da ação. Letreiros e legenda
 - **Quadro-negro:** a primeira questão do quadro da cena é uma das piadas removidas. Durante a captura, a ferramenta tira essa questão só na
   memória. A cena no disco não muda.
 - **{LINK}:** troque em `previa/montar_previa.ps1` (parâmetro `-Link`, ou o valor padrão na linha `[string]$Link = ...`). O padrão é "Lista de desejos: link em breve".
-- **Celular:** o jogo não tem modelo do aparelho (só a pose dos braços), e no plano as mãos ficam atrás da carteira. O aparelho
-  é um elemento gráfico do trailer (`phone()` no template), no estilo "prova impressa". O texto da tela é o do HUD do jogo.
-- **Balões do jogo no `13_cone`:** o plano foi gravado com os balões ligados e, com a câmera em movimento, eles pulam de um
-  canto para o outro. O corte usa só os quadros 30 a 80 (em que eles ficam na faixa de cima) e reenquadra sem essa faixa.
-  O certo é regravar o plano com `ShowBubbles = false` na ferramenta do Unity; aí o enquadramento original pode voltar.
+- **Celular, garrafinha e fone:** desde a v3 aparecem na mão do jogador (o próprio jogo desenha). O desenho do celular por cima
+  (`phone()` no template) não é mais chamado. Garrafinha e fone só aparecem no primeiro segundo do plano (o gole e o envio são
+  rápidos no Fácil): os cortes começam em 0,15 s e 0,05 s.
+- **Balões do jogo no `13_cone`:** desde a v3 o plano é gravado com `ShowBubbles = false` (antes os balões pulavam de um
+  canto para o outro). O corte segue usando os quadros 30 a 80, reenquadrado; o `04_fundao` também perdeu o balão (saía cortado).
 - **Gag do Nerd:** o balão de cima é o do próprio jogo (gravado no plano) e a faixa de baixo é a legenda do trailer. Mantido.
 
 ## Trilha

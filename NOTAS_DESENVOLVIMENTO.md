@@ -859,6 +859,30 @@ Como validar jogando (Normal):
   avisos de sempre do URP sobre shaders de profundidade de campo fora do build).
 - A cena `.unity` não foi alterada. Nada commitado.
 
+### Trailer v3 — mesmo roteiro, jogo novo (23/11)
+- Pedido do usuário: refazer o trailer "com o mesmo roteiro mas no novo modelo do jogo". Jogo, cena, regras e equilíbrio
+  não mudaram: só a ferramenta de captura (`Editor/Trailer/TrailerShotsPlanos.cs`, só editor, fora do build), o
+  `Trailer/previa/trailer_template.html` e o `Trailer/ROTEIRO_TRAILER.md`.
+- Os 20 planos foram regravados na cena atual (personagens Quaternius, objetos na mão, sobrancelhas do professor, sala
+  S9). A v2.1 (planos e vídeos de 13/11) foi movida para `C:\Users\rafae\JogoFaculdade_trailer_v1\`.
+- Ajustes de câmera por causa dos modelos novos: `01_prof_anda` (câmera no corredor; um aluno tapava o professor),
+  `02_celular` (recua para pegar rosto + aparelho), `11_puxasaco` (câmera do lado para onde ela se vira: antes era a
+  nuca), `12_prof_sinto` (professor 1,15× com cabelo alto: não corta a cabeça), `04_fundao` e `13_cone` sem os balões do
+  jogo (saíam cortados).
+- `14_flagrante`: a captura desenha a malha do corpo um quadro atrás dos enfeites presos ao osso (o render manual
+  acontece antes do skinning do quadro). Com o professor andando, o bigode e as sobrancelhas "descolavam" do rosto.
+  **No jogo isso não acontece** (o render normal vem depois do skinning). No plano, 0,1 s depois do flagrante (o "!!!"
+  já apareceu) a IA e o NavMeshAgent param e ele vira de frente para o jogador, bravo.
+- Montagem: o celular desenhado por cima (`phone()`) saiu, porque o jogo agora mostra o aparelho na mão. Garrafinha e
+  fone começam mais cedo no corte (0,15 s e 0,05 s), porque o objeto só aparece no primeiro segundo do plano.
+- Checagem automática (`montar_previa.ps1 -Verificar`): OK nos 3 cortes. Exportados `Trailer/export/trailer_mestre`,
+  `trailer_c30` e `trailer_v30` (.mp4 e .webm; os 6 abrem e têm áudio). Conferidos em quadros: os 20 planos crus e as
+  capturas da verificação (celular, cartões, tela final, capa). Não visto/ouvido: o vídeo tocando ao vivo e o som
+  (trilha sintetizada, a mesma da v2.1).
+- Sem teste automatizado novo: é ferramenta de editor que depende de Play e render (mesmo critério do trailer v2).
+- Detalhe que ficou: a tela final do plano `16_aprovado` mostra "Recorde: 0,0" (o resumo é montado direto, sem passar
+  pelos recordes).
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`
