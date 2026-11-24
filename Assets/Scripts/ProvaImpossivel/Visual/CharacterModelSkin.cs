@@ -260,7 +260,7 @@ namespace ProvaImpossivel
             phoneW = Ease(phoneW, (p == HandProp.Celular && cv.seated) || cv.phone > 0.5f ? 1f : 0f, 6f, dt);
             colaW = Ease(colaW, p == HandProp.Colinha ? 1f : 0f, 6f, dt);
             drinkW = Ease(drinkW, p == HandProp.Garrafinha ? 1f : 0f, 3f, dt);
-            throwW = Ease(throwW, p == HandProp.Bilhete ? 1f : 0f, 9f, dt);
+            throwW = Ease(throwW, p == HandProp.Bilhete || p == HandProp.Borracha ? 1f : 0f, 9f, dt);
             foneW = Ease(foneW, p == HandProp.Fone ? 1f : 0f, 5f, dt);
             raiseW = cv.handRaise * (1f - earW);
             crossW = cv.armsCrossed;

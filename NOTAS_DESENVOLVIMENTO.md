@@ -1137,6 +1137,32 @@ colando, para eu entregar a prova sem ele desconfiar, independente do nível de 
 - **Validar jogando:** responder/colar até "já dá!", ver o aviso verde, levantar e ir (até correndo) para a mesa:
   a suspeita não sobe. Usar o celular na frente dele ainda dá flagrante.
 
+### Favor com mira: borracha no Dorminhoco e no Puxa-saco — versão 1.1.0 (24/11, noite)
+Pedido: "uma mecânica usando a mesma forma de mirar só que com os FAVORES: jogar uma borracha no Dorminhoco para
+ele fazer barulho e distrair o professor, e no Puxa-saco também".
+- **Mesma mira (B), o alvo decide**: Nerd/Fundão = bilhete (como antes); Dorminhoco/Puxa-saco = **borracha**, que
+  gasta 1 favor. B no controle já não tinha botão livre, por isso um sistema só. `PlayerCheats.ValidTarget`: o bilhete
+  vale se der para jogar bilhete; a borracha, se ainda houver favor e o colega "topa" agora (`CanInteract`: o
+  Dorminhoco dormindo, o Puxa-saco sem vigiar, sem recarga). B arma se der para jogar qualquer um dos dois.
+- Mira rosa (`BilheteMira.Favor`) até a cabeça do colega; na mão e no voo, a borracha escolar rosa e azul
+  (`HandProps.BuildEraser`, `HandProp.Borracha` novo no fim do enum; mesma pose de arremesso). Barra de ajuda:
+  "MIRANDO: B joga a BORRACHA no DORMINHOCO (1 favor)".
+- Acertou (`LandEraser`): quica na cabeça e cai; se ele ainda topa, é o mesmo favor de perto (`Interact`): o
+  Dorminhoco acorda gritando / o Puxa-saco chama o professor pra uma "dúvida"; o favor só é gasto se o professor for
+  ver (regra que já existia). Se não topa mais: "não adiantou nada (favor não gasto)".
+- Risco: jogar ou mirar a borracha é **bagunça, não cola** (`Infracao.Outra`, "jogando borracha nos colegas"):
+  `borrachaThrowSuspicion` 30/s (novo em `DifficultySettings`; o bilhete é 45–60) e `borrachaThrowTime` 0,5 s.
+  Não mexe em bilhetes nem no orçamento de colas. Flagrante com a borracha no ar: ela não chega e o favor não é gasto.
+- Pedir o favor de perto (E) continua funcionando. Textos: instruções "B mira e joga (bilhete ou borracha)" e o passo
+  de distração do tutorial cita a borracha.
+- Testes: PlayMode `BorrachaNoDorminhocoAcordaEleEGastaUmFavor`, `BorrachaNoPuxaSacoChamaOProfessorEGastaUmFavor`
+  (borracha na mão, risco "Outra" 30/s, voo "Borracha Voando", 1 favor gasto, bilhetes e orçamento intactos, toast do
+  favor); `BilheteBArmaAMira...` e `ComNotaMinima...` agora conferem o objeto/infração pelo alvo da mira (com a câmera
+  padrão a mira pode cair no Dorminhoco/Puxa-saco). EditMode: limites de `borracha*`. 34/34 nas fixtures de colas e
+  entrega.
+- Captura `diag_borracha`: mira rosa até o Dorminhoco, borracha voando, ele acorda e o professor vai até ele.
+- **Validar jogando:** sentado, B, girar a câmera até o Dorminhoco (mira rosa), B de novo; idem no Puxa-saco.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

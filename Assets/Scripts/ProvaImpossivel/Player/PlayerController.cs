@@ -182,6 +182,7 @@ namespace ProvaImpossivel
 
             visual.prop = CheatRules.PropInHand(holdingPhone, Cheats != null ? Cheats.Holding : PlayerCheats.Hold.Nenhum,
                                                 Cheats != null && Cheats.BallInHand); // mirando ou soltando: bolinha na mão
+            if (Cheats != null && Cheats.BallInHand) visual.prop = Cheats.ThrowProp; // ...ou a borracha (favor)
             visual.phone = Mathf.MoveTowards(visual.phone, visual.prop == HandProp.Celular ? 1f : 0f, dt * 5f);
             visual.writing = !holdingPhone && QuizChallenge.I != null && QuizChallenge.I.Active;
 
@@ -206,9 +207,12 @@ namespace ProvaImpossivel
             if (Cheats != null && Cheats.Aiming)
             {
                 string b = Controls.Tag(Acao.Bilhete);
-                help = Cheats.AimTargetName != ""
-                    ? "MIRANDO: " + b + " joga no " + Cheats.AimTargetName + "    " + Controls.Tag(Acao.Levantar) + " Cancelar"
-                    : "MIRANDO: vire a câmera pro Nerd ou pro Fundão    " + Controls.Tag(Acao.Levantar) + " Cancelar";
+                string cancela = "    " + Controls.Tag(Acao.Levantar) + " Cancelar";
+                help = Cheats.AimTargetName == ""
+                    ? "MIRANDO: vire a câmera pra um colega (bilhete: Nerd/Fundão • borracha: Dorminhoco/Puxa-saco)" + cancela
+                    : Cheats.AimingAtFavor
+                        ? "MIRANDO: " + b + " joga a BORRACHA no " + Cheats.AimTargetName + " (1 favor)" + cancela
+                        : "MIRANDO: " + b + " joga o BILHETE no " + Cheats.AimTargetName + cancela;
             }
             HUD.I.SetSeatedHelp(InputLocked ? null : help);
         }

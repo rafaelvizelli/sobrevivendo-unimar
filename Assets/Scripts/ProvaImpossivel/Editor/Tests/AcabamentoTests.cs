@@ -21,7 +21,7 @@ namespace ProvaImpossivel.Tests
         [Test]
         public void VersaoDeEntregaNoRodapeDoMenu()
         {
-            Assert.AreEqual("1.0.9", PlayerSettings.bundleVersion, "com a nota mínima o professor relaxa (24/11)");
+            Assert.AreEqual("1.1.0", PlayerSettings.bundleVersion, "favor com mira: borracha no Dorminhoco/Puxa-saco (24/11)");
             string r = Falas.MenuRodape("1.0.0");
             StringAssert.StartsWith("v1.0.0", r);
             StringAssert.Contains("Estúdio Fundão", r);
@@ -72,6 +72,9 @@ namespace ProvaImpossivel.Tests
             var s = new DifficultySettings();
             Assert.Greater(s.bilheteAimSuspicion, 0f, "mirar com a bolinha armada chama atenção");
             Assert.Less(s.bilheteAimSuspicion, s.bilheteThrowSuspicion, "mas bem menos que o arremesso");
+            Assert.Greater(s.borrachaThrowSuspicion, 0f, "jogar borracha nos colegas chama atenção");
+            Assert.Less(s.borrachaThrowSuspicion, s.bilheteThrowSuspicion, "menos que o bilhete (não é cola)");
+            Assert.Greater(s.borrachaThrowTime, 0f);
         }
 
         [Test]

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace ProvaImpossivel
 {
     /// <summary>Objeto que o personagem segura e que aparece na mão (só visual; as regras ficam em PlayerCheats).</summary>
-    public enum HandProp { Nenhum, Celular, Colinha, Garrafinha, Bilhete, Fone }
+    public enum HandProp { Nenhum, Celular, Colinha, Garrafinha, Bilhete, Fone, Borracha }
 
     /// <summary>
     /// Monta os objetos de mão com primitivas, um pouco maiores que o real para dar para ler de longe
@@ -39,6 +39,9 @@ namespace ProvaImpossivel
                     // papel de caderno amassado (malha facetada com as linhas do caderno), o mesmo que voa no arremesso
                     PaperBall.Create(root, PlayerCheats.BallSize);
                     break;
+                case HandProp.Borracha:
+                    BuildEraser(root);
+                    break;
                 case HandProp.Fone:
                 {
                     // fone de ouvido com fio: o fone vai na orelha, o microfone do fio na mão e o fio desce até o bolso
@@ -58,6 +61,23 @@ namespace ProvaImpossivel
                     break;
                 }
             }
+            return root;
+        }
+
+        /// <summary>
+        /// Borracha escolar de duas cores (metade rosa, metade azul, cantos de leve chanfro), um pouco maior que a real
+        /// para dar para ver voando. Usada na mão (favor com mira) e no voo.
+        /// </summary>
+        public static Transform BuildEraser(Transform parent)
+        {
+            var root = new GameObject("Borracha").transform;
+            if (parent != null) root.SetParent(parent, false);
+            var rosa = new Color(0.98f, 0.45f, 0.55f);
+            var azul = new Color(0.25f, 0.45f, 0.95f);
+            Part(PrimitiveType.Cube, "Rosa", root, new Vector3(-0.02f, 0f, 0f), new Vector3(0.04f, 0.026f, 0.045f), rosa, 0.15f);
+            Part(PrimitiveType.Cube, "Azul", root, new Vector3(0.02f, 0f, 0f), new Vector3(0.04f, 0.026f, 0.045f), azul, 0.15f);
+            // chanfro: uma tira mais clara no meio (a "emenda" das duas cores)
+            Part(PrimitiveType.Cube, "Emenda", root, Vector3.zero, new Vector3(0.004f, 0.0265f, 0.0455f), new Color(0.95f, 0.93f, 0.9f), 0.1f);
             return root;
         }
 

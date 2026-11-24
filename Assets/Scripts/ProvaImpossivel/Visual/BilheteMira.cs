@@ -11,6 +11,8 @@ namespace ProvaImpossivel
         public const int ArcPoints = 28, RingPoints = 32;
         public static readonly Color Valid = new(1f, 0.82f, 0.18f, 0.95f);
         public static readonly Color Invalid = new(1f, 0.3f, 0.25f, 0.8f);
+        /// <summary>Mirando a borracha (favor) no Dorminhoco ou no Puxa-saco: rosa da borracha.</summary>
+        public static readonly Color Favor = new(1f, 0.5f, 0.78f, 0.95f);
 
         LineRenderer arc, ring;
         static Material lineMat; // Sprites/Default: sempre incluído na build (o cone de visão também usa)
@@ -64,9 +66,12 @@ namespace ProvaImpossivel
         }
 
         /// <summary>Mostra o arco de <paramref name="from"/> até <paramref name="to"/>.</summary>
-        public void Show(Vector3 from, Vector3 to, bool valid)
+        public void Show(Vector3 from, Vector3 to, bool valid) => Show(from, to, valid, Valid);
+
+        /// <summary>Mostra o arco; com alvo, na cor <paramref name="validColor"/> (amarelo bilhete, rosa borracha).</summary>
+        public void Show(Vector3 from, Vector3 to, bool valid, Color validColor)
         {
-            Color c = valid ? Valid : Invalid;
+            Color c = valid ? validColor : Invalid;
             float h = PaperBallFlight.ArcHeight(Vector3.Distance(from, to));
             arc.enabled = ring.enabled = true;
             for (int i = 0; i < ArcPoints; i++)

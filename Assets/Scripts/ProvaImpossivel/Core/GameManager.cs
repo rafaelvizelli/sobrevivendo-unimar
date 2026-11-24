@@ -98,6 +98,8 @@ namespace ProvaImpossivel
         [Tooltip("Intervalo entre as viradas do Puxa-saco")] public Vector2 snitchInterval = new(12f, 20f);
         [Tooltip("Favores da turma por partida: pedir distração ao Puxa-saco, Dorminhoco ou Fundão gasta um")]
         public int favors = 2;
+        [Tooltip("Segundos do arremesso da borracha (favor com mira, B no Dorminhoco ou no Puxa-saco)")] public float borrachaThrowTime = 0.5f;
+        [Tooltip("Suspeita/s se o professor vê você jogando a borracha")] public float borrachaThrowSuspicion = 30f;
 
         [Header("Desafio A — Cara de Paisagem")]
         [Tooltip("Velocidade do ponteiro (idas e voltas por segundo)")] public float facePokerSpeed = 0.6f;

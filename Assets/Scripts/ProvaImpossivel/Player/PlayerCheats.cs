@@ -192,6 +192,8 @@ namespace ProvaImpossivel
             foneRingAt = -1f;
             StopAim();
             releaseLeft = 0f;
+            throwingEraser = aimingAtFavor = false;
+            throwTarget = null;
             if (flight != null) { Destroy(flight.gameObject); flight = null; }
         }
 
@@ -249,16 +251,39 @@ namespace ProvaImpossivel
             : !ExamSystem.I.HasBlank ? Falas.SoEmBranco
             : !CheatBudget.CanAnswer ? Falas.OrcamentoAcabou : null;
 
-        /// <summary>B: arma o arremesso (só se daria para jogar). A mira aparece e o braço sobe com a bolinha.</summary>
+        /// <summary>Alvo do bilhete (Nerd ou Fundão).</summary>
+        public static bool IsNoteTarget(Interactable it) => it is NerdStudent || it is BackRowStudent;
+        /// <summary>Alvo da borracha, que gasta um favor (Dorminhoco ou Puxa-saco).</summary>
+        public static bool IsFavorTarget(Interactable it) => it is SleeperStudent || it is SnitchStudent;
+        /// <summary>Ainda tem favor para gastar.</summary>
+        static bool HasFavorLeft => GameManager.I != null && GameManager.I.Favors > 0;
+
+        /// <summary>Este colega pode ser alvo agora: bilhete possível (Nerd/Fundão) ou favor possível (Dorminhoco/Puxa-saco).</summary>
+        bool ValidTarget(Interactable it) =>
+            it != null && it.isActiveAndEnabled
+            && (IsNoteTarget(it) ? WhyNotThrow() == null
+                : IsFavorTarget(it) && HasFavorLeft && it.CanInteract(player));
+
+        /// <summary>
+        /// B: arma o arremesso, se der para jogar alguma coisa (bilhete ou borracha). A mira aparece e o braço sobe;
+        /// quem estiver na mira decide o que vai: bilhete no Nerd/Fundão, borracha no Dorminhoco/Puxa-saco.
+        /// </summary>
         public bool StartAim()
         {
             if (aiming || Throwing) return false;
             string no = WhyNotThrow();
-            if (no != null) { HUD.I.Toast(no, HUD.Gray, 2.5f); return false; }
+            if (no != null && !HasFavorLeft) { HUD.I.Toast(BilheteCharges > 0 ? no : Falas.MiraNada, HUD.Gray, 2.5f); return false; }
             aiming = true;
             SoundFX.PlayAt(Sfx.Papel, transform.position, 0.35f, 1.4f); // amassando a bolinha
             return true;
         }
+
+        /// <summary>O que vai na mão mirando ou jogando: borracha (favor) ou a bolinha do bilhete.</summary>
+        public HandProp ThrowProp =>
+            (Throwing ? throwingEraser : aimingAtFavor) ? HandProp.Borracha : HandProp.Bilhete;
+        /// <summary>Mirando no Dorminhoco/Puxa-saco agora (vai a borracha).</summary>
+        public bool AimingAtFavor => aiming && aimingAtFavor;
+        bool aimingAtFavor, throwingEraser;
 
         /// <summary>Sai da mira sem jogar (a bolinha volta para o bolso; nada gasto).</summary>
         public void StopAim()
@@ -288,8 +313,39 @@ namespace ProvaImpossivel
             if (!aiming) return false;
             if (target == null) { HUD.I.Toast(Falas.MiraSemAlvo, HUD.Gray, 2f); return false; }
             StopAim();
-            return ThrowAt(target);
+            return IsFavorTarget(target) ? ThrowEraserAt(target) : ThrowAt(target);
         }
+
+        /// <summary>
+        /// Joga a borracha no Dorminhoco ou no Puxa-saco: quando acerta, é como pedir o favor de perto (ele acorda
+        /// gritando / chama o professor) e gasta um favor — só se a distração funcionar, igual ao pedido de perto.
+        /// false = não deu para jogar (motivo no toast).
+        /// </summary>
+        public bool ThrowEraserAt(StudentBase target)
+        {
+            if (Throwing) return false;
+            if (!IsFavorTarget(target)) return false;
+            if (!HasFavorLeft) { HUD.I.Toast(Falas.MiraNada, HUD.Gray, 2.5f); return false; }
+            if (!target.CanInteract(player)) { HUD.I.Toast(Falas.MiraSemAlvo, HUD.Gray, 2f); return false; }
+            throwTarget = target;
+            throwingEraser = true;
+            throwLeft = Mathf.Max(0.05f, s.borrachaThrowTime);
+            releaseLeft = Mathf.Min(ReleaseTime, throwLeft * 0.5f);
+            SoundFX.PlayAt(Sfx.Clique, transform.position, 0.3f, 0.8f);
+            return true;
+        }
+
+        /// <summary>A borracha chegou: acertou a cabeça do colega. Se ele ainda "topa" (dormindo / sem vigiar), faz o favor.</summary>
+        void LandEraser(StudentBase t)
+        {
+            EndFlight(PaperBallFlight.End.Chao); // quica na cabeça e cai
+            if (t != null && t.CanInteract(player)) t.Interact(player); // o favor (gasta só se o professor for ver)
+            else HUD.I.Toast(Falas.BorrachaNaoAdiantou, HUD.Gray, 2.5f);
+        }
+
+        /// <summary>Onde a borracha acerta: a cabeça do colega.</summary>
+        public static Vector3 HeadHitPoint(StudentBase t) =>
+            t.visual != null ? t.visual.HeadPosition + Vector3.up * 0.05f : t.transform.position + Vector3.up * 1.3f;
 
         /// <summary>Onde a bolinha cai na carteira do colega: em cima da folha dele (ou na frente dele, sem folha).</summary>
         public static Vector3 LandingPoint(StudentBase t)
@@ -318,8 +374,9 @@ namespace ProvaImpossivel
             }
             var t = AimTarget();
             AimTargetName = t != null ? t.displayName : "";
+            aimingAtFavor = t != null ? IsFavorTarget(t) : WhyNotThrow() != null; // sem alvo: o que daria para jogar
             Vector3 from = HandPoint(), to;
-            if (t != null) to = LandingPoint(t);
+            if (t != null) to = aimingAtFavor ? HeadHitPoint(t) : LandingPoint(t);
             else
             {
                 // sem alvo: mostra onde cairia (no chão, 3 m à frente da câmera), em vermelho
@@ -328,7 +385,7 @@ namespace ProvaImpossivel
                 look.y = 0f;
                 to = transform.position + look.normalized * 3f + Vector3.up * 0.02f;
             }
-            mira.Show(from, to, t != null);
+            mira.Show(from, to, t != null, t != null && aimingAtFavor ? BilheteMira.Favor : BilheteMira.Valid);
         }
 
         /// <summary>Solta a bolinha da mão: ela voa em arco até a carteira do alvo, no tempo que falta do arremesso.</summary>
@@ -336,9 +393,16 @@ namespace ProvaImpossivel
         {
             if (throwTarget == null) return;
             if (flight != null) Destroy(flight.gameObject);
-            var go = PaperBall.Create(null, BallSize, "Bilhete Voando");
+            GameObject go;
+            if (throwingEraser)
+            {
+                go = HandProps.BuildEraser(null).gameObject;
+                go.name = "Borracha Voando";
+                go.transform.localScale = Vector3.one * CharacterModelSkin.PropScale; // do tamanho que estava na mão
+            }
+            else go = PaperBall.Create(null, BallSize, "Bilhete Voando");
             flight = go.AddComponent<PaperBallFlight>();
-            flight.Launch(HandPoint(), LandingPoint(throwTarget), throwLeft);
+            flight.Launch(HandPoint(), throwingEraser ? HeadHitPoint(throwTarget) : LandingPoint(throwTarget), throwLeft);
         }
 
         /// <summary>O que acontece com a bolinha que estava voando (só visual).</summary>
@@ -494,8 +558,8 @@ namespace ProvaImpossivel
             float bestAng = s.bilheteAimAngle;
             foreach (var it in Interactable.All)
             {
-                if (it is not NerdStudent && it is not BackRowStudent) continue;
-                if (!it.isActiveAndEnabled) continue;
+                // bilhete: Nerd/Fundão (se der para jogar bilhete); borracha: Dorminhoco/Puxa-saco (se o favor serve agora)
+                if (!ValidTarget(it)) continue;
                 Vector3 to = it.transform.position - transform.position;
                 to.y = 0f;
                 float ang = Vector3.Angle(look, to);
@@ -524,6 +588,7 @@ namespace ProvaImpossivel
             BilheteCharges--;
             MatchLog.BilheteUsos++;
             throwTarget = target;
+            throwingEraser = false;
             throwLeft = Mathf.Max(0.05f, s.bilheteThrowTime);
             releaseLeft = Mathf.Min(ReleaseTime, throwLeft * 0.5f); // a bolinha sai da mão logo depois do braço descer
             player.MakeNoise(s.bilheteNoiseRadius, s.bilheteNoise, Falas.RuidoPapel, Infracao.Bilhete);
@@ -551,6 +616,7 @@ namespace ProvaImpossivel
         {
             var t = throwTarget;
             throwTarget = null;
+            if (throwingEraser) { throwingEraser = false; LandEraser(t); return; } // borracha: não é bilhete
             if (t == null) { EndFlight(PaperBallFlight.End.Chao); Lose(Falas.BilheteSumiu); return; }
             var prof = ProfessorAI.I;
             float dist = Flat.Distance(transform.position, t.transform.position);
@@ -676,8 +742,12 @@ namespace ProvaImpossivel
                 case Hold.FoneEnviar:
                 case Hold.FoneLer: Use(player.phoneSuspicion, Falas.MotivoFone, Infracao.Celular); break;
             }
-            if (Throwing) Use(s.bilheteThrowSuspicion, Falas.MotivoBilhete, Infracao.Bilhete);
-            if (aiming) Use(s.bilheteAimSuspicion, Falas.MotivoMirandoBilhete, Infracao.Bilhete);
+            if (Throwing && !throwingEraser) Use(s.bilheteThrowSuspicion, Falas.MotivoBilhete, Infracao.Bilhete);
+            // borracha: jogar coisa nos colegas é bagunça, não cola (Infracao.Outra; não confisca nada)
+            if (Throwing && throwingEraser) Use(s.borrachaThrowSuspicion, Falas.MotivoBorracha, Infracao.Outra);
+            // mirando: o bilhete é cola; a borracha (favor) é bagunça
+            if (aiming && !aimingAtFavor) Use(s.bilheteAimSuspicion, Falas.MotivoMirandoBilhete, Infracao.Bilhete);
+            if (aiming && aimingAtFavor) Use(s.bilheteAimSuspicion, Falas.MotivoBorracha, Infracao.Outra);
             if (Ringing) Use(s.foneRingSuspicion, Falas.MotivoCelularTocando, Infracao.CelularTocando);
         }
 
@@ -697,14 +767,15 @@ namespace ProvaImpossivel
             // registro (Bloco 15b): cola interrompida pelo flagrante conta como usada e errada
             if (Holding == Hold.Colinha) { MatchLog.ColinhaUsos++; MatchLog.ColinhaErradas++; }
             else if (Holding == Hold.Garrafinha) { MatchLog.GarrafaUsos++; MatchLog.GarrafaErradas++; }
-            if (throwLeft > 0f)
+            if (throwLeft > 0f && !throwingEraser)
             {
                 // o bilhete no ar não chega (BilheteUsos já contou ao jogar). O Land() não vai mais rodar,
                 // então a vaga reservada do orçamento volta aqui (antes ficava presa até o fim da prova)
                 MatchLog.BilheteErradas++;
                 Budget?.Cancel();
-                throwTarget = null;
             }
+            throwTarget = null;
+            throwingEraser = false; // borracha no ar: não chega, e o favor não é gasto
             EndFlight(PaperBallFlight.End.Some); // o professor pegou a bolinha
             StopAim();                           // e a que estava na mão volta para o bolso
             releaseLeft = 0f;

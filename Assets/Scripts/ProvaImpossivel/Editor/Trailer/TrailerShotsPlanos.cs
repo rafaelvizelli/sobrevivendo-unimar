@@ -52,6 +52,7 @@ namespace ProvaImpossivel.EditorTools
             ("diag_prova", DiagProva),
             ("diag_turma", DiagTurma),
             ("diag_bilhete", DiagBilhete),
+            ("diag_borracha", DiagBorracha),
             ("diag_comparar_tras", () => DiagComparar("diag_comparar_tras", 0)),
             ("diag_comparar_lado", () => DiagComparar("diag_comparar_lado", 1)),
             ("diag_comparar_frente", () => DiagComparar("diag_comparar_frente", 2)),
@@ -191,6 +192,28 @@ namespace ProvaImpossivel.EditorTools
                     Pose(alvo + new Vector3(0.35f, 0.25f, -0.35f), alvo, 40f);
                 }
                 if (!jogou && t > 1.2f) { jogou = true; c.ConfirmAim(nerd); }
+            });
+        }
+
+        /// <summary>Diagnóstico da borracha (favor com mira): mira no Dorminhoco, joga, ele acorda gritando.</summary>
+        static IEnumerator DiagBorracha()
+        {
+            StopTpc(true);
+            SetDof(false);
+            var alvo = Find<SleeperStudent>();
+            var c = Player.Cheats;
+            Vector3 dir = alvo.transform.position - Player.transform.position;
+            dir.y = 0f;
+            dir.Normalize();
+            var ombro = Player.HeadPosition - dir * 1.3f + Vector3.up * 0.35f + Vector3.Cross(Vector3.up, dir) * 0.45f;
+            Pose(ombro, alvo.visual.HeadPosition, 55f);
+            yield return null;
+            c.StartAim();
+            bool jogou = false;
+            yield return Capture("diag_borracha", 3.2f, (t, p) =>
+            {
+                Pose(ombro, Vector3.Lerp(Player.HeadPosition, alvo.visual.HeadPosition, t < 1.4f ? 0.6f : 0.9f), 55f);
+                if (!jogou && t > 1.2f) { jogou = true; c.ConfirmAim(alvo); }
             });
         }
 

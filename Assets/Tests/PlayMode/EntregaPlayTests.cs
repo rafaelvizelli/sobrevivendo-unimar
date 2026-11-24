@@ -140,7 +140,7 @@ namespace ProvaImpossivel.Tests
             {
                 yield return null;
                 yield return null;
-                Assert.AreEqual(Infracao.Bilhete, p.CurrentInfracao, "colando: o professor ainda pega");
+                Assert.AreEqual(p.Cheats.AimingAtFavor ? Infracao.Outra : Infracao.Bilhete, p.CurrentInfracao, "armando o arremesso: o professor ainda pega");
                 Assert.Greater(p.CurrentSuspicionRate, 0f);
                 p.Cheats.StopAim();
             }

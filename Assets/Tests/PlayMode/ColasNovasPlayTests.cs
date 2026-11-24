@@ -215,10 +215,11 @@ namespace ProvaImpossivel.Tests
             Assert.IsTrue(c.Aiming, "B tem que armar a mira, não jogar direto");
             Assert.IsFalse(c.Throwing, "armar não é jogar");
             yield return null;
-            Assert.AreEqual(HandProp.Bilhete, p.visual.prop, "mirando, a bolinha fica na mão");
+            // quem está na mira decide: Dorminhoco/Puxa-saco = borracha (favor); senão, a bolinha do bilhete
+            Assert.AreEqual(c.AimingAtFavor ? HandProp.Borracha : HandProp.Bilhete, p.visual.prop, "mirando, o objeto certo fica na mão");
             Assert.IsNotNull(c.Mira);
             Assert.IsTrue(c.Mira.Visible, "a linha da mira tem que aparecer");
-            Assert.AreEqual(Infracao.Bilhete, c.CurrentKind, "braço armado com a bolinha é suspeito");
+            Assert.AreEqual(c.AimingAtFavor ? Infracao.Outra : Infracao.Bilhete, c.CurrentKind, "braço armado é suspeito (bilhete é cola; borracha, bagunça)");
             Assert.AreEqual(GameManager.I.Settings.bilheteAimSuspicion, c.CurrentRate, 1e-4f);
             Assert.AreEqual(cargas, c.BilheteCharges, "mirar não gasta bilhete");
             Assert.AreEqual(0, GameManager.I.Cheats.Reserved, "mirar não reserva o orçamento");
@@ -264,6 +265,47 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual(PaperBallFlight.End.Mesa, voo.State, "acertou o Nerd: pousa na carteira");
             Assert.Less(Vector3.Distance(voo.transform.position, PlayerCheats.LandingPoint(nerd)), 0.05f, "pousa em cima da folha dele");
             Assert.Greater(subiu, PlayerController.I.ChestPosition.y - 0.6f, "voou por cima, não rente ao chão");
+        }
+
+        IEnumerator JogarBorracha(StudentBase alvo, string efeito)
+        {
+            var gm = GameManager.I;
+            var c = PlayerController.I.Cheats;
+            int favores = gm.Favors, bilhetes = c.BilheteCharges;
+            Assert.Greater(favores, 0);
+            Assert.IsTrue(alvo.CanInteract(PlayerController.I), alvo.name + " tem que estar disponível para o favor");
+            Assert.IsTrue(c.StartAim());
+            Assert.IsTrue(c.ConfirmAim(alvo), "mirando nele, joga a borracha");
+            Assert.IsTrue(c.Throwing);
+            yield return null;
+            Assert.AreEqual(HandProp.Borracha, PlayerController.I.visual.prop, "antes de soltar, é a borracha que está na mão");
+            Assert.AreEqual(Infracao.Outra, c.CurrentKind, "jogar borracha é bagunça (não é cola)");
+            Assert.AreEqual(gm.Settings.borrachaThrowSuspicion, c.CurrentRate, 1e-4f);
+            yield return Wait(PlayerCheats.ReleaseTime + 0.05f);
+            Assert.IsNotNull(c.Flight, "a borracha tem que sair voando");
+            Assert.AreEqual("Borracha Voando", c.Flight.name);
+            yield return WaitUntil(() => !c.Throwing, 3f, "o arremesso da borracha não terminou");
+            yield return null;
+            Assert.AreEqual(favores - 1, gm.Favors, "acertou e o professor foi ver: gasta 1 favor");
+            Assert.AreEqual(bilhetes, c.BilheteCharges, "borracha não gasta bilhete");
+            Assert.AreEqual(0, gm.Cheats.Reserved, "borracha não mexe no orçamento de colas");
+            Assert.IsTrue(HUD.I.ToastTexts().Exists(t => t.Contains(efeito)), "o favor tem que acontecer: " + efeito);
+        }
+
+        /// <summary>B mirando no Dorminhoco joga a borracha: ele acorda gritando, o professor vai ver, gasta 1 favor.</summary>
+        [UnityTest]
+        public IEnumerator BorrachaNoDorminhocoAcordaEleEGastaUmFavor()
+        {
+            yield return Comecar(Difficulty.Normal, s => { s.eventInterval = new Vector2(9999f, 9999f); s.snitchInterval = new Vector2(999f, 999f); });
+            yield return JogarBorracha(UnityEngine.Object.FindAnyObjectByType<SleeperStudent>(), "acordou GRITANDO");
+        }
+
+        /// <summary>B mirando no Puxa-saco joga a borracha: ele chama o professor pra uma "dúvida", gasta 1 favor.</summary>
+        [UnityTest]
+        public IEnumerator BorrachaNoPuxaSacoChamaOProfessorEGastaUmFavor()
+        {
+            yield return Comecar(Difficulty.Normal, s => { s.eventInterval = new Vector2(9999f, 9999f); s.snitchInterval = new Vector2(999f, 999f); });
+            yield return JogarBorracha(UnityEngine.Object.FindAnyObjectByType<SnitchStudent>(), "Puxa-saco chamou o professor");
         }
 
         [UnityTest]
