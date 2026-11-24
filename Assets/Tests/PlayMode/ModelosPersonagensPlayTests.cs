@@ -197,8 +197,61 @@ namespace ProvaImpossivel.Tests
             // a tampa (não o meio da garrafa, que é comprida) é que vai na boca
             var tampa = v.Skin.PropObject.GetComponentsInChildren<Transform>().First(t => t.name == "Tampa");
             float d = Vector3.Distance(tampa.position, v.Skin.MouthPoint);
-            Assert.Less(d, 0.15f, "a tampa da garrafinha não chegou perto da boca (" + d + " m)");
+            // perto de verdade: com a cabeça girada depois de posicionar a garrafa, a boca subia ~8 cm e o queixo
+            // entrava na tampa
+            Assert.Less(d, 0.06f, "a tampa da garrafinha não chegou perto da boca (" + d + " m)");
             Assert.Less(tampa.position.y, v.Skin.PropObject.position.y, "bebendo, o fundo da garrafa fica para cima (tampa mais baixa)");
+        }
+
+        [UnityTest]
+        public IEnumerator GarrafinhaSaiDePeEDeitaAosPoucos()
+        {
+            yield return Sala();
+            var v = Todos.First(x => x.look == CharacterLook.Figurante && x.seated);
+            for (int i = 0; i < 5; i++) { v.prop = HandProp.Nenhum; yield return null; }
+            v.prop = HandProp.Garrafinha;
+            yield return null; // primeiro quadro com a garrafa: a mão ainda está na carteira
+            Assert.AreEqual(HandProp.Garrafinha, v.Skin.PropKind);
+            float a = Vector3.Angle(v.Skin.PropObject.up, v.transform.up);
+            Assert.Less(a, 30f, "a garrafa já apareceu deitada (" + a + "°), antes de a mão subir");
+        }
+
+        [UnityTest]
+        public IEnumerator FoneNaoEnfiaAMaoNoRosto()
+        {
+            yield return Sala();
+            var v = Todos.First(x => x.look == CharacterLook.Figurante && x.seated);
+            yield return Segura(v, HandProp.Fone);
+            var pts = new List<(Vector3 p, float r)>();
+            v.Skin.HandPoints(1, pts);
+            Vector3 rosto = v.Skin.HeadFacing.normalized;
+            for (int k = 0; k < pts.Count; k++)
+            {
+                float frente = Vector3.Dot(pts[k].p - v.Skin.MouthPoint, rosto);
+                Assert.Greater(frente, 0f, "a mão do fone entra no rosto (ponto " + k + " está " + (-frente) + " m atrás da boca)");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ProfessorAndandoNaoCruzaAsPernas()
+        {
+            yield return Sala();
+            var prof = ProfessorAI.I;
+            var skin = prof.visual.Skin;
+            prof.WalkTo(prof.transform.position + prof.transform.forward * 4f, false);
+            float piorL = 1f, piorR = 1f;
+            float fim = Time.time + 2f;
+            while (Time.time < fim)
+            {
+                yield return null;
+                if (skin.WalkWeight < 0.9f) continue;
+                Vector3 r = prof.transform.right;
+                piorL = Mathf.Min(piorL, -Vector3.Dot(skin.LeftFoot.position - skin.Hips.position, r));
+                piorR = Mathf.Min(piorR, Vector3.Dot(skin.RightFoot.position - skin.Hips.position, r));
+            }
+            Assert.Less(piorL, 1f, "a caminhada não chegou a entrar");
+            Assert.Greater(piorL, 0.02f, "o pé esquerdo cruzou para o lado direito (" + piorL + " m)");
+            Assert.Greater(piorR, 0.02f, "o pé direito cruzou para o lado esquerdo (" + piorR + " m)");
         }
 
         [UnityTest]

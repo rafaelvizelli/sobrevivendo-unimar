@@ -3,8 +3,11 @@
 - **v3 (23/11):** mesmo roteiro, regravado no jogo atual: personagens 3D (Quaternius) com objetos na mão, professor com
   sobrancelhas que atuam, sala de fim de tarde com cartazes, ventiladores e campus pela janela. A v2.1 (13/11) está guardada fora
   do projeto, na pasta `JogoFaculdade_trailer_v1` ao lado do projeto (planos e vídeos).
+- **v3.1 (23/11):** sem os bugs de captura (bigode e objetos descolando do corpo), garrafinha e fone sem atravessar o rosto,
+  professor sem trançar as pernas, e gag final novo: você colando, encarando a câmera ("Relaxa... no máximo eu levo DP de
+  novo."), com trombone triste. O gag do Nerd saiu.
 - **Conceito:** a prova é o cofre, a cola é o plano. Comédia de assalto.
-- **Cortes:** mestre de 45 s + gag de 2,5 s (16:9), 30 s 16:9 e 30 s 9:16 (vertical, para redes).
+- **Cortes:** mestre de 45 s + gag de 3,5 s (16:9), 30 s 16:9 e 30 s 9:16 (vertical, para redes).
 - **Imagem:** planos em movimento gravados na cena real (`Prova Impossível > Trailer > Gerar planos`), com câmera de cinema,
   vinheta leve, profundidade de campo e cor quente. Nada de objeto falso: as ações são as mecânicas do jogo.
 - **Identidade:** "prova impressa": papel creme com textura, azul-caneta, vermelho-carimbo, grão leve. Só duas fontes:
@@ -30,7 +33,7 @@
 | 0:35 | Contagem final: a HUD real (`15_hud`) com inserções do professor (`12_prof_sinto`), cortes na batida: 1,5 s · 0,5 · 0,5 · 0,25 · 0,25; preto em 0:37,85 | Datilografado: "Tire a nota antes do sinal." (atravessa os cortes) | Baixo e bumbo dobrando, caixa acelerando, subida, sinal da escola (0:36,9), silêncio de 0,15 s |
 | 0:38 | Tela final real APROVADO cai com soco de zoom, tremor e clarão (`16_aprovado`) | VOCÊ: "Professor, dá pra arredondar?" · PROF.: "Dá. Para baixo." **[NOVA]** (uma faixa só, sem piscar) · carimbo EXPULSO! por cima (0:41), com tremor e clarão vermelho | Impacto grave + metais em ré maior; silêncio antes do EXPULSO; impacto + metais dissonantes |
 | 0:42 | Quadro final sobre a sala desfocada (`19_sala`): a folha cai, o título é batido à máquina letra a letra (0:42,1 a 0:42,7), a régua é riscada, a fase é datilografada, o bilhete é escrito à caneta | SOBREVIVENDO À UNIMAR / Fase 1 — A Prova Impossível / "Não estudou, né? Tô de olho. — Prof. T." / {LINK} / Estúdio Fundão · carimbo azul EM BREVE · PC (0:43,2), com tremor e clarão. Completo e parado de 0:43,2 a 0:45 | Tema completo na entrada, teclas da máquina, stinger de metais na última letra, impacto e acorde final curto no carimbo |
-| 0:45 | Gag final: Nerd levanta a mão (`18_nerd_final`) | NERD: "Professor, a questão 7 tem um erro de digitação. Grave." · preto | "Plim" |
+| 0:45 | Gag final: você, suando, lendo a colinha na manga (Q), vira e encara a câmera (`18_dp_final`) | VOCÊ: "Relaxa... no máximo eu levo DP de novo." **[NOVA]** · preto em 0:48,3 | Trombone triste (0:47,1) |
 
 ## 30 s (16:9 e 9:16)
 
@@ -63,7 +66,9 @@ No vertical, cada plano é reenquadrado no centro da ação. Letreiros e legenda
   rápidos no Fácil): os cortes começam em 0,15 s e 0,05 s.
 - **Balões do jogo no `13_cone`:** desde a v3 o plano é gravado com `ShowBubbles = false` (antes os balões pulavam de um
   canto para o outro). O corte segue usando os quadros 30 a 80, reenquadrado; o `04_fundao` também perdeu o balão (saía cortado).
-- **Gag do Nerd:** o balão de cima é o do próprio jogo (gravado no plano) e a faixa de baixo é a legenda do trailer. Mantido.
+- **Gag final:** gravado sem balões (close); a fala é só a legenda do trailer. O jogador não tem balão de fala no jogo.
+- **Captura:** cada quadro é desenhado no fim do próprio quadro do jogo (gancho no fim do PostLateUpdate), depois da
+  deformação das malhas. Antes era desenhado na volta da corrotina, com o corpo um quadro atrás dos enfeites e objetos.
 
 ## Trilha
 
@@ -71,7 +76,7 @@ Provisória, sintetizada na própria prévia (sem faixa de terceiros; não exist
 trilha inteira de uma vez e toca na prévia exatamente o que vai para o arquivo.
 
 - Final: contagem com subida, silêncio de um instante, impacto grave em cada carimbo, tema completo na capa, stinger de
-  metais no título, acorde final com cauda curta e o "plim" no gag do Nerd.
+  metais no título, acorde final com cauda curta e o trombone triste no gag final.
 - Ducking: a música abaixa para ~38% enquanto há legenda de fala (a verificação confere que toda fala está coberta).
 - Sem clipping: um limitador segura os picos em −1 dBFS do começo ao fim. O final fica mais cheio que o meio
   (RMS −11,9 contra −13,0 dBFS no mestre) sem passar desse teto.

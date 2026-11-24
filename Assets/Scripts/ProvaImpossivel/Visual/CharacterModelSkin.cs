@@ -49,6 +49,8 @@ namespace ProvaImpossivel
         public Transform LeftHand => hand[0];
         public Transform RightUpperArm => upperArm[1];
         public Transform LeftUpperLeg => upperLeg[0];
+        public Transform LeftFoot => foot[0];
+        public Transform RightFoot => foot[1];
         /// <summary>Objeto que está na mão agora (null se nenhum).</summary>
         public Transform PropObject => propObj;
         public HandProp PropKind => propObj != null ? propKind : HandProp.Nenhum;
@@ -276,6 +278,16 @@ namespace ProvaImpossivel
             hand[s].rotation = Quaternion.Slerp(hand[s].rotation, target, w);
         }
 
+        /// <summary>Dobra o punho para os dedos apontarem para <paramref name="world"/> (mundo).</summary>
+        void AimFingers(int s, Vector3 world, float w)
+        {
+            if (w <= 0.001f || world.sqrMagnitude < 1e-8f) return;
+            Vector3 f = FingerDir(s);
+            if (f.sqrMagnitude < 1e-8f) return;
+            var target = Quaternion.FromToRotation(f, world) * hand[s].rotation;
+            hand[s].rotation = Quaternion.Slerp(hand[s].rotation, target, w);
+        }
+
         /// <summary>Fecha os dedos (graus por junta) em direção à palma.</summary>
         void Curl(int s, float degrees)
         {
@@ -333,6 +345,25 @@ namespace ProvaImpossivel
             center = cap + axis * (0.14f * k);
         }
 
+        /// <summary>Folga mínima de cada pé para o seu lado, a partir do meio do quadril (m, modelo em escala 1).</summary>
+        public const float MinFootOut = 0.06f;
+
+        /// <summary>Gira a coxa para fora (em torno do eixo da frente) até o pé ficar do seu lado do quadril.</summary>
+        void KeepFootOut(int s, float w)
+        {
+            if (w <= 0.001f) return;
+            float m = s == 0 ? -1f : 1f;
+            Vector3 right = transform.right;
+            float x = Vector3.Dot(foot[s].position - hips.position, right) * m; // + = para fora
+            float want = MinFootOut * scale;
+            if (x >= want) return;
+            Vector3 leg = foot[s].position - upperLeg[s].position;
+            float len = Vector3.ProjectOnPlane(leg, transform.forward).magnitude;
+            if (len < 1e-3f) return;
+            float ang = Mathf.Asin(Mathf.Clamp((want - x) / len, 0f, 0.5f)) * Mathf.Rad2Deg * w;
+            upperLeg[s].rotation = Quaternion.AngleAxis(ang * m, transform.forward) * upperLeg[s].rotation;
+        }
+
         void Bend(Transform bone, float pitch, float yaw = 0f)
         {
             if (Mathf.Abs(pitch) > 0.01f) bone.rotation = Quaternion.AngleAxis(pitch, transform.right) * bone.rotation;
@@ -371,9 +402,23 @@ namespace ProvaImpossivel
                 Aim(lowerLeg[s], foot[s], new Vector3(m * 0.03f, -1f, 0.1f), seatW);
             }
 
+            // de pé andando: o passo do pacote cruza um pé na frente do outro (passarela) e, com as pernas compridas
+            // do professor, as pernas pareciam trançar. Afasta cada pé para o seu lado até a folga mínima.
+            if (animated && walkW > 0.001f && seatW < 0.999f)
+                for (int s = 0; s < 2; s++) KeepFootOut(s, walkW * (1f - seatW));
+
             // tronco: dormir debruçado, encostar na cadeira
             Bend(spine, sleepW * 16f - cv.leanBack * 0.5f);
             Bend(chest, sleepW * 18f - cv.leanBack * 0.5f + phoneW * 6f + colaW * 10f);
+
+            // cabeça: o mesmo olhar do boneco invisível (é ele que a visão do jogo usa); bebendo, joga a cabeça para trás.
+            // Vem antes dos braços: a garrafinha é posicionada pela boca, e a boca tem que já estar no lugar final
+            // (com a cabeça girada depois, o queixo subia para dentro da tampa).
+            float bob = cv.IsTalking ? Mathf.Sin(t * 17f) * 3f : 0f;
+            float pitch = cv.CurrentPitch * set.headPitchFactor * (1f - sleepW * 0.6f) + bob - drinkW * 28f - colaW * 10f;
+            head.rotation = Quaternion.AngleAxis(cv.CurrentYaw - colaW * 22f + phoneW * 22f, transform.up)
+                          * Quaternion.AngleAxis(pitch, transform.right)
+                          * Quaternion.AngleAxis((cv.sleeping ? 12f : 0f) - foneW * 10f, transform.forward) * head.rotation;
 
             // braços (cada camada puxa por cima da anterior). As colas ficam para o LADO ou para CIMA do corpo:
             // a câmera do jogo fica atrás do jogador, e o objeto tem que aparecer.
@@ -398,13 +443,25 @@ namespace ProvaImpossivel
             if (drinkW > 0.001f)
             {
                 BottleFrame(out Vector3 axis, out Vector3 side, out Vector3 center, out float radius);
-                Vector3 palmTarget = center + side * (radius + PalmRadius * scale);
-                for (int i = 0; i < 2; i++) // a palma não fica no osso da mão: corrige a diferença
+                // a mão pega a garrafa perto da tampa: no meio dela o alvo ficava a ~45 cm do ombro, além do braço
+                // (~42 cm), e a mão parava antes, com a garrafa solta no ar
+                Vector3 pega = center - axis * (0.07f * BottleScale * scale);
+                Vector3 palmTarget = pega + side * (radius + PalmRadius * scale);
+                // dedos atravessados na garrafa (em volta dela, por cima) e palma virada para ela. Só girar o punho
+                // deixava a palma ~50° torta: os dedos entravam na garrafa e ela era empurrada para longe da mão.
+                Vector3 volta = Vector3.Cross(axis, side);
+                if (Vector3.Dot(volta, Dir(Vector3.up)) < 0f) volta = -volta;
+                // a palma não fica no osso da mão, e girar a mão muda onde ela fica: corrige tudo junto
+                for (int i = 0; i < 4; i++)
+                {
                     Reach(1, palmTarget - (PalmPos(1) - hand[1].position), new Vector3(1f, -0.6f, -0.2f), drinkW);
-                Palm(1, transform.InverseTransformDirection(-side), drinkW);
+                    AimFingers(1, volta, drinkW);
+                    Palm(1, transform.InverseTransformDirection(-side), drinkW);
+                }
             }
-            // fone: a mão sobe até o queixo segurando o microfone do fio ("alô, primo?")
-            Arm(1, new Vector3(0.3f, -0.75f, 0.5f), new Vector3(-0.5f, 0.75f, 0.35f), foneW);
+            // fone: a mão sobe até a frente do queixo segurando o microfone do fio ("alô, primo?"). O antebraço vai
+            // mais para a frente que para dentro: apontado para o queixo, o polegar entrava no rosto.
+            Arm(1, new Vector3(0.3f, -0.75f, 0.5f), new Vector3(-0.3f, 0.7f, 0.65f), foneW);
             Palm(1, new Vector3(-0.6f, 0f, -0.8f), foneW);
             // bilhete: braço armado acima da cabeça (arremesso)
             Arm(1, new Vector3(0.3f, 0.9f, 0.25f), new Vector3(0.05f, 0.6f, 0.8f), throwW);
@@ -418,20 +475,15 @@ namespace ProvaImpossivel
             // quanto os dedos fecham depende do objeto: objeto chato (celular, papel) = mão quase aberta por baixo;
             // garrafa = dedos em volta; bolinha = punho; microfone fininho = pinça
             grip[1] = Mathf.Lerp(grip[1], 10f, Mathf.Max(phoneW, earW));
-            grip[1] = Mathf.Lerp(grip[1], 25f, drinkW);
+            // garrafa: dedos só encostados. Fechados em volta (25°), entravam na garrafa e o "afasta da palma" a
+            // empurrava ~10 cm para longe da mão (garrafa solta no ar)
+            grip[1] = Mathf.Lerp(grip[1], 6f, drinkW);
             grip[1] = Mathf.Lerp(grip[1], 62f, throwW);
             grip[1] = Mathf.Lerp(grip[1], 45f, foneW);
             grip[1] = Mathf.Lerp(grip[1], 8f, raiseW);
             grip[0] = Mathf.Lerp(grip[0], 10f, colaW);
             Curl(0, grip[0]);
             Curl(1, grip[1]);
-
-            // cabeça: o mesmo olhar do boneco invisível (é ele que a visão do jogo usa); bebendo, joga a cabeça para trás
-            float bob = cv.IsTalking ? Mathf.Sin(t * 17f) * 3f : 0f;
-            float pitch = cv.CurrentPitch * set.headPitchFactor * (1f - sleepW * 0.6f) + bob - drinkW * 28f - colaW * 10f;
-            head.rotation = Quaternion.AngleAxis(cv.CurrentYaw - colaW * 22f + phoneW * 22f, transform.up)
-                          * Quaternion.AngleAxis(pitch, transform.right)
-                          * Quaternion.AngleAxis((cv.sleeping ? 12f : 0f) - foneW * 10f, transform.forward) * head.rotation;
 
             // sentado: o quadril vai para a altura do assento e recua um pouco da carteira
             if (seatW > 0f)
@@ -498,10 +550,19 @@ namespace ProvaImpossivel
                 {
                     // presa à palma (do lado para onde a palma olha), tampa para a boca: no gole, a mão já foi levada
                     // até a garrafa (pose acima), então ela cai com a tampa na boca
-                    BottleFrame(out Vector3 axis, out Vector3 side, out _, out float radius);
+                    BottleFrame(out Vector3 axis, out Vector3 side, out Vector3 center, out float radius);
                     n = PalmNormal(1);
-                    propObj.rotation = Quaternion.FromToRotation(Vector3.up, -axis);
-                    propObj.position = PalmPos(1) + n * (radius + PalmRadius * scale);
+                    // mesmo andamento da mão: o IK do gole roda 4 vezes com peso drinkW, então a mão chega na
+                    // posição bem antes de drinkW = 1 (1 - (1 - w)^4). Com a garrafa no ritmo de drinkW, no meio da
+                    // subida ela ficava deitada na frente dos olhos.
+                    float k = 1f - Mathf.Pow(1f - drinkW, 4f);
+                    // enquanto a mão sobe, a garrafa sai de pé (como estava na carteira) e vai deitando até o gole;
+                    // antes ela já aparecia deitada, atravessada na frente da mão ainda na carteira
+                    var deitada = Quaternion.FromToRotation(Vector3.up, -axis);
+                    propObj.rotation = Quaternion.Slerp(transform.rotation, deitada, k);
+                    // na mão durante a subida; no gole, no lugar do gole (tampa na boca). Os dedos fechando mudam a
+                    // palma de lugar, e presa só à palma a tampa parava a uns 9 cm da boca.
+                    propObj.position = Vector3.Lerp(PalmPos(1) + n * (radius + PalmRadius * scale), center, k);
                     RestOnPalm(1, n);
                     break;
                 }

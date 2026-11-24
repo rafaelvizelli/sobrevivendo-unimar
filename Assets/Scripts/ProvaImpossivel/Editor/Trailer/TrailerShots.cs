@@ -9,6 +9,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.LowLevel;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
@@ -166,6 +167,7 @@ namespace ProvaImpossivel.EditorTools
                 InputSystem.settings = ns;
                 kb = InputSystem.AddDevice<Keyboard>("TrailerTeclado");
                 Canvas.willRenderCanvases += BiggerBubbles;
+                InstallHook();
                 hooked = true;
             }
             Release();
@@ -340,19 +342,20 @@ namespace ProvaImpossivel.EditorTools
                     if (PlayerController.I != null && PlayerController.I.visual != null)
                         PlayerController.I.visual.headYaw = PlayerHeadYaw;
                     ApplyUi();
-                    yield return null; // o jogo anda 1/30 s: Update, LateUpdate (animação, balões)
-                    uiCam.transform.SetPositionAndRotation(Cam.transform.position, Cam.transform.rotation);
-                    uiCam.fieldOfView = Cam.fieldOfView;
-                    Cam.Render();
-                    BiggerBubbles();
-                    Canvas.ForceUpdateCanvases();
-                    uiCam.Render();
-                    var prev = RenderTexture.active;
-                    RenderTexture.active = rt;
-                    tex.ReadPixels(new Rect(0, 0, TrailerShots.W, TrailerShots.H), 0, 0);
-                    RenderTexture.active = rtUi;
-                    texUi.ReadPixels(new Rect(0, 0, TrailerShots.W, TrailerShots.H), 0, 0);
-                    RenderTexture.active = prev;
+                    // O quadro é desenhado no fim deste mesmo quadro do jogo (gancho no fim do PostLateUpdate), depois
+                    // da animação e da deformação das malhas com esqueleto. Desenhar na volta da corrotina (no Update
+                    // do quadro seguinte) misturava dois quadros: o corpo ficava um quadro atrás do bigode, das
+                    // sobrancelhas e dos objetos da mão, que "descolavam" quando o personagem se mexia.
+                    grabbed = false;
+                    wantGrab = true;
+                    yield return null; // o jogo anda 1/30 s: Update, LateUpdate (animação, balões) e o gancho desenha
+                    if (!grabbed)
+                    {
+                        if (!warnedNoHook) Debug.LogWarning("[Trailer] O gancho de captura não rodou; desenhando na volta da corrotina.");
+                        warnedNoHook = true;
+                        wantGrab = false;
+                        Grab();
+                    }
                     // mundo (com pós) + interface (sem pós, alfa pré-multiplicado) por cima; o quadro final é opaco
                     var px = tex.GetPixelData<Color32>(0);
                     var ui = texUi.GetPixelData<Color32>(0);
@@ -377,9 +380,74 @@ namespace ProvaImpossivel.EditorTools
             Debug.Log("[Trailer] " + id + ": " + n + " quadros");
         }
 
+        static bool wantGrab, grabbed, warnedNoHook;
+
+        /// <summary>Marca do gancho no PlayerLoop (só o tipo importa).</summary>
+        struct TrailerCaptureHook { }
+
+        /// <summary>Põe o gancho de captura no fim do PostLateUpdate (depois da deformação das malhas).</summary>
+        static void InstallHook()
+        {
+            var loop = PlayerLoop.GetCurrentPlayerLoop();
+            RemoveHook(ref loop);
+            for (int i = 0; i < loop.subSystemList.Length; i++)
+            {
+                if (loop.subSystemList[i].type != typeof(UnityEngine.PlayerLoop.PostLateUpdate)) continue;
+                var subs = loop.subSystemList[i].subSystemList.ToList();
+                subs.Add(new PlayerLoopSystem { type = typeof(TrailerCaptureHook), updateDelegate = OnHook });
+                loop.subSystemList[i].subSystemList = subs.ToArray();
+            }
+            PlayerLoop.SetPlayerLoop(loop);
+        }
+
+        static void RemoveHook(ref PlayerLoopSystem loop)
+        {
+            if (loop.subSystemList == null) return;
+            for (int i = 0; i < loop.subSystemList.Length; i++)
+            {
+                var s = loop.subSystemList[i];
+                if (s.subSystemList == null) continue;
+                loop.subSystemList[i].subSystemList = s.subSystemList.Where(x => x.type != typeof(TrailerCaptureHook)).ToArray();
+            }
+        }
+
+        static void UninstallHook()
+        {
+            var loop = PlayerLoop.GetCurrentPlayerLoop();
+            RemoveHook(ref loop);
+            PlayerLoop.SetPlayerLoop(loop);
+        }
+
+        static void OnHook()
+        {
+            if (!wantGrab || Cam == null || !Application.isPlaying) return;
+            wantGrab = false;
+            Grab();
+            grabbed = true;
+        }
+
+        /// <summary>Desenha o mundo e a interface e lê os dois para tex/texUi.</summary>
+        static void Grab()
+        {
+            uiCam.transform.SetPositionAndRotation(Cam.transform.position, Cam.transform.rotation);
+            uiCam.fieldOfView = Cam.fieldOfView;
+            Cam.Render();
+            BiggerBubbles();
+            Canvas.ForceUpdateCanvases();
+            uiCam.Render();
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            tex.ReadPixels(new Rect(0, 0, TrailerShots.W, TrailerShots.H), 0, 0);
+            RenderTexture.active = rtUi;
+            texUi.ReadPixels(new Rect(0, 0, TrailerShots.W, TrailerShots.H), 0, 0);
+            RenderTexture.active = prev;
+        }
+
         public static void Teardown()
         {
             Time.captureFramerate = 0;
+            wantGrab = false;
+            UninstallHook();
             if (!hooked) return;
             Canvas.willRenderCanvases -= BiggerBubbles;
             if (kb != null) InputSystem.RemoveDevice(kb);

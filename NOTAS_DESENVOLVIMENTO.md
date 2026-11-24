@@ -883,6 +883,32 @@ Como validar jogando (Normal):
 - Detalhe que ficou: a tela final do plano `16_aprovado` mostra "Recorde: 0,0" (o resumo é montado direto, sem passar
   pelos recordes).
 
+### Trailer v3.1 — bugs do trailer e gag final novo (23/11)
+- Pedido do usuário (depois de ver o v3): "o professor anda todo bugado, algumas coisas atravessando a mão do boneco,
+  garrafinha meio bugada" e trocar o final do Nerd por "eu, o aluno, tentando colar, falando que vou levar DP de novo".
+- **Captura** (`Editor/Trailer/TrailerShots.cs`): o quadro agora é desenhado por um gancho no fim do `PostLateUpdate`
+  (PlayerLoop), no mesmo quadro do jogo e depois da deformação das malhas. Antes era desenhado na volta da corrotina, e o
+  corpo ficava um quadro atrás do bigode, das sobrancelhas e dos objetos da mão (eles "descolavam" com o movimento).
+  O gancho é posto em `Rig.Fresh` e tirado em `Rig.Teardown`; se não rodar, a captura volta ao jeito antigo e avisa.
+- **No jogo** (`Visual/CharacterModelSkin.cs`, só visual, nenhuma regra muda):
+  - Garrafinha: a cabeça inclina para trás ANTES de posicionar a garrafa (antes o queixo subia para dentro da tampa); a
+    mão pega perto da tampa (no meio, o alvo ficava além do braço); o punho aponta os dedos em volta da garrafa e a
+    palma fica virada para ela (só girar o punho deixava a palma ~50° torta, os dedos entravam na garrafa e ela era
+    empurrada ~10 cm para longe da mão); dedos só encostados (6° em vez de 25°); na subida a garrafa sai de pé e deita
+    aos poucos (antes aparecia deitada, atravessada na frente da mão ainda na carteira). Resultado medido: tampa a 3 cm
+    da boca (antes ~9 cm) e palma alinhada (0°).
+  - Fone: o antebraço vai mais para a frente que para dentro (o polegar entrava no queixo).
+  - Caminhada (modelos Humanoid): o passo do pacote cruza um pé na frente do outro e as pernas do professor pareciam
+    trançar. Cada coxa gira para fora o mínimo para o pé ficar a 6 cm (× escala) do seu lado do quadril
+    (`CharacterModelSkin.MinFootOut`).
+- **Gag final novo** (`18_dp_final`, substitui `18_nerd_final`): você suando, lendo a colinha na manga (Q real); em 1 s
+  vira a cabeça e encara a câmera. Legenda VOCÊ: "Relaxa... no máximo eu levo DP de novo." **[NOVA]**, trombone triste
+  sintetizado (`fiasco`) em 47,1 s e preto em 48,3 s. O mestre passou de 47,5 s para 48,5 s; os cortes de 30 s não mudam.
+- Testes novos (PlayMode, `ModelosPersonagensPlayTests`): `GarrafinhaSaiDePeEDeitaAosPoucos`, `FoneNaoEnfiaAMaoNoRosto`,
+  `ProfessorAndandoNaoCruzaAsPernas`; `GarrafinhaVaiAteABoca` ficou mais exigente (tampa a menos de 6 cm da boca, era
+  15 cm). Os 17 testes da classe passam.
+- Validar jogando: segurar G (garrafinha) e F (fone) e olhar de perto (câmera livre); ver o professor andando de frente.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

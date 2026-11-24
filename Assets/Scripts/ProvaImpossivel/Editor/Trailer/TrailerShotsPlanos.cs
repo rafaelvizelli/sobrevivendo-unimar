@@ -40,7 +40,7 @@ namespace ProvaImpossivel.EditorTools
             ("15_hud", HudReal),
             ("16_aprovado", () => Resultado("16_aprovado", LevelResult.Aprovado)),
             ("17_expulso", () => Resultado("17_expulso", LevelResult.Flagrado)),
-            ("18_nerd_final", NerdFinal),
+            ("18_dp_final", AlunoDP),
             ("19_sala", SalaLarga),
         };
 
@@ -211,7 +211,8 @@ namespace ProvaImpossivel.EditorTools
             {
                 if (t < 0.02f) Press(Key.G);
                 var e = Ease(p);
-                Pose(Rel(Jv, Mathf.Lerp(1.45f, 1.2f, e), -0.6f, 0.1f), Jv.HeadPosition - Vector3.up * 0.25f, 44f);
+                // mais de lado (perfil): de frente a garrafa cobria o rosto e parecia enfiada nele
+                Pose(Rel(Jv, Mathf.Lerp(0.95f, 0.8f, e), -Mathf.Lerp(1.25f, 1.05f, e), 0.05f), Jv.HeadPosition - Vector3.up * 0.2f, 44f);
             });
         }
 
@@ -332,9 +333,8 @@ namespace ProvaImpossivel.EditorTools
                     pegou = true;
                     if (!Prof.CatchRedHanded("celular na mão", Infracao.Celular)) Debug.LogWarning("[Trailer] Flagrante não aconteceu (trégua?).");
                 }
-                // A IA partiria andando até o jogador; a captura desenha o corpo (malha com esqueleto) um quadro atrás
-                // dos enfeites presos ao osso (bigode, sobrancelhas), e com ele andando o bigode "descolava" do rosto.
-                // Uns quadros depois do flagrante (o "!!!" já apareceu) ele para onde está e vira de frente para o jogador.
+                // A IA partiria andando até o jogador e sairia de perfil do quadro. Uns quadros depois do flagrante
+                // (o "!!!" já apareceu) ele para onde está e vira de frente para o jogador, bravo.
                 if (pegou && !parado && t >= 0.8f)
                 {
                     parado = true;
@@ -380,6 +380,9 @@ namespace ProvaImpossivel.EditorTools
                                          aprovado ? 6 : 0, aprovado ? 3 : 3, aprovado ? 1 : 7);
             string msg = aprovado ? Falas.FinalAprovado[2] : Falas.FinalFlagrado[1];
             HUD.I.ShowMatchResult(sum, msg, aprovado ? HUD.Green : HUD.Red, () => { }, () => { }, () => { });
+            ShowBubbles = false;
+            // a tela assenta antes de gravar: no primeiro quadro o botão "Jogar de novo" ainda aparece aceso
+            for (int i = 0; i < 10; i++) yield return null;
             var start = Cam.transform.position;
             var fwd = Cam.transform.forward;
             yield return Capture(id, 3.5f, (t, p) =>
@@ -388,18 +391,28 @@ namespace ProvaImpossivel.EditorTools
             });
         }
 
-        // 0:45 — gag final do Nerd
-        static IEnumerator NerdFinal()
+        // 0:45 — gag final: você, suando, lendo a colinha na manga; vira para a câmera e confessa (a fala é a legenda
+        // do trailer: "Relaxa... no máximo eu levo DP de novo.")
+        static IEnumerator AlunoDP()
         {
             StopTpc(true);
-            var nerd = Find<NerdStudent>();
-            var nv = nerd.visual;
-            nerd.Say("Professor, a questão 7 tem um erro de digitação. Grave.", 3.5f);
-            yield return Capture("18_nerd_final", 3.0f, (t, p) =>
+            ShowBubbles = false; // close: a legenda do trailer leva a fala
+            // a câmera fica fixa em relação ao CORPO (a direção da cabeça muda quando ele vira para a câmera)
+            var f = Player.transform.forward; f.y = 0f; f.Normalize();
+            var r = Vector3.Cross(Vector3.up, f);
+            var head0 = Jv.HeadPosition;
+            yield return Capture("18_dp_final", 4.0f, (t, p) =>
             {
-                nv.handRaise = Mathf.Clamp01(t * 2f);
+                if (t < 0.02f) Press(Key.Q); // a colinha na manga (a mecânica real)
+                Jv.expression = Expression.Nervoso;
+                Jv.sweat = 1f;
                 var e = Ease(p);
-                Pose(Rel(nv, Mathf.Lerp(1.5f, 1.25f, e), 0.2f, 0.05f), nv.HeadPosition - Vector3.up * 0.1f, 42f);
+                var pos = head0 + f * Mathf.Lerp(1.45f, 1.15f, e) + r * 0.3f - Vector3.up * 0.12f;
+                // primeiro lendo a cola; em 1,0 s vira a cabeça e encara a câmera (quebra da quarta parede)
+                var toCam = pos - head0; toCam.y = 0f;
+                float olhar = Vector3.SignedAngle(f, toCam, Vector3.up);
+                PlayerHeadYaw = Mathf.Lerp(0f, olhar + 22f, Ease((t - 1.0f) / 0.35f)); // +22: desfaz o giro da pose da colinha
+                Pose(pos, head0 - Vector3.up * 0.2f + r * -0.05f, 40f);
             });
         }
 
@@ -408,6 +421,7 @@ namespace ProvaImpossivel.EditorTools
         {
             StopTpc(true);
             SetDof(false);
+            ShowBubbles = false; // fundo da capa: o "z..." do dorminhoco piscava no canto
             yield return Capture("19_sala", 4.5f, (t, p) =>
             {
                 var e = Ease(p);
