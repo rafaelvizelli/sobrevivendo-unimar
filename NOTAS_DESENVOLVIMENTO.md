@@ -922,6 +922,48 @@ Como validar jogando (Normal):
 - `README.md` novo na raiz (para quem abrir o repositório): como jogar, controles, o que tem no jogo, parte técnica, créditos.
 - Validar jogando: abrir o .zip extraído e conferir o rodapé na capa do menu.
 
+### Modo entrega — versão 1.0.1 (24/11, noite)
+Polimento em 3 blocos pequenos, cada um testado e commitado antes do próximo. Nenhuma cena, prefab ou número de
+dificuldade foi alterado.
+
+**Bloco 1 — trilha** (`Audio/MusicDirector.cs`, `Audio/SoundFX.cs`). A trilha adaptativa existente foi mantida (mesmas 3
+camadas sincronizadas, mesmas fontes; nada de sistema novo):
+- Camada CALMA refeita: colchão sustentado (os acordes Rém–Rém–Si♭–Lá, ataque de 0,7 s e saída de 0,9 s por cima do
+  próximo; as amostras dão a volta no fim do loop, então a emenda não tem degrau). O baixo "na ponta dos pés" ficou
+  espaçado (1 e 3 de cada compasso) e o tique virou um por compasso. Normalizada com pico 0,8.
+- A trilha abaixa para 45% enquanto toca um som importante ("hm?", alerta, flagrante, erro, sinal — a mesma lista que já
+  abaixava o ambiente, `SoundFX.ImportantSoundNow`) e volta devagar. O estinger não abaixa.
+- Prova encerrada (`Phase.Ended`): as camadas saem em ~1,7 s; só o estinger de aprovação toca na tela de resultado.
+  Menu e pausa continuam como antes (só a calma, a 50%).
+- **Não ouvido por um humano.** Os testes garantem pico, emenda, fontes únicas e os volumes; o gosto precisa de fone.
+
+**Bloco 2 — Cara de Paisagem no tutorial** (`Core/Tutorial.cs`, `Core/Falas.cs`, `Challenges/FacePokerChallenge.cs`,
+`AI/ProfessorAI.cs`):
+- Passo novo `TutorialStep.CaraDePaisagem` entre "gastar um favor" e "entregar": 2,5 s depois do texto, o professor
+  diz uma fala de encarar e a barra abre de verdade em **modo treino** (`Begin(..., practice: true)`). Acertando ou
+  errando, o passo conclui; a mensagem final explica o que aconteceria na prova (funciona: ele desiste e a suspeita
+  cai, mas só salva quando ele não te VIU colando; tremeu: ele desconfia mais e pode virar flagrante).
+- Correção de bug: se a prova acabasse no meio do desafio (tempo, tutorial pulado), o painel ficava na tela por baixo do
+  resultado com o jogador travado. Agora `FacePokerChallenge.Cancel()` fecha sem resultado.
+- O professor não abre uma segunda Cara de Paisagem com uma já ativa.
+
+**Bloco 3 — HUD** (`UI/HUD.cs`, `Challenges/FacePokerChallenge.cs`, `Core/GameManager.cs`, `Students/SnitchStudent.cs`):
+- "FALTA 1 MINUTO!", "30 SEGUNDOS!" e "O PUXA-SACO TE DEDUROU!" agora são mensagens importantes (não podiam ser
+  descartadas por uma comum).
+- Mensagem cinza (só informação/recusa) com a pilha cheia fica de fora em vez de expulsar outra (`HUD.IsInformative`).
+- "[T] pular tutorial" saiu do cinza #999 (contraste 2,6:1 no papel) para a tinta suave do tema.
+- Painel da Cara de Paisagem no visual "prova impressa" (papel, moldura vermelha, fonte de máquina, tinta), no lugar
+  do painel escuro antigo. Mesma posição, mesma barra.
+
+**Testes novos:** EditMode `TrilhaTests` (+2), `AcabamentoTests` (+2), `TutorialTests` (atualizados);
+PlayMode `EntregaPlayTests` (6: trilha sem estouro/estalo/fontes duplicadas, "hm?" abaixa e volta, fim tira a trilha,
+painel fecha no fim da prova, painel de papel com textos que cabem, cinza não expulsa) e `TutorialPlayTests` (o treino
+completo agora passa pela Cara de Paisagem e confere que tremer não sobe a suspeita).
+
+**Validar jogando (ninguém ouviu/viu ainda):** com fone, ouvir a calma por 1 minuto (agradável? loop perceptível?),
+deixar o professor dizer "hm?" (a música abaixa?), terminar uma prova (a música sai?); no tutorial, o passo da Cara de
+Paisagem (o painel de papel ficou bonito e legível? ele tampa o texto do passo — o texto aparece 2,5 s antes).
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

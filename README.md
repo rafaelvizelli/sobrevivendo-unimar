@@ -7,7 +7,7 @@ Você não estudou. A prova é do Prof. Takanervoso, o homem que "não nasceu on
 sinal: respondendo o que sabe, colando do Nerd, usando o celular ou aproveitando o caos da sala.
 Três flagrantes e você está fora.
 
-**Versão de entrega:** 1.0.0 (24/11/2026) · Estúdio Fundão
+**Versão de entrega:** 1.0.1 (24/11/2026) · Estúdio Fundão
 
 ## Como jogar
 
