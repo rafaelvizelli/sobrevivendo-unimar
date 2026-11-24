@@ -28,13 +28,13 @@ namespace ProvaImpossivel
     /// e sentar se aprendem no caminho até o Nerd e até a mesa. O passo das colas de bolso (Q/G/B/F) apresenta o
     /// orçamento de colas, que antes nenhum passo explicava.
     /// </summary>
-    public enum TutorialStep { Responder, Celular, ColasDeBolso, Nerd, Distracao, Entregar, Concluido }
+    public enum TutorialStep { Responder, Celular, ColasDeBolso, Nerd, Distracao, CaraDePaisagem, Entregar, Concluido }
 
     /// <summary>O que já aconteceu na partida de treino (lido das mecânicas reais: MatchLog, favores, jogador).</summary>
     public struct TutorialProgress
     {
         public int answers, phoneUses, pocketCheats, nerdCopies, favorsSpent;
-        public bool delivered;
+        public bool delivered, faceDone; // faceDone: treinou a Cara de Paisagem (acertando ou não)
     }
 
     /// <summary>Regras puras do tutorial (sem Unity rodando, testáveis em EditMode).</summary>
@@ -43,7 +43,7 @@ namespace ProvaImpossivel
         public static readonly TutorialStep[] Order =
         {
             TutorialStep.Responder, TutorialStep.Celular, TutorialStep.ColasDeBolso, TutorialStep.Nerd,
-            TutorialStep.Distracao, TutorialStep.Entregar, TutorialStep.Concluido,
+            TutorialStep.Distracao, TutorialStep.CaraDePaisagem, TutorialStep.Entregar, TutorialStep.Concluido,
         };
 
         /// <summary>O passo atual já foi cumprido?</summary>
@@ -54,6 +54,7 @@ namespace ProvaImpossivel
             TutorialStep.ColasDeBolso => p.pocketCheats > 0,
             TutorialStep.Nerd => p.nerdCopies > 0,
             TutorialStep.Distracao => p.favorsSpent > 0,
+            TutorialStep.CaraDePaisagem => p.faceDone,
             TutorialStep.Entregar => p.delivered,
             _ => false,
         };
@@ -70,6 +71,7 @@ namespace ProvaImpossivel
             TutorialStep.ColasDeBolso => Falas.TutorialColasDeBolso,
             TutorialStep.Nerd => Falas.TutorialNerd,
             TutorialStep.Distracao => Falas.TutorialDistracao,
+            TutorialStep.CaraDePaisagem => Falas.TutorialCaraDePaisagem,
             TutorialStep.Entregar => Falas.TutorialEntregar,
             _ => "",
         };
@@ -101,13 +103,36 @@ namespace ProvaImpossivel
                 nerdCopies = MatchLog.NerdCopias,
                 favorsSpent = gm != null && gm.Settings != null ? gm.Settings.favors - gm.Favors : 0,
                 delivered = deliveredNow,
+                faceDone = faceDone,
             };
+        }
+
+        // Entrega 1.0: treino da Cara de Paisagem — o professor "para do seu lado" e a barra abre de verdade, uma vez
+        [Tooltip("Segundos entre o passo aparecer e o professor te encarar (dá tempo de ler)")] public float faceDelay = 2.5f;
+        bool faceDone;
+        float faceAt = -1f;
+
+        /// <summary>O treino da Cara de Paisagem já abriu a barra? (testes)</summary>
+        public bool FacePracticeStarted { get; private set; }
+
+        void UpdateFacePractice()
+        {
+            if (Step != TutorialStep.CaraDePaisagem || FacePracticeStarted) return;
+            if (faceAt < 0f) faceAt = Time.time + faceDelay;
+            if (Time.time < faceAt) return;
+            var fp = FacePokerChallenge.I;
+            if (fp == null) { faceDone = true; return; } // sem o desafio na cena: não trava o treino
+            if (fp.Active) return;                        // já tem uma aberta (o professor de verdade): espera
+            FacePracticeStarted = true;
+            ProfessorAI.I?.Say(Falas.Pick(Falas.ProfEncarando), 2f);
+            fp.Begin(0f, ok => faceDone = true, practice: true);
         }
 
         void Update()
         {
             var gm = GameManager.I;
             if (gm == null || !gm.IsPlaying) return;
+            UpdateFacePractice();
             var next = TutorialSteps.Next(Step, Read());
             if (next == Step) return;
             Step = next;

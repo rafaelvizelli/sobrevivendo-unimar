@@ -352,11 +352,14 @@ namespace ProvaImpossivel
         public const string TutorialOrcamento = "ORÇAMENTO DE COLAS: na prova, a turma só cobre algumas respostas (painel da direita). Escolha bem QUAIS riscos correr.";
         public const string TutorialNerd = "Levante (Espaço), ande (WASD) até o Nerd e segure E pra espiar. Se ele PARAR de escrever, solta!";
         public const string TutorialDistracao = "Gaste um favor: cutuque o Dorminhoco ou peça pro Puxa-saco tirar uma 'dúvida' (E).";
-        public const string TutorialEntregar = "Agora leve a prova até a mesa do professor e segure E. Simples. Na teoria.";
+        public const string TutorialCaraDePaisagem = "Ele vai parar do seu lado e te encarar. CARA DE PAISAGEM: Espaço com o ponteiro no verde!";
+        public const string CaraPaisagemTreinoOk = "FUNCIONOU! Na prova, ele desiste e a suspeita cai bastante. Mas só salva quando ele não te VIU colando.";
+        public const string CaraPaisagemTreinoFalhou = "TREMEU! Na prova, isso deixa ele MAIS desconfiado (e pode virar flagrante). Aqui no treino, tudo bem.";
+        public const string TutorialEntregar ="Agora leve a prova até a mesa do professor e segure E. Simples. Na teoria.";
         public const string TutorialCedoDemais = "Calma! O treino ainda não acabou. Termine o passo de agora antes de entregar.";
         public const string TutorialPrimeiraVez = "Primeiro o treino. Depois, a prova de verdade (e a DP, se der ruim).";
         public const string TutorialConcluidoTitulo = "TREINO CONCLUÍDO!";
-        public const string TutorialConcluido = "Você respondeu, pesquisou, colou do bolso, espiou, distraiu e entregou. Na prova de verdade, o Takanervoso não finge que não vê.";
+        public const string TutorialConcluido = "Você respondeu, pesquisou, colou do bolso, espiou, distraiu, fez cara de paisagem e entregou. Na prova de verdade, o Takanervoso não finge que não vê.";
         public const string TutorialPulado = "Tutorial pulado. Coragem ou excesso de confiança? A prova vai dizer.";
         public static readonly string[] TutorialProfInicio =
         {

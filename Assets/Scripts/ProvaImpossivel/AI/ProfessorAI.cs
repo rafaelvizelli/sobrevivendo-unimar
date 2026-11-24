@@ -572,7 +572,7 @@ namespace ProvaImpossivel
                     Suspicion = 100f;
                     StartFlagrante(found == Infracao.Bilhete ? Falas.MotivoBilheteAchado : Falas.MotivoCelularAchado, found);
                 }
-                else if (playerAtSpot && dPlayer < 4.5f && FacePokerChallenge.I != null)
+                else if (playerAtSpot && dPlayer < 4.5f && FacePokerChallenge.I != null && !FacePokerChallenge.I.Active) // nunca duas ao mesmo tempo
                 {
                     inChallenge = true;
                     Say(Falas.Pick(Falas.ProfEncarando), 2f);

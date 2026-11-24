@@ -24,6 +24,25 @@ namespace ProvaImpossivel.Tests
             yield return null;
         }
 
+        // ------------------------------------------------------------------ Cara de Paisagem
+
+        [UnityTest]
+        public IEnumerator ProvaQueAcabaNoMeioDaCaraDePaisagemFechaOPainel()
+        {
+            yield return ComecaNormalIsolado();
+            var fp = FacePokerChallenge.I;
+            bool avisou = false;
+            fp.Begin(0.5f, _ => avisou = true);
+            yield return null;
+            Assert.IsTrue(fp.Active, "pré-condição");
+            GameManager.I.DeliverExam();
+            yield return null;
+            yield return null;
+            Assert.IsFalse(fp.Active, "o desafio tinha que fechar com a prova encerrada");
+            Assert.IsNull(GameObject.Find("Desafio A"), "o painel não pode ficar na tela de resultado");
+            Assert.IsFalse(avisou, "fechar sem resultado não conta como acerto nem erro");
+        }
+
         // ------------------------------------------------------------------ trilha
 
         [UnityTest]

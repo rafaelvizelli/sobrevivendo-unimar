@@ -14,6 +14,8 @@ namespace ProvaImpossivel
     {
         public static FacePokerChallenge I { get; private set; }
         public bool Active { get; private set; }
+        /// <summary>Entrega 1.0: o desafio aberto é o treino do tutorial (sem consequência).</summary>
+        public bool Practice { get; private set; }
         /// <summary>Frame em que o desafio terminou (para o ESPAÇO não fazer o jogador levantar junto).</summary>
         public int FinishedFrame { get; private set; } = -1;
 
@@ -74,10 +76,12 @@ namespace ProvaImpossivel
         }
 
         /// <param name="closeness">0 = professor longe, 1 = colado em você.</param>
-        public void Begin(float closeness, Action<bool> onDone)
+        /// <param name="practice">Entrega 1.0: treino do tutorial — a mensagem do fim explica o que aconteceria na prova.</param>
+        public void Begin(float closeness, Action<bool> onDone, bool practice = false)
         {
             closeness = Mathf.Clamp01(closeness);
             done = onDone;
+            Practice = practice;
             hits = misses = 0;
             timeLeft = duration;
             prepLeft = prepTime;
@@ -107,7 +111,12 @@ namespace ProvaImpossivel
         {
             if (!Active) return;
             var gm = GameManager.I;
-            if (gm == null || !gm.IsPlaying) return;
+            if (gm == null || !gm.IsPlaying)
+            {
+                // a prova acabou no meio do desafio (tempo, sinal, tutorial pulado): o painel não pode ficar na tela
+                if (gm != null && gm.Phase == Phase.Ended) Cancel();
+                return;
+            }
 
             float dt = Time.deltaTime;
             t += dt * speed;
@@ -170,14 +179,30 @@ namespace ProvaImpossivel
             feedbackUntil = Time.time + seconds;
         }
 
+        /// <summary>Fecha o desafio sem resultado (a prova acabou): sem mensagem e sem avisar quem abriu.</summary>
+        public void Cancel()
+        {
+            if (!Active) return;
+            Active = false;
+            Practice = false;
+            FinishedFrame = Time.frameCount;
+            panel.SetActive(false);
+            PlayerController.I?.Lock(false);
+            done = null;
+        }
+
         void Finish(bool ok, string why)
         {
             Active = false;
             FinishedFrame = Time.frameCount;
             panel.SetActive(false);
             PlayerController.I.Lock(false);
-            HUD.I.Toast(ok ? "DESAFIO A CONCLUÍDO! Cara de paisagem nível Monalisa. A suspeita caiu bastante."
-                           : "DESAFIO A FALHOU: " + why + ". O professor ficou mais desconfiado.", ok ? HUD.Green : HUD.Red, 4f, important: true);
+            if (Practice)
+                HUD.I.Toast(ok ? Falas.CaraPaisagemTreinoOk : Falas.CaraPaisagemTreinoFalhou, ok ? HUD.Green : HUD.Red, 6f, important: true);
+            else
+                HUD.I.Toast(ok ? "DESAFIO A CONCLUÍDO! Cara de paisagem nível Monalisa. A suspeita caiu bastante."
+                               : "DESAFIO A FALHOU: " + why + ". O professor ficou mais desconfiado.", ok ? HUD.Green : HUD.Red, 4f, important: true);
+            Practice = false;
             var cb = done;
             done = null;
             cb?.Invoke(ok);

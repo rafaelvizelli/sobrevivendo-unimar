@@ -95,7 +95,23 @@ namespace ProvaImpossivel.Tests
             yield return WaitUntil(() => dir.Step == TutorialStep.Distracao, 2f, "Nerd não completou");
 
             Object.FindAnyObjectByType<SleeperStudent>().Interact(p);
-            yield return WaitUntil(() => dir.Step == TutorialStep.Entregar, 2f, "distração não completou (favor não foi gasto?)");
+            yield return WaitUntil(() => dir.Step == TutorialStep.CaraDePaisagem, 2f, "distração não completou (favor não foi gasto?)");
+
+            // Entrega 1.0: o professor encara, a barra abre em modo treino; errar duas vezes conclui o passo sem punição
+            var fp = FacePokerChallenge.I;
+            yield return WaitUntil(() => fp.Active, dir.faceDelay + 2f, "o treino da Cara de Paisagem não abriu");
+            Assert.IsTrue(dir.FacePracticeStarted && fp.Practice, "abriu em modo treino");
+            float suspeitaAntes = ProfessorAI.I.Suspicion;
+            for (int erro = 0; erro < fp.missesAllowed + 1; erro++)
+            {
+                yield return WaitUntil(() => !fp.Preparing && Mathf.Abs(fp.PointerPosition - fp.ZoneCenter) > fp.ZoneWidth, 5f, "ponteiro não saiu do verde");
+                fp.Press();
+                yield return null;
+            }
+            yield return WaitUntil(() => dir.Step == TutorialStep.Entregar, 2f, "Cara de Paisagem não completou");
+            Assert.IsFalse(fp.Active);
+            Assert.LessOrEqual(ProfessorAI.I.Suspicion, suspeitaAntes + 0.01f, "no treino, tremer não sobe a suspeita");
+            Assert.AreEqual(0, gm.Flagrantes);
 
             gm.DeliverExam();
             yield return WaitUntil(() => gm.Phase == Phase.Ended, 2f, "entregar não encerrou o treino");

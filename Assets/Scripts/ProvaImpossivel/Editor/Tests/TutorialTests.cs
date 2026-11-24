@@ -55,7 +55,7 @@ namespace ProvaImpossivel.Tests
             CollectionAssert.AreEqual(new[]
             {
                 TutorialStep.Responder, TutorialStep.Celular, TutorialStep.ColasDeBolso, TutorialStep.Nerd,
-                TutorialStep.Distracao, TutorialStep.Entregar, TutorialStep.Concluido,
+                TutorialStep.Distracao, TutorialStep.CaraDePaisagem, TutorialStep.Entregar, TutorialStep.Concluido,
             }, TutorialSteps.Order);
         }
 
@@ -76,6 +76,9 @@ namespace ProvaImpossivel.Tests
             p.nerdCopies = 1;
             step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Distracao, step);
             p.favorsSpent = 1;
+            step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.CaraDePaisagem, step);
+            Assert.AreEqual(TutorialStep.CaraDePaisagem, TutorialSteps.Next(step, p), "sem treinar a Cara de Paisagem: não avança");
+            p.faceDone = true;
             step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Entregar, step);
             p.delivered = true;
             step = TutorialSteps.Next(step, p); Assert.AreEqual(TutorialStep.Concluido, step);
