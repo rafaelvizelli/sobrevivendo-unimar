@@ -21,7 +21,7 @@ namespace ProvaImpossivel.Tests
         [Test]
         public void VersaoDeEntregaNoRodapeDoMenu()
         {
-            Assert.AreEqual("1.0.5", PlayerSettings.bundleVersion, "mãos em cima da carteira escrevendo (24/11)");
+            Assert.AreEqual("1.0.6", PlayerSettings.bundleVersion, "mão fechada e cada aluno escreve do seu jeito (24/11)");
             string r = Falas.MenuRodape("1.0.0");
             StringAssert.StartsWith("v1.0.0", r);
             StringAssert.Contains("Estúdio Fundão", r);
@@ -59,6 +59,35 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual(35f + o, CharacterModelSkin.FootCorrection(35f, 0), 1e-3f, "esquerdo virado 35° para dentro");
             Assert.AreEqual(-20f - o, CharacterModelSkin.FootCorrection(-20f, 1), 1e-3f, "direito virado 20° para dentro");
             Assert.AreEqual(0f, CharacterModelSkin.FootCorrection(150f, 0), 1e-3f, "leitura absurda: não mexe");
+        }
+
+        [Test]
+        public void CadaAlunoEscreveDoSeuJeito()
+        {
+            var a = CharacterModelSkin.StyleFor(1234);
+            Assert.AreEqual(a.speed, CharacterModelSkin.StyleFor(1234).speed, "mesma chave, mesmo jeito");
+            var velocidades = new System.Collections.Generic.HashSet<int>();
+            int queixo = 0;
+            for (int k = 0; k < 40; k++)
+            {
+                var s = CharacterModelSkin.StyleFor(k * 92821 + 17);
+                velocidades.Add(Mathf.RoundToInt(s.speed * 10f));
+                if (s.chin) queixo++;
+                Assert.That(s.lean, Is.InRange(4f, 14f));
+                Assert.That(s.amp, Is.InRange(0.012f, 0.032f));
+            }
+            Assert.Greater(velocidades.Count, 20, "ritmos quase todos iguais");
+            Assert.That(queixo, Is.InRange(4, 26), "uns apoiam o queixo, a maioria segura a folha");
+        }
+
+        [Test]
+        public void PausaParaPensarEntraESaiSuave()
+        {
+            var s = new CharacterModelSkin.WriteStyle { pauseEvery = 4f, pauseLen = 2f, phase = 0f };
+            Assert.AreEqual(0f, CharacterModelSkin.PauseWeight(1f, s), 1e-4f, "escrevendo");
+            Assert.AreEqual(1f, CharacterModelSkin.PauseWeight(5f, s), 1e-4f, "no meio da pausa");
+            Assert.That(CharacterModelSkin.PauseWeight(4.1f, s), Is.InRange(0.01f, 0.99f), "entrando na pausa (suave)");
+            Assert.AreEqual(0f, CharacterModelSkin.PauseWeight(7f, s), 1e-4f, "o ciclo recomeça");
         }
 
         [Test]

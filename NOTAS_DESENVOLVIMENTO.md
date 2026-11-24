@@ -1045,6 +1045,30 @@ paravam na borda da carteira com os dedos dentro do tampo, longe da folha, e o l
 - Conferido em captura: figurante (de lado, de frente e de cima) e o Nerd.
 - **Validar jogando:** olhar os colegas fazendo a prova (lápis na mão, mão na folha) e, sentado, abrir a prova (E)
   e ver a mão do jogador.
+- Usuário (24/11): "ficou legal, mas eles estão tipo com a mão aberta [...] quero a mão fechada e quero também que os
+  personagens cada um mexa de uma forma, não todos iguais" → versão 1.0.6 abaixo. (A suíte completa da 1.0.5 foi
+  interrompida para seguir com este pedido; rodou inteira na 1.0.6.)
+
+### Mão fechada e cada um escreve do seu jeito — versão 1.0.6 (24/11, noite)
+- **Causa da mão aberta (bug antigo, valia para tudo que fecha a mão):** os modelos do pacote não têm os mesmos nomes
+  nos ossos dos dedos. No terno a base do dedo é `Index2` (juntas 2-3-4); nos outros modelos é `Index1` (1-2-3) e
+  `Index2` já é o meio do dedo. O `Curl` começava sempre no "2": nesses modelos a base do dedo nunca dobrava (medido:
+  base 16°, meio 92° com 90° pedidos) e a mão ficava aberta, em garra. Agora cada dedo dobra a partir da sua base
+  (`curlRoots`: "X1" se existir, senão "X2"); medido depois: base 76°. Palma, direção dos dedos e encaixe dos objetos
+  (celular, garrafinha, cola, fone) continuam medidos como antes (`fingers`), e os testes de objeto na mão passam.
+- Mãos na carteira fechadas e de lado (dedo mínimo no tampo): `FistGrip` 65°, lápis em pinça `PencilGrip` 50°; palma
+  a 4 cm do tampo (`PalmAboveDesk`, a altura da mão fechada).
+- **Cada aluno do seu jeito** (`WriteStyle`, sorteado por `StyleFor(seed + lugar)`): ritmo do lápis (4,5–9 rad/s),
+  tamanho do vaivém, onde escreve na folha, quanto debruça (4–14°), cabeça inclinada de lado (±9°), pausas para pensar
+  (escreve 2,5–7 s e para 0,8–2,2 s, ciclos desencontrados: a mão e a ponta do lápis sobem do papel) e ~35% apoiam o
+  queixo no punho esquerdo em vez de segurar a folha.
+- Testes: EditMode `CadaAlunoEscreveDoSeuJeito` (mesma chave = mesmo jeito; 40 chaves dão ritmos diferentes; uns com
+  queixo, a maioria sem), `PausaParaPensarEntraESaiSuave`; PlayMode `FazendoAProvaAsMaosFicamEmCimaDaCarteiraEOLapisNaFolha`
+  agora também exige a base do dedo dobrada (> 35°) nas mãos da carteira, o punho perto do rosto em quem apoia o
+  queixo, ponta do lápis na folha fora das pausas e ritmos diferentes na turma.
+- Conferido em captura (`diag_prova` agora prefere um aluno que apoia o queixo; `diag_turma` mostra a turma da frente).
+- **Validar jogando:** olhar a turma fazendo a prova (punho fechado com o lápis, uns pensando com a mão no queixo,
+  ritmos e pausas diferentes).
 
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.

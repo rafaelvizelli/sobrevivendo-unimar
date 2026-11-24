@@ -77,6 +77,29 @@ namespace ProvaImpossivel.EditorTools
             }
         }
 
+        /// <summary>Comprimento de cada osso do dedo (Hand → Index2 → Index3 → Index4 → ponta).</summary>
+        public static void Dedos()
+        {
+            var go = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Personagens/Quaternius/Homem_Suit.fbx"));
+            Transform Deep(Transform t, string n) { if (t.name == n) return t; foreach (Transform c in t) { var r = Deep(c, n); if (r) return r; } return null; }
+            var mao = Deep(go.transform, "Hand.R");
+            foreach (var nome in new[] { "Index", "Middle", "Thumb" })
+            {
+                string s = nome + ":"; Transform a = mao;
+                for (var b = Deep(mao, nome + "2.R"); b != null; b = b.childCount > 0 ? b.GetChild(0) : null) { s += $" {a.name}->{b.name} {Vector3.Distance(a.position, b.position):F3}"; a = b; }
+                Debug.Log("[Dedos] " + s);
+            }
+            foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                var bs = smr.bones; var cont = new int[bs.Length];
+                foreach (var bw in smr.sharedMesh.boneWeights) { if (bw.weight0 > 0.3f) cont[bw.boneIndex0]++; }
+                string s = smr.name + ":";
+                for (int i = 0; i < bs.Length; i++) if (bs[i] != null && (bs[i].name.Contains("Index") || bs[i].name.Contains("Middle") || bs[i].name.StartsWith("Hand"))) s += $" {bs[i].name}={cont[i]}";
+                Debug.Log("[Dedos] pele " + s);
+            }
+            Object.DestroyImmediate(go);
+        }
+
         /// <summary>Para onde aponta cada pé (graus em torno do "cima"; 0 = frente, + = para a direita), cru e com a pelve alinhada.</summary>
         public static void Pes()
         {

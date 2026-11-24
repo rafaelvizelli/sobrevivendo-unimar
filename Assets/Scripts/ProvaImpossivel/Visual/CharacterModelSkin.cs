@@ -25,6 +25,10 @@ namespace ProvaImpossivel
         // dedos por mão: indicador, médio, anelar, mínimo, polegar (primeira junta de cada)
         readonly Transform[][] fingers = { new Transform[5], new Transform[5] };
         static readonly string[] FingerNames = { "Index2", "Middle2", "Ring2", "Pinky2", "Thumb2" };
+        // primeira junta que DOBRA cada dedo (o nó dos dedos). Os modelos do pacote não batem: no terno a base do dedo
+        // é "Index2" (2-3-4), nos outros é "Index1" (1-2-3) e "Index2" já é o meio do dedo. Começar sempre no "2"
+        // deixava a base reta nesses modelos: mão aberta, dedos em garra.
+        readonly Transform[][] curlRoots = { new Transform[5], new Transform[5] };
         Transform[] poseBones, fingerBones;
         Quaternion[] fingerRest;
         Quaternion[] restPose;
@@ -103,10 +107,15 @@ namespace ProvaImpossivel
                 foot[s] = Deep(model, "Foot." + Side[s]);
                 ok &= upperArm[s] && lowerArm[s] && hand[s] && upperLeg[s] && lowerLeg[s] && foot[s];
                 for (int f = 0; f < FingerNames.Length; f++) fingers[s][f] = hand[s] != null ? Deep(hand[s], FingerNames[f] + "." + Side[s]) : null;
+                for (int f = 0; f < FingerNames.Length; f++)
+                {
+                    var raiz = hand[s] != null ? Deep(hand[s], FingerNames[f].TrimEnd('2') + "1." + Side[s]) : null;
+                    curlRoots[s][f] = raiz != null ? raiz : fingers[s][f];
+                }
             }
             // os dedos não são animados (nem no Humanoid): a pose deles é refeita do zero a cada quadro
             var fb = new System.Collections.Generic.List<Transform>();
-            foreach (var side in fingers)
+            foreach (var side in curlRoots) // a partir da base: inclui as juntas dos dedos que o Curl dobra
                 foreach (var f0 in side)
                     for (var b = f0; b != null; b = b.childCount > 0 ? b.GetChild(0) : null) fb.Add(b);
             fingerBones = fb.ToArray();
@@ -322,7 +331,7 @@ namespace ProvaImpossivel
             var qThumb = Quaternion.AngleAxis(degrees * 0.45f, axis);
             for (int f = 0; f < fingers[s].Length; f++)
             {
-                var b = fingers[s][f];
+                var b = curlRoots[s][f]; // da base do dedo (o nó), não do meio
                 bool thumb = f == 4;
                 for (int j = 0; j < (thumb ? 2 : 3) && b != null; j++)
                 {
@@ -511,7 +520,7 @@ namespace ProvaImpossivel
             // tronco: dormir debruçado, encostar na cadeira
             // andando, o tronco vai um pouco à frente (no clipe ele fica jogado para trás)
             // escrevendo, debruça um pouco sobre a prova
-            Bend(spine, sleepW * 16f - cv.leanBack * 0.5f + (animated ? walkW * (1f - seatW) * 4f : 0f) + writeW * (1f - sleepW) * WriteLean);
+            Bend(spine, sleepW * 16f - cv.leanBack * 0.5f + (animated ? walkW * (1f - seatW) * 4f : 0f) + writeW * (1f - sleepW) * (styleReady ? style.lean : WriteLean));
             Bend(chest, sleepW * 18f - cv.leanBack * 0.5f + phoneW * 6f + colaW * 10f);
 
             // cabeça: o mesmo olhar do boneco invisível (é ele que a visão do jogo usa); bebendo, joga a cabeça para trás.
@@ -521,7 +530,7 @@ namespace ProvaImpossivel
             float pitch = cv.CurrentPitch * set.headPitchFactor * (1f - sleepW * 0.6f) + bob - drinkW * 28f - colaW * 10f;
             head.rotation = Quaternion.AngleAxis(cv.CurrentYaw - colaW * 22f + phoneW * 22f, transform.up)
                           * Quaternion.AngleAxis(pitch, transform.right)
-                          * Quaternion.AngleAxis((cv.sleeping ? 12f : 0f) - foneW * 10f, transform.forward) * head.rotation;
+                          * Quaternion.AngleAxis((cv.sleeping ? 12f : 0f) - foneW * 10f + (styleReady ? writeW * (1f - sleepW) * style.tilt : 0f), transform.forward) * head.rotation;
 
             // braços (cada camada puxa por cima da anterior). As colas ficam para o LADO ou para CIMA do corpo:
             // a câmera do jogo fica atrás do jogador, e o objeto tem que aparecer.
@@ -536,7 +545,10 @@ namespace ProvaImpossivel
             }
             Arm(1, new Vector3(0.12f, -0.75f, 0.6f), new Vector3(-0.35f + Mathf.Sin(t * 7f) * 0.12f, -0.18f, 1f), writeW); // escrevendo
             // com a folha achada na carteira: as duas mãos vão para cima do tampo (IK), a direita escreve na folha
-            DeskHands(SeatShift(), t);
+            float deskW = DeskHands(SeatShift(), t);
+            // mãos na carteira fechadas (punho), não espalmadas
+            grip[0] = Mathf.Lerp(grip[0], FistGrip, deskW);
+            grip[1] = Mathf.Lerp(grip[1], FistGrip, deskW);
             // celular escondido do lado da carteira, tela para cima (e o pescoço torto olhando para ele)
             Arm(1, new Vector3(0.5f, -0.82f, 0.18f), new Vector3(0.3f, 0.12f, 1f), phoneW);
             Palm(1, new Vector3(-0.25f, 1f, -0.15f), phoneW);
@@ -587,7 +599,7 @@ namespace ProvaImpossivel
             grip[1] = Mathf.Lerp(grip[1], 45f, foneW);
             grip[1] = Mathf.Lerp(grip[1], 8f, raiseW);
             // escrevendo: dedos em pinça no lápis (só quando o lápis está na mão)
-            if (pencilHeld) grip[1] = Mathf.Lerp(grip[1], 38f, writeW * (1f - phoneW) * (1f - drinkW) * (1f - foneW) * (1f - throwW) * (1f - raiseW));
+            if (pencilHeld) grip[1] = Mathf.Lerp(grip[1], PencilGrip, writeW * (1f - phoneW) * (1f - drinkW) * (1f - foneW) * (1f - throwW) * (1f - raiseW));
             grip[0] = Mathf.Lerp(grip[0], 10f, colaW);
             Curl(0, grip[0]);
             Curl(1, grip[1]);
@@ -613,7 +625,9 @@ namespace ProvaImpossivel
         /// <summary>Quanto o tronco debruça sobre a prova escrevendo (graus).</summary>
         public const float WriteLean = 9f;
         /// <summary>Altura do centro da palma acima do tampo (m): a espessura da mão. Abaixo disso a mão entra na mesa.</summary>
-        public const float PalmAboveDesk = 0.03f;
+        public const float PalmAboveDesk = 0.04f; // punho de lado: a altura é a da mão fechada
+        /// <summary>Dedos fechados (graus por junta) na carteira e segurando o lápis.</summary>
+        public const float FistGrip = 65f, PencilGrip = 50f;
 
         // folha e lápis da carteira de quem está sentado (objetos "Prova" e "Lapis" da cena), achados uma vez por assento
         Transform deskPaper, deskPencil;
@@ -629,6 +643,13 @@ namespace ProvaImpossivel
         public bool PencilHeld => pencilHeld;
         /// <summary>Centro da palma (testes).</summary>
         public Vector3 PalmPoint(int s) => PalmPos(s);
+        /// <summary>Quanto a base do indicador está dobrada agora (graus; 0 = dedo reto). Testes.</summary>
+        public float KnuckleBend(int s)
+        {
+            var r = curlRoots[s][0];
+            if (r == null || r.childCount == 0) return 0f;
+            return Vector3.Angle(r.position - hand[s].position, r.GetChild(0).position - r.position);
+        }
         /// <summary>Altura do tampo da carteira (a face de cima da folha).</summary>
         public float DeskTopY => deskPaper != null ? deskPaper.position.y + deskPaper.lossyScale.y * 0.5f : 0f;
 
@@ -692,32 +713,103 @@ namespace ProvaImpossivel
             return sh + h.normalized * Mathf.Sqrt(reach * reach - v * v) + Vector3.up * v;
         }
 
+        /// <summary>Jeito de cada um fazer a prova (sorteado pelo seed + lugar: a turma não escreve em coro).</summary>
+        public struct WriteStyle
+        {
+            /// <summary>Ritmo do vaivém do lápis (rad/s) e tamanho dele (m).</summary>
+            public float speed, amp;
+            /// <summary>Quanto debruça (graus) e quanto inclina a cabeça de lado (graus).</summary>
+            public float lean, tilt;
+            /// <summary>Escreve por <c>pauseEvery</c> s e para <c>pauseLen</c> s para pensar; <c>phase</c> desencontra os ciclos.</summary>
+            public float pauseEvery, pauseLen, phase;
+            /// <summary>Onde na folha a mão escreve (m, para o lado e para a frente).</summary>
+            public float offX, offZ;
+            /// <summary>true = apoia o queixo no punho esquerdo em vez de segurar a folha.</summary>
+            public bool chin;
+        }
+
+        /// <summary>Sorteia o jeito de escrever. Puro (mesma chave, mesmo jeito).</summary>
+        public static WriteStyle StyleFor(int key)
+        {
+            var rnd = new System.Random(key);
+            float R(float a, float b) => a + (float)rnd.NextDouble() * (b - a);
+            return new WriteStyle
+            {
+                speed = R(4.5f, 9f), amp = R(0.012f, 0.032f), lean = R(4f, 14f), tilt = R(-9f, 9f),
+                pauseEvery = R(2.5f, 7f), pauseLen = R(0.8f, 2.2f), phase = R(0f, 10f),
+                offX = R(-0.03f, 0.06f), offZ = R(-0.07f, 0.02f), chin = rnd.NextDouble() < 0.35,
+            };
+        }
+
+        /// <summary>0 escrevendo, 1 parado pensando (lápis fora do papel), com meio segundo de transição. Puro.</summary>
+        public static float PauseWeight(float t, WriteStyle st)
+        {
+            float cycle = st.pauseEvery + st.pauseLen;
+            float c = Mathf.Repeat(t + st.phase, cycle);
+            if (c < st.pauseEvery) return 0f;
+            float k = Mathf.Min(c - st.pauseEvery, cycle - c) / 0.25f;
+            return Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k));
+        }
+
+        WriteStyle style;
+        bool styleReady;
+        float pauseW;
+
+        /// <summary>O jeito deste personagem (testes).</summary>
+        public WriteStyle Style => style;
+        /// <summary>Parado pensando agora (0–1): o lápis sai do papel.</summary>
+        public float PauseW => pauseW;
+        /// <summary>Apoiando o queixo no punho (a mão esquerda não fica na mesa).</summary>
+        public bool ChinRest => styleReady && style.chin && deskPaper != null;
+
         /// <summary>
-        /// Mãos sobre a carteira: a esquerda segura a folha pelo canto, a direita fica do lado dela e, escrevendo, vai
-        /// para a folha com um vaivém pequeno. O centro da palma fica sempre acima do tampo.
+        /// Mãos sobre a carteira, fechadas e de lado (dedo mínimo para baixo): a esquerda segura a folha pelo canto
+        /// (ou apoia o queixo), a direita escreve na folha no ritmo de cada um, com pausas para pensar.
+        /// Devolve o peso da pose (0 = sem folha na frente).
         /// </summary>
-        void DeskHands(Vector3 shift, float t)
+        float DeskHands(Vector3 shift, float t)
         {
             float w = seatW * (1f - sleepW) * (1f - crossW);
             if (seatW > 0.5f) FindDesk();
             else if (seatW < 0.05f) { ReturnPencil(); deskSearched = false; deskPaper = deskPencil = null; }
-            if (w <= 0.001f || deskPaper == null) return;
+            if (w <= 0.001f || deskPaper == null) return 0f;
+            if (!styleReady)
+            {
+                Vector3 pos = transform.position;
+                style = StyleFor(cv.seed * 92821 + Mathf.RoundToInt(pos.x * 100f) * 31 + Mathf.RoundToInt(pos.z * 100f) * 7 + (int)cv.look);
+                styleReady = true;
+            }
+            pauseW = PauseWeight(t, style);
             Vector3 up = Vector3.up, f = FlatForward(), r = Vector3.Cross(up, f);
             Vector3 p = deskPaper.position;
             float y = DeskTopY + PalmAboveDesk;
             for (int s = 0; s < 2; s++)
             {
                 float m = s == 0 ? -1f : 1f;
-                Vector3 alvo = p - f * 0.12f + r * (m * 0.15f); // canto de baixo da folha
-                if (s == 1)
+                Vector3 alvo, dedos, palma;
+                if (s == 0 && style.chin)
                 {
-                    Vector3 escreve = p - f * 0.04f + r * (0.03f + Mathf.Sin(t * 6.5f) * 0.025f) + f * (Mathf.Sin(t * 2.3f) * 0.02f);
-                    alvo = Vector3.Lerp(alvo, escreve, writeW);
+                    // punho embaixo do queixo, cotovelo para baixo
+                    alvo = Mouth() - up * (0.075f * scale) + f * (0.02f * scale);
+                    dedos = up + r * 0.3f;
+                    palma = new Vector3(0f, 0f, -1f);
                 }
-                alvo.y = y;
-                alvo = Reachable(s, alvo - shift);
-                Vector3 dedos = f - r * (m * (s == 1 ? 0.6f * writeW : 0.3f)) - up * 0.2f;
-                Vector3 palma = s == 1 ? Vector3.Lerp(new Vector3(0f, -1f, 0f), new Vector3(-0.6f, -1f, 0f), writeW) : new Vector3(0f, -1f, 0f);
+                else
+                {
+                    alvo = p - f * 0.12f + r * (m * 0.15f); // canto de baixo da folha
+                    if (s == 1)
+                    {
+                        float esc = 1f - pauseW;
+                        Vector3 escreve = p + r * (style.offX + Mathf.Sin(t * style.speed) * style.amp * esc)
+                                        + f * (style.offZ + Mathf.Sin(t * style.speed * 0.37f + style.phase) * 0.02f * esc);
+                        alvo = Vector3.Lerp(alvo, escreve, writeW);
+                    }
+                    alvo -= shift;
+                    alvo.y = y - shift.y + (s == 1 ? pauseW * writeW * 0.04f : 0f); // pensando, a mão sobe um pouco
+                    dedos = f - r * (m * (s == 1 ? 0.6f * writeW : 0.3f)) - up * 0.2f;
+                    palma = new Vector3(-m * 0.8f, -0.6f, 0f); // de lado: palma para dentro, dedo mínimo na mesa
+                }
+                alvo = Reachable(s, alvo);
                 // a palma não fica no osso da mão, e girar a mão muda onde ela fica: corrige tudo junto
                 for (int i = 0; i < 3; i++)
                 {
@@ -726,6 +818,7 @@ namespace ProvaImpossivel
                     Palm(s, palma, w);
                 }
             }
+            return w;
         }
 
         /// <summary>
@@ -756,7 +849,7 @@ namespace ProvaImpossivel
             Vector3 f = FlatForward();
             Vector3 pega = PalmPos(1) + FingerDir(1) * 0.6f; // entre o polegar e o indicador
             Vector3 ponta = pega + f * 0.03f;
-            ponta.y = DeskTopY + 0.003f;
+            ponta.y = DeskTopY + 0.003f + pauseW * 0.03f; // pensando, a ponta sai do papel
             Vector3 eixo = pega + Vector3.up * 0.05f - f * 0.03f - ponta;
             if (eixo.sqrMagnitude < 1e-6f) eixo = Vector3.up;
             eixo.Normalize();

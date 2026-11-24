@@ -50,6 +50,7 @@ namespace ProvaImpossivel.EditorTools
             ("diag_nerd", DiagNerd),
             ("diag_lousa", DiagLousa),
             ("diag_prova", DiagProva),
+            ("diag_turma", DiagTurma),
             ("diag_comparar_tras", () => DiagComparar("diag_comparar_tras", 0)),
             ("diag_comparar_lado", () => DiagComparar("diag_comparar_lado", 1)),
             ("diag_comparar_frente", () => DiagComparar("diag_comparar_frente", 2)),
@@ -161,6 +162,16 @@ namespace ProvaImpossivel.EditorTools
             });
         }
 
+        /// <summary>Diagnóstico da turma fazendo a prova: da frente da sala, 4 s, para ver se cada um escreve do seu jeito.</summary>
+        static IEnumerator DiagTurma()
+        {
+            StopTpc(true);
+            SetDof(false);
+            var f = Facing(Jv);
+            var c = Player.transform.position + Vector3.up * 1.0f;
+            yield return Capture("diag_turma", 4f, (t, p) => Pose(c + f * 2.6f + Vector3.up * 0.55f - Vector3.Cross(Vector3.up, f) * 0.8f, c - f * 1.5f, 55f));
+        }
+
         /// <summary>Diagnóstico das mãos na prova: um figurante escrevendo, visto de lado, de frente e de cima (1 s cada).</summary>
         static IEnumerator DiagProva()
         {
@@ -168,7 +179,8 @@ namespace ProvaImpossivel.EditorTools
             SetDof(false);
             ExtraStudent aluno = null;
             foreach (var e in Object.FindObjectsByType<ExtraStudent>(FindObjectsSortMode.None))
-                if (e.visual.writing && e.visual.seated && (aluno == null || Vector3.Distance(e.transform.position, Player.transform.position) < Vector3.Distance(aluno.transform.position, Player.transform.position))) aluno = e;
+                if (e.visual.writing && e.visual.seated && e.visual.Skin.ChinRest && (aluno == null || Vector3.Distance(e.transform.position, Player.transform.position) < Vector3.Distance(aluno.transform.position, Player.transform.position))) aluno = e;
+            if (aluno == null) foreach (var e in Object.FindObjectsByType<ExtraStudent>(FindObjectsSortMode.None)) if (e.visual.writing && e.visual.seated) { aluno = e; break; }
             var v = aluno.visual;
             var sk = v.Skin;
             Debug.Log($"[DiagProva] {aluno.name}: folha {(sk.DeskPaper ? sk.DeskPaper.name : "-")} lápis {(sk.DeskPencil ? sk.DeskPencil.name + " a " + Vector3.Distance(sk.DeskPencil.position, sk.DeskPaper.position).ToString("F2") : "-")} na mão {sk.PencilHeld} escrevendo {v.writing} tampo {sk.DeskTopY:F3}");
