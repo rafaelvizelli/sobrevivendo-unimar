@@ -54,8 +54,10 @@ namespace ProvaImpossivel.Tests
                 var gm = GameManager.I;
                 var capa = Named("Caixa");
                 var botoes = new List<(string, Rect)>();
-                foreach (var n in new[] { "BotaoJOGAR", "BotaoTUTORIAL", "BotaoSAIR" }) botoes.Add((n, R(Named(n))));
+                foreach (var n in new[] { "BotaoJOGAR", "BotaoTUTORIAL", "BotaoSAIR", "Rodape", "Carimbo" }) botoes.Add((n, R(Named(n))));
                 SemSobreposicao(botoes, R(capa));
+                // entrega 24/11: rodapé com a versão do jogo
+                StringAssert.Contains("v" + Application.version, Named("Rodape").GetComponent<Text>().text);
                 Assert.IsFalse(hud.DifficultyPageOpen);
 
                 Named("BotaoJOGAR").GetComponent<Button>().onClick.Invoke();

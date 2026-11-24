@@ -400,6 +400,9 @@ namespace ProvaImpossivel
         public const string MenuDica = "Dica: observe a sala. Professor, Nerd e Dorminhoco avisam antes, no corpo, não na tela.";
         public const string MenuAtalhos = "(ou aperte 1, 2 ou 3 pra ir direto à prova)";
 
+        /// <summary>Rodapé da capa: versão do jogo e estúdio (entrega 24/11).</summary>
+        public static string MenuRodape(string versao) => "v" + versao + "  ·  Estúdio Fundão";
+
         public const string DificuldadeTitulo = "QUESTÃO 1 (vale a sua vida acadêmica)";
         public const string DificuldadeEnunciado = "Assinale a dificuldade. Clique, ou aperte 1, 2 ou 3.";
         public const string DificuldadeFacilFrase = "Professor míope. Esqueceu os óculos e a vontade de dar aula.";

@@ -909,6 +909,19 @@ Como validar jogando (Normal):
   15 cm). Os 17 testes da classe passam.
 - Validar jogando: segurar G (garrafinha) e F (fone) e olhar de perto (câmera livre); ver o professor andando de frente.
 
+### Entrega ao professor — versão 1.0.0 (24/11)
+- Escopo do dia: só polimento seguro. Versão 0.2.0 → **1.0.0** (`bundleVersion`).
+- Capa do menu ganhou um rodapé "v1.0.0 · Estúdio Fundão" no canto de baixo à esquerda (`Falas.MenuRodape`, `HUD.BuildMenuPage`,
+  objeto `Rodape`). Nada de jogo mudou.
+- Testes: EditMode `AcabamentoTests.VersaoDeEntregaNoRodapeDoMenu`; PlayMode `MenuTemCapaEFolhaDeDificuldadeComDadosReais`
+  agora confere que rodapé e carimbo não cobrem os botões nem saem da folha, e que o rodapé mostra a versão.
+- Suítes completas, uma de cada vez: **EditMode 158/158, PlayMode 129/129**.
+- Executável regenerado (0 erros, 115 MB) e empacotado em `Builds/Entrega/SobrevivendoUnimar_v1.0.0.zip` (41 MB; sem a
+  pasta `_BackUpThisFolder_ButDontShipItWithYourGame`; com `Licencas/` = licenças das fontes + `CREDITOS.md`). Aberto da
+  pasta de entrega por 20 s: 0 exceções no `Player.log`.
+- `README.md` novo na raiz (para quem abrir o repositório): como jogar, controles, o que tem no jogo, parte técnica, créditos.
+- Validar jogando: abrir o .zip extraído e conferir o rodapé na capa do menu.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

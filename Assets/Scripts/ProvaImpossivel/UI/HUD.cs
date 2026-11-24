@@ -802,6 +802,9 @@ namespace ProvaImpossivel
             dica = AddInk(t, firstTime ? Falas.MenuDicaPrimeiraVez : Falas.MenuDica, UITheme.SizeHandSmall, UITheme.Pen,
                           new Vector2(cx, -716f), new Vector2(1000f, 40f), hand: true);
             AddInk(t, Falas.MenuAtalhos, UITheme.SizeSmall, UITheme.InkSoft, new Vector2(-140f, -790f), new Vector2(720f, 30f));
+            // rodapé com a versão e o estúdio, no canto de baixo à esquerda (o carimbo fica à direita)
+            var rodape = UIFactory.Ink("Rodape", t, Falas.MenuRodape(Application.version), UITheme.SizeSmall, UITheme.InkSoft, TextAnchor.LowerLeft);
+            rodape.rectTransform.Place(new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(UITheme.MarginX + 24f, 22f), new Vector2(520f, 32f));
             var carimbo = UIFactory.Stamp("Carimbo", t, Falas.MenuCarimbo, UITheme.StampRed, UITheme.SizeHeading + 4);
             carimbo.Place(new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 34f), carimbo.sizeDelta);
             return box.gameObject;

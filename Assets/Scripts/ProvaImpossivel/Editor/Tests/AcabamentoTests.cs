@@ -19,6 +19,15 @@ namespace ProvaImpossivel.Tests
         }
 
         [Test]
+        public void VersaoDeEntregaNoRodapeDoMenu()
+        {
+            Assert.AreEqual("1.0.0", PlayerSettings.bundleVersion, "versão da entrega de 24/11");
+            string r = Falas.MenuRodape("1.0.0");
+            StringAssert.StartsWith("v1.0.0", r);
+            StringAssert.Contains("Estúdio Fundão", r);
+        }
+
+        [Test]
         public void PacotesSemUsoSairamDoManifest()
         {
             string manifest = File.ReadAllText(Path.Combine("Packages", "manifest.json"));
