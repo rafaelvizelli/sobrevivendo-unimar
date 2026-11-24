@@ -172,6 +172,9 @@ namespace ProvaImpossivel
         /// <summary>Volume atual do batimento de tensão (0 = em silêncio).</summary>
         public float TensionLevel => tension != null ? tension.volume : 0f;
 
+        /// <summary>Entrega 1.0: está tocando (ou acabou de tocar) um som importante? A trilha abaixa junto com o ambiente.</summary>
+        public bool ImportantSoundNow => Time.unscaledTime < duckUntil;
+
         /// <summary>Multiplicador atual do ambiente (0 = sala em silêncio, 1 = volume cheio do mix).</summary>
         public float AmbientGain => ambientGain;
 

@@ -6,6 +6,25 @@ namespace ProvaImpossivel.Tests
     public class TrilhaTests
     {
         [Test]
+        public void ProvaEncerradaSilenciaTodasAsCamadas()
+        {
+            var t = MusicDirector.Targets(Phase.Ended, false, ProfState.Investigando, 1f, 0.5f);
+            Assert.AreEqual((0f, 0f, 0f), t, "na tela de resultado a trilha sai (só o estinger toca)");
+            Assert.AreEqual(MusicDirector.Targets(false, ProfState.Tranquilo, 0f, 0.5f),
+                            MusicDirector.Targets(Phase.Paused, false, ProfState.Tranquilo, 0f, 0.5f), "na pausa, como antes");
+            Assert.AreEqual(MusicDirector.Targets(true, ProfState.Desconfiado, 0.4f, 0.5f),
+                            MusicDirector.Targets(Phase.Playing, true, ProfState.Desconfiado, 0.4f, 0.5f), "na prova, como antes");
+        }
+
+        [Test]
+        public void SomImportanteAbaixaATrilha()
+        {
+            Assert.AreEqual(1f, MusicDirector.DuckTarget(false, 0.45f));
+            Assert.AreEqual(0.45f, MusicDirector.DuckTarget(true, 0.45f), 1e-6f);
+            Assert.AreEqual(1f, MusicDirector.DuckTarget(true, 3f), "fração fora da faixa é corrigida");
+        }
+
+        [Test]
         public void ForaDaProvaSoACalmaMaisBaixa()
         {
             var t = MusicDirector.Targets(false, ProfState.Investigando, 1f, 0.5f);

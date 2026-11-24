@@ -49,6 +49,23 @@ namespace ProvaImpossivel
             return (1f, desconf, perseg);
         }
 
+        /// <summary>
+        /// Entrega 1.0: como <see cref="Targets(bool, ProfState, float, float)"/>, mas com a fase do jogo. Prova encerrada
+        /// (tela de resultado): todas as camadas saem devagar — só o estinger de aprovação toca. Pura (testável).
+        /// </summary>
+        public static (float calma, float desconfianca, float perseguicao) Targets(Phase phase, bool playing, ProfState state, float suspicion01, float menuLevel) =>
+            phase == Phase.Ended ? (0f, 0f, 0f) : Targets(playing, state, suspicion01, menuLevel);
+
+        [Tooltip("Entrega 1.0: enquanto toca um som importante ('hm?', alerta, sinal), a trilha fica nesta fração")]
+        [Range(0, 1)] public float duckTo = 0.45f;
+        float duck = 1f;
+
+        /// <summary>Multiplicador atual da trilha pelos sons importantes (1 = sem abaixar). Testes.</summary>
+        public float Duck => duck;
+
+        /// <summary>Fração da trilha com ou sem som importante tocando. Pura (testável).</summary>
+        public static float DuckTarget(bool importantSound, float duckTo) => importantSound ? Mathf.Clamp01(duckTo) : 1f;
+
         void Awake()
         {
             I = this;
@@ -92,14 +109,17 @@ namespace ProvaImpossivel
             }
             lastProf = state;
 
-            var (a, b, c) = Targets(playing, state, prof != null ? prof.Suspicion / 100f : 0f, menuLevel);
+            var (a, b, c) = Targets(gm != null ? gm.Phase : Phase.Intro, playing, state, prof != null ? prof.Suspicion / 100f : 0f, menuLevel);
             // no flagrante e logo depois do estinger, as camadas saem do caminho
             bool stingerOn = stinger.isPlaying;
-            float master = musicMax * GameOptions.MusicVolume;
+            // sons importantes (o "hm?" do professor, alerta, sinal) passam por cima da trilha: ela abaixa e volta devagar
+            var fx = SoundFX.I;
+            duck = Mathf.MoveTowards(duck, DuckTarget(fx != null && fx.ImportantSoundNow, duckTo), Time.unscaledDeltaTime * 1.5f);
+            float master = musicMax * GameOptions.MusicVolume * duck;
             Fade(0, stingerOn ? 0.2f : a, master);
             Fade(1, stingerOn ? 0f : b, master);
             Fade(2, stingerOn ? 0f : c, master);
-            stinger.volume = master * 1.6f;
+            stinger.volume = musicMax * GameOptions.MusicVolume * 1.6f; // o estinger É o momento importante: não abaixa
         }
 
         void Fade(int i, float want, float master)
@@ -157,17 +177,73 @@ namespace ProvaImpossivel
                 d[at + i] += (float)(rng.NextDouble() * 2 - 1) * amp * (1f - (float)i / n);
         }
 
+        /// <summary>
+        /// Entrega 1.0: colchão sustentado — o acorde do compasso entra devagar e sai por cima do próximo. As amostras
+        /// dão a volta no fim do loop (índice módulo o tamanho), então a emenda do loop não tem corte nem estalo.
+        /// </summary>
+        static void Pad(float[] d, int at, float[] chord, int bar, float amp)
+        {
+            int attack = (int)(0.7f * Rate), release = (int)(0.9f * Rate), len = bar + release;
+            for (int i = 0; i < len; i++)
+            {
+                float t = (float)i / Rate;
+                float env = Mathf.Clamp01((float)i / attack) * (i < bar ? 1f : 1f - (float)(i - bar) / release);
+                float s = 0f;
+                foreach (float f in chord)
+                    s += Mathf.Sin(2f * Mathf.PI * f * t) + 0.5f * Mathf.Sin(2f * Mathf.PI * f * 1.004f * t) // leve desafinado: coro
+                       + 0.3f * Mathf.Sin(4f * Mathf.PI * f * t);                                          // oitava: audível em caixinha de notebook
+                float respira = 0.85f + 0.15f * Mathf.Sin(2f * Mathf.PI * 0.25f * t);
+                d[(at + i) % d.Length] += s * env * respira * amp;
+            }
+        }
+
         AudioClip Calma()
         {
             var d = new float[LoopSamples];
             var rng = new System.Random(3);
             int beat = Mathf.RoundToInt(Beat * Rate);
-            for (int b = 0; b < 16; b++)
-            {
-                Pizz(d, b * beat, BaixoNotas[b], 0.32f, 0.5f);
-                Tick(d, b * beat + beat / 2, 0.06f, rng); // contratempo
-            }
+            int bar = 4 * beat;
+            for (int c = 0; c < 4; c++) Pad(d, c * bar, Acordes[c], bar, 0.03f);
+            for (int b = 0; b < 16; b += 2)
+                Pizz(d, b * beat, BaixoNotas[b], 0.26f, 0.6f); // "ponta dos pés", agora espaçado (1 e 3 de cada compasso)
+            for (int c = 0; c < 4; c++)
+                Tick(d, c * bar + 3 * beat + beat / 2, 0.035f, rng); // um tique de relógio por compasso
+            Normalize(d, 0.8f);
             return Clip("calma", d);
+        }
+
+        /// <summary>Garante o pico máximo (sem clipping) sem mudar o caráter do som.</summary>
+        static void Normalize(float[] d, float peak)
+        {
+            float max = 0f;
+            foreach (float x in d) max = Mathf.Max(max, Mathf.Abs(x));
+            if (max <= peak || max <= 0f) return;
+            float k = peak / max;
+            for (int i = 0; i < d.Length; i++) d[i] *= k;
+        }
+
+        /// <summary>Pico de um clip da trilha (testes: nenhuma camada estoura).</summary>
+        public float LayerPeak(int i)
+        {
+            if (layerClips == null || i < 0 || i >= layerClips.Length) return 0f;
+            var c = layerClips[i];
+            var d = new float[c.samples];
+            c.GetData(d, 0);
+            float max = 0f;
+            foreach (float x in d) max = Mathf.Max(max, Mathf.Abs(x));
+            return max;
+        }
+
+        /// <summary>Diferença entre a última e a primeira amostra do loop de uma camada (testes: emenda sem estalo).</summary>
+        public float LoopSeam(int i)
+        {
+            if (layerClips == null || i < 0 || i >= layerClips.Length) return 0f;
+            var c = layerClips[i];
+            var first = new float[1];
+            var last = new float[1];
+            c.GetData(first, 0);
+            c.GetData(last, c.samples - 1);
+            return Mathf.Abs(last[0] - first[0]);
         }
 
         AudioClip Desconfianca()
