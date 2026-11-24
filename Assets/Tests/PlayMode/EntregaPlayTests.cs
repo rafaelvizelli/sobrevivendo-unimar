@@ -165,6 +165,24 @@ namespace ProvaImpossivel.Tests
             Assert.IsEmpty(problemas, string.Join("\n", problemas));
         }
 
+        // ------------------------------------------------------------------ lousa
+
+        [UnityTest]
+        public IEnumerator LousaTemAPiadaDoProfessorENaoOTextoAntigo()
+        {
+            yield return ComecaNormalIsolado();
+            yield return null;
+            string lousa = Cenografia.LousaTexto();
+            StringAssert.Contains(Falas.LousaPergunta, lousa);
+            StringAssert.Contains(Falas.LousaResposta, lousa);
+            StringAssert.DoesNotContain("boleto", lousa, "o texto antigo da prova saiu da lousa");
+            var q = GameObject.Find("Questao no Quadro");
+            Assert.IsNotNull(q.transform.Find("Cinto"), "o 8 está de cinto");
+            foreach (var t in q.GetComponentsInChildren<UnityEngine.UI.Text>())
+                if (t.enabled && t.text.Length > 1)
+                    Assert.LessOrEqual(t.preferredWidth, t.rectTransform.rect.width + 2f, "texto da lousa quebrou/estourou: " + t.text);
+        }
+
         // ------------------------------------------------------------------ olho desenhado do Nerd
 
         [UnityTest]

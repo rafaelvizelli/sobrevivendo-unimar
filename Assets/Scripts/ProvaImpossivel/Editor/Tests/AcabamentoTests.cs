@@ -21,7 +21,7 @@ namespace ProvaImpossivel.Tests
         [Test]
         public void VersaoDeEntregaNoRodapeDoMenu()
         {
-            Assert.AreEqual("1.0.1", PlayerSettings.bundleVersion, "versão final da entrega de 24/11");
+            Assert.AreEqual("1.0.2", PlayerSettings.bundleVersion, "polimento visual de 24/11");
             string r = Falas.MenuRodape("1.0.0");
             StringAssert.StartsWith("v1.0.0", r);
             StringAssert.Contains("Estúdio Fundão", r);

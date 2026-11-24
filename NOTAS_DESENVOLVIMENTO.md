@@ -964,6 +964,46 @@ completo agora passa pela Cara de Paisagem e confere que tremer não sobe a susp
 deixar o professor dizer "hm?" (a música abaixa?), terminar uma prova (a música sai?); no tutorial, o passo da Cara de
 Paisagem (o painel de papel ficou bonito e legível? ele tampa o texto do passo — o texto aparece 2,5 s antes).
 
+### Polimento visual — versão 1.0.2 (24/11, noite)
+Referência de segurança: commit `11d0868` (tag local `v1.0.1-ref`) e build em `Builds/Versao_1.0.1`. Um commit por bloco.
+Diagnóstico com captura real: planos `diag_*` na ferramenta do trailer (`-trailerOnly diag_prof_lado,...`; nunca entram
+no trailer) e `Editor/DiagAnimacao.cs` (mede a passada dos clipes).
+
+**Bloco 1 — caminhada** (`Visual/CharacterModelSkin.cs`, `Visual/CharacterModelSet.cs`, `Resources/Personagens/
+ModelosPersonagens.asset`, `AI/ProfessorAI.cs`). Medido: Walk 1,33 s ≈ 1,3 m/s de passada; Run 0,8 s ≈ 2,7 m/s; o Walk
+do pacote anda "de passarela" (o pé esquerdo vai até 16 cm para o lado direito).
+- Causas: corrida tocava o Walk acelerado até o limite (pé deslizando ~30%); ritmo `velocidade/1,3` ignorava o tamanho
+  (professor 1,15×); folga dos pés de 6 cm não vencia a passarela; o professor cruzava os braços em qualquer quase
+  parada (andava com a mão na barriga); o corpo dele seguia `agent.velocity`, que oscila nos desvios.
+- Correções: clipe Run ligado (`CharacterModelSet.run`), misturado só acima de 2,8 m/s (`RunBlend`: jogador correndo;
+  o professor perseguindo a 2,6 m/s continua andando); ritmo = velocidade / (passada × tamanho) (`PlaybackRate`); folga
+  dos pés 9 cm; tronco 4° à frente andando; professor cruza os braços só depois de 0,6 s parado, vira pela
+  `desiredVelocity` com `turnRate` 8 (era 6). IA, NavMesh e velocidades de deslocamento: sem mudança.
+- Pendente: o calcanhar sobe alto atrás em alguns passos — é do clipe do pacote.
+
+**Bloco 2 — indicador do Nerd** (`Visual/MoodIcon.cs`, `Students/NerdStudent.cs`): o texto "O_O" (fonte de sistema,
+vermelho com contorno) virou um olho desenhado por código — amêndoa creme com contorno a tinta, íris vermelha de
+carimbo com pupila e reflexo, sobrancelha desconfiada; a pupila olha para o lado do jogador na tela; entra com "pop" e
+sai encolhendo. O símbolo continua "O_O" por dentro (`MoodIcon.EyeKey`): a lógica do Nerd e os testes não mudaram.
+
+**Bloco 3 — caixas de texto** (`UI/HUD.cs`, `Challenges/QuizBank.cs`). Auditoria automática (`EntregaPlayTests`) com
+TODAS as perguntas, alternativas e falas do jogo, os passos do tutorial e prompt/ajuda longos:
+- Bug achado e corrigido: em fala curta ("Hm.", "Silêncio!", "...") o nome "PROF. TAKANERVOSO" saía do balão
+  (o balão tinha 160 px; o nome, 360 fixos). Agora o balão tem pelo menos a largura do nome.
+- Prompt de interação, texto do tutorial e barra de ajuda tinham altura/largura fixas: agora se ajustam ao texto
+  (mínimo = o tamanho de antes). A fonte não diminuiu. O prompt só mede de novo quando o texto muda.
+- Perguntas e alternativas: todas já cabiam (a auditoria passa sem mudança no painel da prova).
+- O projeto usa uGUI `Text` (não TextMeshPro); com `CanvasScaler` de referência 1920×1080, resoluções menores escalam
+  o layout inteiro.
+
+**Bloco 4 — lousa** (`Visual/Cenografia.cs`, `Core/Falas.cs`): a lousa ganhou a piada de tiozão "O QUE O ZERO DISSE PARA
+O OITO? / QUE CINTO BONITO!" em letra de giz (Caveat), resposta em giz amarelo maior e sublinhada, assinatura
+"— Prof. T. (essa é boa, hein?)" e o desenho de um 0 e um 8 com olhinhos, o 8 de cinto com fivela. Feito em tempo de
+execução no canvas que já existe na cena (a cena não mudou). Textos em `Falas.LousaPergunta/Resposta/Assinatura`.
+
+**Validar jogando:** andar e correr com o jogador (vira bem? desliza?); ver o professor andando de frente e de lado; o
+olho do Nerd; um balão de fala curta do professor; ler a lousa sentado na carteira.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

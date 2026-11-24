@@ -401,7 +401,12 @@ namespace ProvaImpossivel
         public const string BotaoPularTutorial = "Pular tutorial";
         public const string MenuDicaPrimeiraVez = "Primeira vez? Qualquer dificuldade começa pelo treino de 1 minuto.";
         public const string MenuDica = "Dica: observe a sala. Professor, Nerd e Dorminhoco avisam antes, no corpo, não na tela.";
-        public const string MenuAtalhos = "(ou aperte 1, 2 ou 3 pra ir direto à prova)";
+        // ---------------------------------------------------------- lousa: a piada de tiozão do professor (troque à vontade)
+        public const string LousaPergunta = "O QUE O ZERO DISSE PARA O OITO?";
+        public const string LousaResposta = "QUE CINTO BONITO!";
+        public const string LousaAssinatura = "— Prof. T.  (essa é boa, hein?)";
+
+        public const string MenuAtalhos ="(ou aperte 1, 2 ou 3 pra ir direto à prova)";
 
         /// <summary>Rodapé da capa: versão do jogo e estúdio (entrega 24/11).</summary>
         public static string MenuRodape(string versao) => "v" + versao + "  ·  Estúdio Fundão";

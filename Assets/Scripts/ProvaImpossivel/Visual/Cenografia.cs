@@ -322,6 +322,90 @@ namespace ProvaImpossivel
             return b;
         }
 
+        // giz: branco meio gasto e amarelo (o destaque da resposta)
+        static readonly Color CorGiz = new(0.97f, 0.97f, 0.93f, 0.92f), CorGizAmarelo = new(1f, 0.92f, 0.55f, 0.95f);
+
+        /// <summary>
+        /// A lousa vira a piada de tiozão do professor (textos em <see cref="Falas"/>): pergunta em giz branco, resposta
+        /// grande em giz amarelo sublinhada, assinatura dele e, à direita, um 0 e um 8 desenhados — o 8 de cinto.
+        /// Tudo no canvas da lousa que já existe na cena (680×200, 1 unidade = 1 cm); a cena não é alterada.
+        /// </summary>
+        void PiadaNaLousa(Text t)
+        {
+            var canvas = (RectTransform)t.canvas.transform;
+            t.text = "";
+            t.enabled = false; // o texto antigo some; os novos ficam em filhos com posição própria
+            Text Giz(string nome, string texto, int tamanho, Color cor, float x, float y, float w, float h, TextAnchor anc = TextAnchor.UpperLeft)
+            {
+                var l = new GameObject(nome, typeof(RectTransform), typeof(Text)).GetComponent<Text>();
+                l.transform.SetParent(canvas, false);
+                l.font = UITheme.Hand;
+                l.fontSize = tamanho;
+                l.color = cor;
+                l.alignment = anc;
+                l.text = texto;
+                l.horizontalOverflow = HorizontalWrapMode.Wrap;
+                l.verticalOverflow = VerticalWrapMode.Overflow;
+                l.raycastTarget = false;
+                var r = l.rectTransform;
+                r.anchorMin = r.anchorMax = r.pivot = new Vector2(0f, 1f);
+                r.anchoredPosition = new Vector2(x, -y);
+                r.sizeDelta = new Vector2(w, h);
+                return l;
+            }
+            Image Traco(string nome, Color cor, float x, float y, float w, float h, float giro = 0f)
+            {
+                var img = new GameObject(nome, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                img.transform.SetParent(canvas, false);
+                img.color = cor;
+                img.raycastTarget = false;
+                var r = img.rectTransform;
+                r.anchorMin = r.anchorMax = new Vector2(0f, 1f);
+                r.pivot = new Vector2(0.5f, 0.5f);
+                r.anchoredPosition = new Vector2(x, -y);
+                r.sizeDelta = new Vector2(w, h);
+                r.localRotation = Quaternion.Euler(0f, 0f, giro);
+                return img;
+            }
+
+            // texto (à esquerda): começa um pouco abaixo do topo, onde o projetor fica pendurado
+            Giz("Piada Pergunta", Falas.LousaPergunta, 34, CorGiz, 18f, 16f, 470f, 50f);
+            Giz("Piada Resposta", Falas.LousaResposta, 50, CorGizAmarelo, 40f, 66f, 440f, 64f);
+            Traco("Sublinhado", CorGizAmarelo, 205f, 128f, 330f, 3f, -1.2f);
+            Traco("Sublinhado 2", CorGizAmarelo, 215f, 134f, 260f, 2f, -0.6f);
+            Giz("Piada Assinatura", Falas.LousaAssinatura, 24, CorGiz, 230f, 146f, 260f, 34f);
+
+            // desenho (à direita): o 0 olhando para o 8, que está de cinto com fivela
+            Giz("Desenho Zero", "0", 120, CorGiz, 498f, 22f, 80f, 150f, TextAnchor.UpperCenter);
+            Giz("Desenho Oito", "8", 120, CorGiz, 580f, 22f, 80f, 150f, TextAnchor.UpperCenter);
+            // olhinhos (o 0 olha para a direita, para o cinto do 8)
+            Traco("Olho Zero E", CorGiz, 539f, 96f, 5f, 5f);
+            Traco("Olho Zero D", CorGiz, 550f, 96f, 5f, 5f);
+            Traco("Olho Oito E", CorGiz, 631f, 86f, 4f, 4f);
+            Traco("Olho Oito D", CorGiz, 641f, 86f, 4f, 4f);
+            // cinto na "cintura" do 8 + fivela (quadradinho vazado)
+            Traco("Cinto", CorGizAmarelo, 629f, 107f, 36f, 6f, 3f);
+            float fx = 629f, fy = 107f;
+            Traco("Fivela Cima", CorGiz, fx, fy - 6f, 12f, 2f);
+            Traco("Fivela Baixo", CorGiz, fx, fy + 6f, 12f, 2f);
+            Traco("Fivela Esq", CorGiz, fx - 5f, fy, 2f, 13f);
+            Traco("Fivela Dir", CorGiz, fx + 5f, fy, 2f, 13f);
+            // "brilho" de admiração do 0 (três tracinhos)
+            Traco("Brilho 1", CorGiz, 572f, 76f, 9f, 2f, 35f);
+            Traco("Brilho 2", CorGiz, 576f, 84f, 9f, 2f, 0f);
+            Traco("Brilho 3", CorGiz, 572f, 92f, 9f, 2f, -35f);
+        }
+
+        /// <summary>Os textos da lousa agora (testes).</summary>
+        public static string LousaTexto()
+        {
+            var q = GameObject.Find("Questao no Quadro");
+            if (q == null) return "";
+            var sb = new System.Text.StringBuilder();
+            foreach (var t in q.GetComponentsInChildren<Text>()) if (t.enabled && t.text.Length > 0) sb.Append(t.text).Append('\n');
+            return sb.ToString();
+        }
+
         void Lousa()
         {
             var quadro = GameObject.Find("Questao no Quadro");
@@ -332,6 +416,7 @@ namespace ProvaImpossivel
             t.fontSize = 26;
             t.color = new Color(0.97f, 0.97f, 0.93f, 0.93f);
             t.lineSpacing = 0.9f;
+            PiadaNaLousa(t);
             // giz e apagador no parapeito da lousa
             var g = Grupo("Giz e apagador");
             var board = GameObject.Find("board");

@@ -47,7 +47,24 @@ namespace ProvaImpossivel.EditorTools
             ("diag_prof_frente", () => DiagProf("diag_prof_frente", true)),
             ("diag_jogador", DiagJogador),
             ("diag_nerd", DiagNerd),
+            ("diag_lousa", DiagLousa),
         };
+
+        /// <summary>Diagnóstico da lousa: de frente (perto) e de onde o jogador senta (longe).</summary>
+        static IEnumerator DiagLousa()
+        {
+            StopTpc(true);
+            SetDof(false);
+            var q = GameObject.Find("Questao no Quadro");
+            var centro = q != null ? q.transform.position : Jv.HeadPosition;
+            var f = Facing(Jv);
+            var olho = Jv.HeadPosition;
+            yield return Capture("diag_lousa", 2f, (t, p) =>
+            {
+                if (t < 1f) Pose(centro - f * 3.2f + Vector3.up * 0.1f, centro, 60f);
+                else Pose(olho + Vector3.up * 0.1f, centro, 60f);
+            });
+        }
 
         /// <summary>Diagnóstico do indicador do Nerd: mesmo enquadramento do plano 03, em pasta própria.</summary>
         static IEnumerator DiagNerd()
