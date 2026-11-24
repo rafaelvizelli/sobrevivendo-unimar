@@ -242,6 +242,7 @@ namespace ProvaImpossivel
             else if (Controls.Pressed(Acao.Garrafinha)) TryStart(Hold.Garrafinha);
             else if (Controls.Pressed(Acao.Fone)) PressFone();
             else if (Controls.Pressed(Acao.Bilhete)) StartAim();
+            else if (Controls.Pressed(Acao.Borracha)) StartEraserAim();
         }
 
         /// <summary>Por que não dá para jogar um bilhete agora, sem contar a mira (null = dá).</summary>
@@ -258,30 +259,37 @@ namespace ProvaImpossivel
         /// <summary>Ainda tem favor para gastar.</summary>
         static bool HasFavorLeft => GameManager.I != null && GameManager.I.Favors > 0;
 
-        /// <summary>Este colega pode ser alvo agora: bilhete possível (Nerd/Fundão) ou favor possível (Dorminhoco/Puxa-saco).</summary>
+        /// <summary>
+        /// Este colega pode ser alvo agora, no modo da mira: bilhete (B) = Nerd/Fundão, se der para jogar bilhete;
+        /// borracha (V) = Dorminhoco/Puxa-saco, se ainda houver favor e ele "topa" agora.
+        /// </summary>
         bool ValidTarget(Interactable it) =>
             it != null && it.isActiveAndEnabled
-            && (IsNoteTarget(it) ? WhyNotThrow() == null
-                : IsFavorTarget(it) && HasFavorLeft && it.CanInteract(player));
+            && (aimingAtFavor ? IsFavorTarget(it) && HasFavorLeft && it.CanInteract(player)
+                              : IsNoteTarget(it) && WhyNotThrow() == null);
 
-        /// <summary>
-        /// B: arma o arremesso, se der para jogar alguma coisa (bilhete ou borracha). A mira aparece e o braço sobe;
-        /// quem estiver na mira decide o que vai: bilhete no Nerd/Fundão, borracha no Dorminhoco/Puxa-saco.
-        /// </summary>
-        public bool StartAim()
+        /// <summary>B: arma o bilhete (só se daria para jogar). A mira aparece e o braço sobe com a bolinha.</summary>
+        public bool StartAim() => StartAimMode(false);
+
+        /// <summary>V: arma a borracha (favor) para o Dorminhoco ou o Puxa-saco (só se ainda houver favor).</summary>
+        public bool StartEraserAim() => StartAimMode(true);
+
+        bool StartAimMode(bool eraser)
         {
             if (aiming || Throwing) return false;
-            string no = WhyNotThrow();
-            if (no != null && !HasFavorLeft) { HUD.I.Toast(BilheteCharges > 0 ? no : Falas.MiraNada, HUD.Gray, 2.5f); return false; }
+            string no = eraser ? (HasFavorLeft ? null : Falas.SemFavor) : WhyNotThrow();
+            if (no != null) { HUD.I.Toast(no, HUD.Gray, 2.5f); return false; }
             aiming = true;
-            SoundFX.PlayAt(Sfx.Papel, transform.position, 0.35f, 1.4f); // amassando a bolinha
+            aimingAtFavor = eraser;
+            if (eraser) SoundFX.PlayAt(Sfx.Clique, transform.position, 0.3f, 1.2f); // pegando a borracha
+            else SoundFX.PlayAt(Sfx.Papel, transform.position, 0.35f, 1.4f);       // amassando a bolinha
             return true;
         }
 
         /// <summary>O que vai na mão mirando ou jogando: borracha (favor) ou a bolinha do bilhete.</summary>
         public HandProp ThrowProp =>
             (Throwing ? throwingEraser : aimingAtFavor) ? HandProp.Borracha : HandProp.Bilhete;
-        /// <summary>Mirando no Dorminhoco/Puxa-saco agora (vai a borracha).</summary>
+        /// <summary>Mirando a borracha (V) agora.</summary>
         public bool AimingAtFavor => aiming && aimingAtFavor;
         bool aimingAtFavor, throwingEraser;
 
@@ -298,7 +306,19 @@ namespace ProvaImpossivel
         /// <summary>Mirando: B de novo joga (se tiver alvo); Espaço, outra cola ou responder cancela.</summary>
         void HandleAim()
         {
-            if (Controls.Pressed(Acao.Bilhete)) { ConfirmAim(AimTarget()); return; }
+            // a mesma tecla que armou joga; a outra troca de bilhete para borracha (ou o contrário)
+            bool b = Controls.Pressed(Acao.Bilhete), v = Controls.Pressed(Acao.Borracha);
+            if (b || v)
+            {
+                if (v == aimingAtFavor) ConfirmAim(AimTarget());
+                else
+                {
+                    StopAim();
+                    if (v) StartEraserAim(); else StartAim();
+                    aimEndedFrame = -1; // trocar de mira não é "cancelar" (Espaço não está em jogo aqui)
+                }
+                return;
+            }
             if (Controls.Pressed(Acao.Levantar) || Controls.Pressed(Acao.Colinha) || Controls.Pressed(Acao.Garrafinha)
                 || Controls.Pressed(Acao.Fone) || Controls.Pressed(Acao.Responder))
                 StopAim();
@@ -311,7 +331,7 @@ namespace ProvaImpossivel
         public bool ConfirmAim(StudentBase target)
         {
             if (!aiming) return false;
-            if (target == null) { HUD.I.Toast(Falas.MiraSemAlvo, HUD.Gray, 2f); return false; }
+            if (target == null) { HUD.I.Toast(aimingAtFavor ? Falas.MiraSemAlvoBorracha : Falas.MiraSemAlvo, HUD.Gray, 2f); return false; }
             StopAim();
             return IsFavorTarget(target) ? ThrowEraserAt(target) : ThrowAt(target);
         }
@@ -325,8 +345,8 @@ namespace ProvaImpossivel
         {
             if (Throwing) return false;
             if (!IsFavorTarget(target)) return false;
-            if (!HasFavorLeft) { HUD.I.Toast(Falas.MiraNada, HUD.Gray, 2.5f); return false; }
-            if (!target.CanInteract(player)) { HUD.I.Toast(Falas.MiraSemAlvo, HUD.Gray, 2f); return false; }
+            if (!HasFavorLeft) { HUD.I.Toast(Falas.SemFavor, HUD.Gray, 2.5f); return false; }
+            if (!target.CanInteract(player)) { HUD.I.Toast(Falas.MiraSemAlvoBorracha, HUD.Gray, 2f); return false; }
             throwTarget = target;
             throwingEraser = true;
             throwLeft = Mathf.Max(0.05f, s.borrachaThrowTime);
@@ -374,7 +394,6 @@ namespace ProvaImpossivel
             }
             var t = AimTarget();
             AimTargetName = t != null ? t.displayName : "";
-            aimingAtFavor = t != null ? IsFavorTarget(t) : WhyNotThrow() != null; // sem alvo: o que daria para jogar
             Vector3 from = HandPoint(), to;
             if (t != null) to = aimingAtFavor ? HeadHitPoint(t) : LandingPoint(t);
             else

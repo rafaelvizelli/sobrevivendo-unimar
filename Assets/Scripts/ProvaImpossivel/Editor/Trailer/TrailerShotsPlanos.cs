@@ -208,7 +208,7 @@ namespace ProvaImpossivel.EditorTools
             var ombro = Player.HeadPosition - dir * 1.3f + Vector3.up * 0.35f + Vector3.Cross(Vector3.up, dir) * 0.45f;
             Pose(ombro, alvo.visual.HeadPosition, 55f);
             yield return null;
-            c.StartAim();
+            c.StartEraserAim();
             bool jogou = false;
             yield return Capture("diag_borracha", 3.2f, (t, p) =>
             {

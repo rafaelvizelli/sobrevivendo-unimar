@@ -267,6 +267,34 @@ namespace ProvaImpossivel.Tests
             Assert.Greater(subiu, PlayerController.I.ChestPosition.y - 0.6f, "voou por cima, não rente ao chão");
         }
 
+        /// <summary>Teclas separadas: B = bilhete, V = borracha. V arma a borracha; B troca para o bilhete; Espaço cancela.</summary>
+        [UnityTest]
+        public IEnumerator VArmaABorrachaEBTrocaParaOBilhete()
+        {
+            yield return Comecar(Difficulty.Normal, s => { s.eventInterval = new Vector2(9999f, 9999f); s.nerdGlanceInterval = new Vector2(999f, 999f); });
+            var p = PlayerController.I;
+            var c = p.Cheats;
+            int favores = GameManager.I.Favors, cargas = c.BilheteCharges;
+
+            yield return Tecla(Key.V);
+            Assert.IsTrue(c.Aiming, "V arma a mira");
+            Assert.IsTrue(c.AimingAtFavor, "V é a borracha");
+            yield return null;
+            Assert.AreEqual(HandProp.Borracha, p.visual.prop, "com V, a borracha fica na mão");
+
+            yield return Tecla(Key.B);
+            Assert.IsTrue(c.Aiming, "B mirando a borracha troca de mira, não cancela");
+            Assert.IsFalse(c.AimingAtFavor, "agora é o bilhete");
+            yield return null;
+            Assert.AreEqual(HandProp.Bilhete, p.visual.prop, "com B, a bolinha fica na mão");
+
+            yield return Tecla(Key.Space);
+            Assert.IsFalse(c.Aiming, "Espaço cancela");
+            Assert.IsTrue(p.IsSeated, "e não levanta");
+            Assert.AreEqual(favores, GameManager.I.Favors, "nada gasto");
+            Assert.AreEqual(cargas, c.BilheteCharges, "nada gasto");
+        }
+
         IEnumerator JogarBorracha(StudentBase alvo, string efeito)
         {
             var gm = GameManager.I;
@@ -274,7 +302,7 @@ namespace ProvaImpossivel.Tests
             int favores = gm.Favors, bilhetes = c.BilheteCharges;
             Assert.Greater(favores, 0);
             Assert.IsTrue(alvo.CanInteract(PlayerController.I), alvo.name + " tem que estar disponível para o favor");
-            Assert.IsTrue(c.StartAim());
+            Assert.IsTrue(c.StartEraserAim(), "V arma a borracha");
             Assert.IsTrue(c.ConfirmAim(alvo), "mirando nele, joga a borracha");
             Assert.IsTrue(c.Throwing);
             yield return null;

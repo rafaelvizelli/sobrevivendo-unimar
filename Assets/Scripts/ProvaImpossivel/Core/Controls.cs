@@ -13,6 +13,8 @@ namespace ProvaImpossivel
         Opcao1, Opcao2, Opcao3, Opcao4,
         MenuFacil, MenuNormal, MenuDificil, Tutorial,
         JogarDeNovo, VoltarAoMenu, Voltar,
+        /// <summary>Borracha com mira (favor): V / D-pad. Novo no fim (o enum indexa o cache de teclas).</summary>
+        Borracha,
     }
 
     /// <summary>
@@ -128,6 +130,7 @@ namespace ProvaImpossivel
                 Acao.Garrafinha => new[] { kb.gKey },
                 Acao.Fone => new[] { kb.fKey },
                 Acao.Bilhete => new[] { kb.bKey },
+                Acao.Borracha => new[] { kb.vKey },
                 Acao.Pausa or Acao.Voltar => new[] { kb.escapeKey },
                 Acao.Tutorial => new[] { kb.tKey },
                 Acao.JogarDeNovo => new[] { kb.rKey },
@@ -151,6 +154,7 @@ namespace ProvaImpossivel
                 Acao.Garrafinha => p.rightShoulder,
                 Acao.Fone => p.leftTrigger,
                 Acao.Bilhete => p.rightTrigger,
+                Acao.Borracha => p.dpad.up,
                 Acao.Pausa => p.startButton,
                 Acao.Tutorial or Acao.VoltarAoMenu => p.selectButton,
                 _ => null,
@@ -186,6 +190,7 @@ namespace ProvaImpossivel
                 Acao.Garrafinha => "RB",
                 Acao.Fone => "LT",
                 Acao.Bilhete => "RT",
+                Acao.Borracha => "D-pad",
                 Acao.Pausa => "Start",
                 Acao.Tutorial or Acao.VoltarAoMenu => "Select",
                 _ => "?",
@@ -203,6 +208,7 @@ namespace ProvaImpossivel
                 Acao.Garrafinha => "G",
                 Acao.Fone => "F",
                 Acao.Bilhete => "B",
+                Acao.Borracha => "V",
                 Acao.Pausa or Acao.Voltar => "Esc",
                 Acao.Tutorial => "T",
                 Acao.JogarDeNovo => "R",

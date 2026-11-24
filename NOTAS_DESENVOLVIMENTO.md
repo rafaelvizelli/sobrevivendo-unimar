@@ -1163,6 +1163,21 @@ ele fazer barulho e distrair o professor, e no Puxa-saco também".
 - Captura `diag_borracha`: mira rosa até o Dorminhoco, borracha voando, ele acorda e o professor vai até ele.
 - **Validar jogando:** sentado, B, girar a câmera até o Dorminhoco (mira rosa), B de novo; idem no Puxa-saco.
 
+### Borracha na tecla V — versão 1.1.1 (24/11, noite)
+O usuário estranhou a borracha no B ("mas B não é o botão da bolinha"). Agora são teclas separadas:
+- **B** (controle RT) = bilhete, só mira no Nerd/Fundão. **V** (controle D-pad ↑, que não era usado na prova) =
+  borracha, só mira no Dorminhoco/Puxa-saco. Nova ação `Acao.Borracha` (no FIM do enum: ele indexa o cache de teclas
+  do `Controls`), rótulos "V" / "D-pad".
+- A mira tem modo (`aimingAtFavor`, decidido pela tecla, não mais pelo alvo): a mesma tecla que armou joga; a outra
+  troca de bilhete para borracha (ou o contrário) sem cancelar; Espaço cancela. Mensagens de "sem alvo" por modo
+  (`MiraSemAlvo`, `MiraSemAlvoBorracha`); sem favor: `SemFavor`. Barra de ajuda: "BORRACHA: V joga no DORMINHOCO
+  (1 favor)" / "BILHETE: B joga no NERD".
+- Textos: instruções "B bilhete • F fone • V borracha (favor)" e "D-pad borracha" no controle; tutorial de distração
+  cita o V.
+- Teste PlayMode `VArmaABorrachaEBTrocaParaOBilhete` (teclas virtuais V, B, Espaço). Colas/entrega/controle: 36/36;
+  EditMode (acabamento, controles, personagens): 43/43.
+- A suíte completa da 1.1.0 foi interrompida (mudei o código durante ela); roda inteira na 1.1.1.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`
