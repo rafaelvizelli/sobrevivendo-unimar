@@ -365,8 +365,8 @@ namespace ProvaImpossivel
             promptText.text = KeysInPen(text);
             // a caixa acompanha o texto: mais larga (até 1100) e, se ainda quebrar, mais alta (nunca menor que antes)
             var pr = promptBox.rectTransform;
-            pr.sizeDelta = new Vector2(Mathf.Clamp(promptText.preferredWidth + 40f, 820f, 1100f), 58f);
-            pr.sizeDelta = new Vector2(pr.sizeDelta.x, Mathf.Max(58f, promptText.preferredHeight + 16f));
+            pr.sizeDelta = new Vector2(Mathf.Clamp(WidthAtFullHd(promptText) + 40f, 820f, 1100f), 58f);
+            pr.sizeDelta = new Vector2(pr.sizeDelta.x, Mathf.Max(58f, HeightAtFullHd(promptText) + 16f));
         }
 
         /// <summary>Risco da ação que o jogador está segurando: quem chama decide (o HUD não lê o professor).</summary>
@@ -379,10 +379,39 @@ namespace ProvaImpossivel
             if (go.activeSelf != on) go.SetActive(on);
             if (!on) return;
             holdFill.fillAmount = Mathf.Clamp01(progress);
-            holdText.text = label;
+            if (holdText.text != label)
+            {
+                holdText.text = label;
+                // a folha acompanha o texto (640 cortava "Lendo a colinha na manga... (solte se ele chegar perto!)")
+                var box = holdFill.transform.parent as RectTransform;
+                box.sizeDelta = new Vector2(Mathf.Clamp(WidthAtFullHd(holdText) + 40f, 640f, 1600f), box.sizeDelta.y);
+            }
             // ação arriscada sendo vista = vermelho; arriscada escondida = verde; segura = caneta azul.
             // Meio transparente: o texto a tinta continua legível por cima.
             holdFill.color = HoldColor(risk);
+        }
+
+        /// <summary>
+        /// Largura do texto numa linha, em unidades do canvas, medida como na tela de referência (escala 1, 1920×1080).
+        /// O <c>preferredWidth</c> do Unity mede na escala da janela: numa janela pequena (os testes em lote rodam em
+        /// 640×480, escala 0,38) a fonte é gerada em poucos pixels e a medida sai bem menor que a real — a auditoria
+        /// dizia "cabe" e no jogo o texto saía da caixa.
+        /// </summary>
+        public static float WidthAtFullHd(Text t) => TextSizeAtFullHd(t, 0f).x;
+
+        /// <summary>Altura do texto quebrando linhas na largura atual dele, medida na escala 1 (ver <see cref="WidthAtFullHd"/>).</summary>
+        public static float HeightAtFullHd(Text t) => TextSizeAtFullHd(t, t.rectTransform.rect.width).y;
+
+        /// <summary>Tamanho do texto na escala 1; com <paramref name="wrapWidth"/> &gt; 0, quebrando linhas nessa largura.</summary>
+        public static Vector2 TextSizeAtFullHd(Text t, float wrapWidth)
+        {
+            var gs = t.GetGenerationSettings(new Vector2(wrapWidth > 0f ? wrapWidth : 0f, 0f));
+            gs.scaleFactor = 1f;
+            gs.resizeTextForBestFit = false;
+            gs.horizontalOverflow = wrapWidth > 0f ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow;
+            gs.verticalOverflow = VerticalWrapMode.Overflow;
+            var gen = new TextGenerator();
+            return new Vector2(gen.GetPreferredWidth(t.text, gs), gen.GetPreferredHeight(t.text, gs));
         }
 
         /// <summary>Cor do preenchimento da barra de segurar (meio transparente sobre o papel).</summary>
@@ -399,7 +428,7 @@ namespace ProvaImpossivel
             seatedHelp.text = on ? KeysInPen(text) : "";
             if (seatedHelpBox.gameObject.activeSelf != on) seatedHelpBox.gameObject.SetActive(on);
             // sem quebra de linha: a caixa vai até quase a largura da tela (1300 cortava as ajudas mais longas)
-            if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1840f, seatedHelp.preferredWidth + 40f), 44f);
+            if (on) seatedHelpBox.rectTransform.sizeDelta = new Vector2(Mathf.Min(1840f, WidthAtFullHd(seatedHelp) + 40f), 44f);
         }
 
         // ------------------------------------------------------------------ colas de bolso
@@ -482,7 +511,7 @@ namespace ProvaImpossivel
         /// <summary>Todos os textos do painel das colas cabem na largura e na altura do painel? (testes)</summary>
         public bool CheatsTextFits()
         {
-            if (cheatsHeader.preferredWidth > cheatsHeader.rectTransform.rect.width + 1f) return false;
+            if (WidthAtFullHd(cheatsHeader) > cheatsHeader.rectTransform.rect.width + 1f) return false;
             foreach (var r in cheatRows)
             {
                 if (!r.rect.gameObject.activeSelf) continue;
@@ -505,7 +534,7 @@ namespace ProvaImpossivel
             tutorialText.text = text;
             // texto longo (passo + "[T] pular tutorial") quebra em duas linhas: a folha cresce para cima em vez de cortar
             var tr = tutorialBox.rectTransform;
-            tr.sizeDelta = new Vector2(tr.sizeDelta.x, Mathf.Max(60f, tutorialText.preferredHeight + 18f));
+            tr.sizeDelta = new Vector2(tr.sizeDelta.x, Mathf.Max(60f, HeightAtFullHd(tutorialText) + 18f));
         }
 
         // =================================================================== mensagens
@@ -550,7 +579,7 @@ namespace ProvaImpossivel
             box.rectTransform.pivot = new Vector2(0.5f, 1f);
             box.rectTransform.sizeDelta = new Vector2(980f, 10f);
             t.rectTransform.Stretch(14f);
-            float h = Mathf.Max(52f, t.preferredHeight + 26f);
+            float h = Mathf.Max(52f, HeightAtFullHd(t) + 26f);
             box.rectTransform.sizeDelta = new Vector2(980f, h);
             toasts.Insert(0, new Toast_ { rect = box.rectTransform, group = group, text = t, until = Time.unscaledTime + seconds, important = important, raw = text });
         }
@@ -669,10 +698,10 @@ namespace ProvaImpossivel
             float w = Mathf.Clamp(text.Length * 11f + 40f, 160f, 400f);
             // fala curta com nome comprido ("Hm." do PROF. TAKANERVOSO): o nome saía do balão. O balão tem pelo menos
             // a largura do nome (até o máximo), e o nome ocupa a largura do balão.
-            if (!string.IsNullOrEmpty(speaker)) w = Mathf.Clamp(Mathf.Max(w, b.name.preferredWidth + 28f), 160f, 400f);
+            if (!string.IsNullOrEmpty(speaker)) w = Mathf.Clamp(Mathf.Max(w, WidthAtFullHd(b.name) + 28f), 160f, 400f);
             b.name.rectTransform.sizeDelta = new Vector2(w - 24f, 22f);
             b.text.rectTransform.Place(new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(12f, string.IsNullOrEmpty(speaker) ? -8f : -28f), new Vector2(w - 24f, 10f));
-            float h = b.text.preferredHeight + (string.IsNullOrEmpty(speaker) ? 18f : 38f);
+            float h = HeightAtFullHd(b.text) + (string.IsNullOrEmpty(speaker) ? 18f : 38f);
             b.text.rectTransform.sizeDelta = new Vector2(w - 24f, h);
             b.rect.sizeDelta = new Vector2(w, h);
             b.until = Time.time + seconds;

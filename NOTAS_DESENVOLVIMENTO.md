@@ -1207,6 +1207,22 @@ conhecidas; o Difícil tinha orçamento 4 → 3 + 4 = 7 = nota mínima (qualquer
 - A simulação é um modelo; o número real vem de jogar (partidas.csv).
 - **Validar jogando:** uma partida no Fácil (tem que precisar colar) e uma no Difícil (painel COLAS: "restam 5").
 
+### Barra de segurar: o texto saía da caixa — e as auditorias mediam errado — versão 1.1.4 (24/11, noite)
+Usuário: "quando seguro Q, a barra de baixo": a frase "Lendo a colinha na manga... (solte se ele chegar perto!)" saía
+da caixa. A barra tinha largura fixa de 640.
+- **Por que a auditoria (1.0.2) dizia que cabia:** os testes em lote rodam numa janela de **640×480** (canvas na escala
+  0,38), e o `preferredWidth`/`preferredHeight` do Unity mede na escala da janela — a fonte é gerada pequena e a
+  medida sai ~10% menor. Medido: colinha 577 na janela do teste × **646** na tela 1920×1080 (caixa 640); espiar o
+  Nerd 631 × **704** (também estourava).
+- `HUD.WidthAtFullHd` / `HeightAtFullHd` / `TextSizeAtFullHd`: medem o texto como na tela de referência (escala 1),
+  em qualquer janela. Usadas em todas as caixas que se ajustam ao texto (prompt, barra de segurar, ajuda, tutorial,
+  avisos, balões; no jogo em 1920×1080 dá o mesmo que antes) e nas auditorias.
+- A barra de segurar agora acompanha o texto (640 a 1600 de largura): colinha 686, Nerd 744.
+- Auditorias refeitas com a medida real: TODAS as perguntas e alternativas, todas as falas nos balões, tutorial,
+  prompt, ajuda, menu de dificuldade, Cara de Paisagem, painel das colas — só a barra de segurar estourava. 40/40.
+- Teste `TutorialPromptEAjudaCabemNasCaixas` ganhou todas as frases da barra de segurar (colas, celular, espiar o Nerd,
+  entregar, todos os "segure E" da sala), em largura e altura.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

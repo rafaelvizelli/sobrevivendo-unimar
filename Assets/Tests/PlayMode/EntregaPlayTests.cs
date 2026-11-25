@@ -273,7 +273,7 @@ namespace ProvaImpossivel.Tests
         static float Altura(UnityEngine.UI.Text t, string s)
         {
             t.text = s;
-            return t.preferredHeight;
+            return HUD.HeightAtFullHd(t); // medida como na tela 1920×1080 (o lote roda em 640×480)
         }
 
         /// <summary>Cada pergunta e cada alternativa do jogo, no painel real da prova, cabe na sua caixa.</summary>
@@ -325,9 +325,9 @@ namespace ProvaImpossivel.Tests
                 var nome = b.Find("Nome").GetComponent<UnityEngine.UI.Text>();
                 var texto = b.Find("Fala").GetComponent<UnityEngine.UI.Text>();
                 float w = caixa.rect.width;
-                if (nome.preferredWidth + 12f > w + 1f) problemas.Add("nome sai do balão com a fala: " + fala);
+                if (HUD.WidthAtFullHd(nome) + 12f > w + 1f) problemas.Add("nome sai do balão com a fala: " + fala);
                 float topo = -texto.rectTransform.anchoredPosition.y; // a fala começa abaixo do nome
-                if (topo + texto.preferredHeight > caixa.rect.height + 1f) problemas.Add("fala passa do fundo do balão: " + fala);
+                if (topo + HUD.HeightAtFullHd(texto) > caixa.rect.height + 1f) problemas.Add("fala passa do fundo do balão: " + fala);
                 if (texto.rectTransform.anchoredPosition.x + texto.rectTransform.rect.width > w + 1f) problemas.Add("fala passa da largura: " + fala);
             }
             Assert.IsEmpty(problemas, string.Join("\n", problemas.Distinct()));
@@ -347,19 +347,37 @@ namespace ProvaImpossivel.Tests
                 if (passo == TutorialStep.Concluido) continue;
                 hud.SetTutorial(TutorialSteps.Text(passo) + "    <color=#3C372F>[T] pular tutorial</color>");
                 var t = hudRoot.Find("Tutorial/Texto").GetComponent<UnityEngine.UI.Text>();
-                if (t.preferredHeight > t.rectTransform.rect.height + 1f) problemas.Add("tutorial " + passo + ": " + t.preferredHeight + " > " + t.rectTransform.rect.height);
+                if (HUD.HeightAtFullHd(t) > t.rectTransform.rect.height + 1f) problemas.Add("tutorial " + passo + ": " + HUD.HeightAtFullHd(t) + " > " + t.rectTransform.rect.height);
             }
             hud.SetTutorial(null);
 
             string longo = "[E] Segure para pedir ao colega da frente que finja uma crise de tosse bem alta enquanto você confere a resposta da questão sete";
             hud.SetPrompt(longo);
             var p = hudRoot.Find("Prompt/Texto").GetComponent<UnityEngine.UI.Text>();
-            if (p.preferredHeight > p.rectTransform.rect.height + 1f) problemas.Add("prompt longo: " + p.preferredHeight + " > " + p.rectTransform.rect.height);
+            if (HUD.HeightAtFullHd(p) > p.rectTransform.rect.height + 1f) problemas.Add("prompt longo: " + HUD.HeightAtFullHd(p) + " > " + p.rectTransform.rect.height);
             hud.SetPrompt(null);
+
+            // barra de segurar: todas as frases de ação demorada (colas, celular, espiar o Nerd, entregar)
+            var segurar = new System.Collections.Generic.List<string>
+            {
+                Falas.SegurandoColinha, Falas.SegurandoGarrafinha, Falas.SegurandoFoneEnviar, Falas.SegurandoFoneLer,
+                "Pesquisando no celular... (segure " + Controls.Label(Acao.Celular) + ")",
+                Object.FindAnyObjectByType<NerdStudent>().HoldLabel,
+                Object.FindAnyObjectByType<TeacherDesk>().HoldLabel,
+            };
+            foreach (var it in Interactable.All) segurar.Add(it.HoldLabel);
+            var h = hudRoot.Find("Segurar/Texto").GetComponent<UnityEngine.UI.Text>();
+            foreach (var frase in segurar)
+            {
+                hud.SetHold(0.5f, frase);
+                if (HUD.TextSizeAtFullHd(h, 0f).y > h.rectTransform.rect.height + 1f) problemas.Add("barra de segurar (altura) \"" + frase + "\": " + HUD.TextSizeAtFullHd(h, 0f).y + " > " + h.rectTransform.rect.height);
+                if (HUD.WidthAtFullHd(h) > h.rectTransform.rect.width + 1f) problemas.Add("barra de segurar \"" + frase + "\": " + HUD.WidthAtFullHd(h) + " > " + h.rectTransform.rect.width);
+            }
+            hud.SetHold(-1f, "");
 
             hud.SetSeatedHelp("[1] Responder (sabe 3)    [2] Celular (segure; bateria p/ 3)    [Espaço] Levantar    [Q] Colinha    [G] Garrafinha    [B] Bilhete    [F] Fone");
             var a = hudRoot.Find("AjudaFundo/Ajuda").GetComponent<UnityEngine.UI.Text>();
-            if (a.preferredWidth > a.rectTransform.rect.width + 1f) problemas.Add("ajuda longa: " + a.preferredWidth + " > " + a.rectTransform.rect.width);
+            if (HUD.WidthAtFullHd(a) > a.rectTransform.rect.width + 1f) problemas.Add("ajuda longa: " + HUD.WidthAtFullHd(a) + " > " + a.rectTransform.rect.width);
             yield return null;
             Assert.IsEmpty(problemas, string.Join("\n", problemas));
         }
@@ -444,7 +462,7 @@ namespace ProvaImpossivel.Tests
                 var t = painel.transform.Find(nome).GetComponent<UnityEngine.UI.Text>();
                 var r = t.rectTransform.rect;
                 Assert.GreaterOrEqual(UITheme.Contrast(t.color, UITheme.Paper), 4.5f, nome + " ilegível no papel");
-                Assert.LessOrEqual(t.preferredHeight, r.height + 2f, nome + " não cabe na altura");
+                Assert.LessOrEqual(HUD.HeightAtFullHd(t), r.height + 2f, nome + " não cabe na altura (medido em 1920×1080)");
             }
             // espera o status ser escrito e confere a largura dele (a linha mais longa do painel)
             yield return Wait(0.2f);

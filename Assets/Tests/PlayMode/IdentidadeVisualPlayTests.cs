@@ -78,7 +78,7 @@ namespace ProvaImpossivel.Tests
                     partes.Add(("Botao" + nomes[i], R(Named("Botao" + nomes[i]))));
                     partes.Add(("Dados" + nomes[i], R(dados.rectTransform)));
                     partes.Add(("Frase" + nomes[i], R(Named("Frase" + nomes[i]))));
-                    Assert.LessOrEqual(dados.preferredWidth, dados.rectTransform.rect.width, "dados de " + nomes[i] + " não cabem");
+                    Assert.LessOrEqual(HUD.WidthAtFullHd(dados), dados.rectTransform.rect.width, "dados de " + nomes[i] + " não cabem (medido em 1920×1080)");
                 }
                 partes.Add(("BotaoVOLTAR", R(Named("BotaoVOLTAR"))));
                 SemSobreposicao(partes, folha);
