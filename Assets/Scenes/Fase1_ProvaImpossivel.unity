@@ -36829,13 +36829,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProvaImpossivel.GameManager
   facil:
     name: "F\xE1cil"
-    duration: 480
-    minGrade: 6
+    duration: 420
+    minGrade: 7
     maxFlagrantes: 3
-    suspicionMultiplier: 0.5
-    viewDistance: 10
-    halfFov: 40
-    reactionTime: 1
+    suspicionMultiplier: 0.65
+    viewDistance: 11
+    halfFov: 44
+    reactionTime: 0.85
     decayPerSecond: 8
     graceAfterFlagrante: 14
     firstFlagranteIsWarning: 1
@@ -36847,7 +36847,7 @@ MonoBehaviour:
     quizTier: 0
     phoneSuspicion: 50
     copySuspicion: 26
-    phoneCharges: 3
+    phoneCharges: 2
     nerdGlanceInterval: {x: 6, y: 20}
     nerdCopies: 3
     backRowCaughtChance: 0.15
@@ -36874,7 +36874,7 @@ MonoBehaviour:
     eventInterval: {x: 30, y: 46}
     distractionMultiplier: 1.4
     snitchInterval: {x: 18, y: 28}
-    favors: 5
+    favors: 4
     facePokerSpeed: 0.45
     facePokerZone: 0.28
     facePokerMisses: 2

@@ -167,14 +167,16 @@ namespace ProvaImpossivel
 
         public DifficultySettings facil = new()
         {
-            name = "Fácil", duration = 480f, minGrade = 6f, maxFlagrantes = 3,
-            suspicionMultiplier = 0.5f, viewDistance = 10f, halfFov = 40f, reactionTime = 1.0f, decayPerSecond = 8f, graceAfterFlagrante = 14f,
+            // 24/11 (pedido: "o Fácil está MUITO fácil"): nota 6→7, tempo 8→7 min, professor um pouco mais atento,
+            // celular 3→2, favores 5→4. Continua o mais fácil (advertência no 1º flagrante, medidor, orçamento 5).
+            name = "Fácil", duration = 420f, minGrade = 7f, maxFlagrantes = 3,
+            suspicionMultiplier = 0.65f, viewDistance = 11f, halfFov = 44f, reactionTime = 0.85f, decayPerSecond = 8f, graceAfterFlagrante = 14f,
             firstFlagranteIsWarning = true, confiscatePhone = true,
             knownQuestions = 3, quizTime = 15f, quizCooldown = 3f, quizTier = 0,
-            phoneSuspicion = 50f, copySuspicion = 26f, phoneCharges = 3, nerdGlanceInterval = new Vector2(6f, 20f), nerdCopies = 3,
+            phoneSuspicion = 50f, copySuspicion = 26f, phoneCharges = 2, nerdGlanceInterval = new Vector2(6f, 20f), nerdCopies = 3,
             backRowCaughtChance = 0.15f, opportunityEventWeight = 0.65f, threatEventWeight = 0.35f, threatAlertSeconds = 10f, threatSuspicion = 25f,
             turnTellSeconds = 0.9f, snoreWarningSeconds = 4f, showSuspicionMeter = true, showStudentHints = true,
-            eventInterval = new Vector2(30f, 46f), distractionMultiplier = 1.4f, snitchInterval = new Vector2(18f, 28f), favors = 5,
+            eventInterval = new Vector2(30f, 46f), distractionMultiplier = 1.4f, snitchInterval = new Vector2(18f, 28f), favors = 4,
             facePokerSpeed = 0.45f, facePokerZone = 0.28f, facePokerMisses = 2,
             maxCheatAnswers = 5,
             colinhaCharges = 3, colinhaTime = 1f, colinhaSuspicion = 40f, colinhaDangerDistance = 2.5f, colinhaNearSuspicion = 35f,
@@ -197,7 +199,7 @@ namespace ProvaImpossivel
             turnTellSeconds = 0.35f, snoreWarningSeconds = 2f, showSuspicionMeter = false, showStudentHints = false,
             eventInterval = new Vector2(45f, 65f), distractionMultiplier = 0.8f, snitchInterval = new Vector2(8f, 14f), favors = 2,
             facePokerSpeed = 0.75f, facePokerZone = 0.17f, facePokerMisses = 1,
-            maxCheatAnswers = 4,
+            maxCheatAnswers = 5, // 24/11 (pedido): 4→5. Com 3 conhecidas, 4 colas davam exatamente a nota 7 (qualquer erro reprovava)
             colinhaCharges = 1, colinhaTime = 1.2f, colinhaSuspicion = 65f, colinhaDangerDistance = 4.5f, colinhaNearSuspicion = 65f,
             colinhaInstantCatch = true, colinhaCatchVisibility = 0.6f, bilheteFindChance = 0.7f, foneRingFindChance = 0.8f,
             bilheteCharges = 2, bilheteDelay = 10f, bilheteThrowTime = 0.6f, bilheteThrowSuspicion = 70f, bilheteNoiseRadius = 6f, bilheteNoise = 7f,

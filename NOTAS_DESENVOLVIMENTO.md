@@ -1190,6 +1190,23 @@ legal)". O painel COLAS (direita, embaixo da NOTA) listava só Q/G/B/F.
   tela) passou com a folha maior. 40/40 (colas, identidade visual, interface, entrega).
 - A suíte completa da 1.1.1 foi interrompida para esta mudança; roda inteira na 1.1.2.
 
+### Equilíbrio: Fácil mais difícil, Difícil com +1 cola — versão 1.1.3 (24/11, noite)
+Pedido: "o Fácil está MUITO fácil, dê uma dificultada nos níveis mais baixos; e no Difícil só tem como colar em poucas
+questões, aumente mais uma pra colar". Evidência (partidas.csv): Fácil na 1.0.3 aprovado 6,0 com 374 s sobrando (de
+480); Normal 7,0 com 32 s sobrando e um reprovado 4,0 (equilibrado: **não mexido**).
+Valores reais lidos da cena (`Editor/DiagAnimacao.Equilibrio`, sem alterar): a prova tem 10 questões de 1 ponto e 3
+conhecidas; o Difícil tinha orçamento 4 → 3 + 4 = 7 = nota mínima (qualquer cola que desse errado reprovava).
+- **Difícil**: `maxCheatAnswers` 4 → **5** (só no código: o campo não é gravado na cena).
+- **Fácil** (código e cena, `ValoresNaCenaTests` exige os dois iguais; só as 8 linhas do bloco `facil` da cena, cópia
+  de segurança antes): nota mínima 6 → **7**, tempo 480 → **420** s, `suspicionMultiplier` 0,5 → **0,65**,
+  `reactionTime` 1,0 → **0,85**, visão 10 m/40° → **11 m/44°**, `phoneCharges` 3 → **2**, `favors` 5 → **4**.
+  Mantidos: advertência no 1º flagrante, medidor de suspeita, orçamento 5, colinha/garrafinha/bilhete 3.
+- Simulação (`SimulacaoDeEquilibrioTests`, jogador modelo): passar **sem colar** no Fácil caiu para 6,3% (agora é
+  preciso colar); colando com cuidado: Fácil 99,7% > Normal 90,4% > Difícil 84,2% (com a folga de 1 cola). Testes de
+  equilíbrio e da cena: 42/42 (ordem das dificuldades, orçamento cobre a nota mínima, celular no Fácil só dá susto).
+- A simulação é um modelo; o número real vem de jogar (partidas.csv).
+- **Validar jogando:** uma partida no Fácil (tem que precisar colar) e uma no Difícil (painel COLAS: "restam 5").
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

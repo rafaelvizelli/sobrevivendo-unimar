@@ -77,6 +77,18 @@ namespace ProvaImpossivel.EditorTools
             }
         }
 
+        /// <summary>Valores de equilíbrio que o jogo usa de verdade (lidos da cena, sem alterar nada).</summary>
+        public static void Equilibrio()
+        {
+            UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/Fase1_ProvaImpossivel.unity");
+            var gm = Object.FindAnyObjectByType<GameManager>();
+            foreach (var s in new[] { gm.facil, gm.normal, gm.dificil })
+                Debug.Log($"[Equilibrio] {s.name}: tempo {s.duration} nota {s.minGrade} orçamento {s.maxCheatAnswers} conhecidas {s.knownQuestions} "
+                          + $"celular {s.phoneCharges} colinha {s.colinhaCharges} garrafa {s.garrafaCharges} bilhete {s.bilheteCharges} fone {s.foneCharges} "
+                          + $"nerd {s.nerdCopies} favores {s.favors} suspeitaX {s.suspicionMultiplier} visão {s.viewDistance}/{s.halfFov} reação {s.reactionTime} "
+                          + $"1ºflagrante-aviso {s.firstFlagranteIsWarning} medidor {s.showSuspicionMeter}");
+        }
+
         /// <summary>Comprimento de cada osso do dedo (Hand → Index2 → Index3 → Index4 → ponta).</summary>
         public static void Dedos()
         {
