@@ -7,7 +7,7 @@ Você não estudou. A prova é do Prof. Takanervoso, o homem que "não nasceu on
 sinal: respondendo o que sabe, colando do Nerd, usando o celular ou aproveitando o caos da sala.
 Três flagrantes e você está fora.
 
-**Versão de entrega:** 1.0.1 (24/11/2026) · Estúdio Fundão
+**Versão:** 1.1.5 (24/11/2026) · Estúdio Fundão
 
 ## Como jogar
 
@@ -22,7 +22,10 @@ Três flagrantes e você está fora.
 | Andar / câmera / correr | WASD / mouse / Shift | analógicos / L3 |
 | Responder o que sabe / chutar | 1 | X |
 | Celular (segurar) | 2 | Y |
-| Colas: colinha, garrafinha, bilhete, fone | Q, G, B, F | LB, RB, LT, RT |
+| Colas: colinha, garrafinha, fone (segurar) | Q, G, F | LB, RB, LT |
+| Bilhete no Nerd / Fundão: mirar e jogar | B, depois **clique esquerdo** | RT, depois RT |
+| Borracha no Dorminhoco / Puxa-saco (gasta 1 favor) | V, depois **clique esquerdo** | D-pad ↑, depois D-pad ↑ |
+| Cancelar a mira | Espaço (ou a mesma tecla) | B |
 | Interagir / levantar | E / Espaço | A / B |
 | Cara de Paisagem | Espaço com o ponteiro no verde | A |
 | Pausa | Esc | Start |
@@ -34,6 +37,11 @@ Três flagrantes e você está fora.
 - **Colegas que ajudam e atrapalham:** o Nerd (cola arriscada, avisa no corpo antes de olhar), o Fundão (favores),
   o Dorminhoco e acontecimentos aleatórios na sala.
 - **Orçamento de colas:** não dá para colar tudo; cada tipo de cola é uma aposta diferente.
+- **Arremessos com mira:** a bolinha de papel (bilhete) e a borracha voam em arco até o colega; a mira mostra o
+  caminho e onde cai. A borracha acorda o Dorminhoco ou faz o Puxa-saco chamar o professor (favor da turma).
+- **Nota garantida:** com a nota mínima, o professor relaxa e dá para ir entregar sem ser perseguido — mas colar na
+  frente dele ainda é flagrante.
+- **Turma viva:** cada aluno escreve do seu jeito (ritmo, pausas para pensar, queixo no punho), com o lápis na mão.
 - **Cara de Paisagem:** minijogo de timing para disfarçar quando o professor chega perto.
 - **Rejogabilidade:** título pelo seu estilo de jogo, recordes por dificuldade, 8 conquistas e "ficha criminal" no fim.
 - **Trilha adaptativa e áudio 3D** sintetizados em código (passos do professor dão para ouvir de que lado ele está).
@@ -42,9 +50,13 @@ Três flagrantes e você está fora.
 ## Técnico
 
 - Unity 6000.6.3f1, Universal Render Pipeline, Input System novo, AI Navigation (NavMesh).
-- Código em `Assets/Scripts/ProvaImpossivel/` (~12 mil linhas de C#), organizado em `AI`, `Audio`, `Challenges`,
+- Código em `Assets/Scripts/ProvaImpossivel/` (~12,6 mil linhas de C#), organizado em `AI`, `Audio`, `Challenges`,
   `Core`, `Events`, `Interaction`, `Player`, `Students`, `UI` e `Visual`.
-- Testes automatizados: **158 EditMode + 129 PlayMode** (Unity Test Framework), rodando em batch.
+- Testes automatizados: **mais de 300** (EditMode + PlayMode, Unity Test Framework), rodando em batch — incluindo
+  medições da animação (pelve, pés, mãos na carteira), auditoria de todos os textos nas caixas medidos em 1920×1080 e
+  simulação de equilíbrio das dificuldades.
+- Animação: personagens Quaternius com correções por código (pelve e pés dos clipes do pacote, IK das mãos na
+  carteira, dedos fechando a partir da base).
 - Registro de partidas em CSV para equilibrar a dificuldade com dados reais
   (`%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`).
 - Documentos de projeto: `DIRECAO_CRIATIVA.md`, `AUDITORIA_STEAM.md`, `ROADMAP_STEAM.md`, `NOTAS_DESENVOLVIMENTO.md`
