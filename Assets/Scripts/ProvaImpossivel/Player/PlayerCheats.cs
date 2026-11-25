@@ -303,14 +303,17 @@ namespace ProvaImpossivel
             if (mira != null) mira.Hide();
         }
 
-        /// <summary>Mirando: B de novo joga (se tiver alvo); Espaço, outra cola ou responder cancela.</summary>
+        /// <summary>Mirando: clique esquerdo joga (no controle, o mesmo botão); a mesma tecla, Espaço, outra cola ou responder cancela; a outra tecla troca.</summary>
         void HandleAim()
         {
-            // a mesma tecla que armou joga; a outra troca de bilhete para borracha (ou o contrário)
+            // clique esquerdo joga (teclado e mouse). No controle (sem mouse), o mesmo botão que armou joga.
+            if (Controls.ClickPressed()) { ConfirmAim(AimTarget()); return; }
             bool b = Controls.Pressed(Acao.Bilhete), v = Controls.Pressed(Acao.Borracha);
             if (b || v)
             {
-                if (v == aimingAtFavor) ConfirmAim(AimTarget());
+                bool mesma = v == aimingAtFavor;
+                if (mesma && Controls.UsingGamepad) ConfirmAim(AimTarget());
+                else if (mesma) StopAim(); // a mesma tecla de novo (teclado) cancela, como o Espaço
                 else
                 {
                     StopAim();

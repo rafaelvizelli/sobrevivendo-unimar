@@ -44,6 +44,18 @@ namespace ProvaImpossivel
         static Keyboard Kb => Keyboard.current;
         static Gamepad Pad => Gamepad.current;
 
+        /// <summary>Clique esquerdo do mouse neste quadro (jogar o bilhete / a borracha mirados).</summary>
+        public static bool ClickPressed()
+        {
+            var m = Mouse.current;
+            if (m == null || !m.leftButton.wasPressedThisFrame) return false;
+            UsingGamepad = false;
+            return true;
+        }
+
+        /// <summary>Rótulo do "jogar" mirando: [Clique] no teclado/mouse; no controle, o mesmo botão da mira.</summary>
+        public static string ThrowTag(Acao aim) => UsingGamepad ? Tag(aim) : "[Clique]";
+
         /// <summary>Apertou neste frame (teclado ou controle).</summary>
         public static bool Pressed(Acao a)
         {

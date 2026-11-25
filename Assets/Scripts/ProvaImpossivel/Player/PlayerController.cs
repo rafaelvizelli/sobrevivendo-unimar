@@ -206,15 +206,14 @@ namespace ProvaImpossivel
             help += "    " + Controls.Tag(Acao.Levantar) + " Levantar";
             if (Cheats != null && Cheats.Aiming)
             {
-                string b = Controls.Tag(Acao.Bilhete), v = Controls.Tag(Acao.Borracha);
                 string cancela = "    " + Controls.Tag(Acao.Levantar) + " Cancelar";
                 bool borracha = Cheats.AimingAtFavor;
                 help = Cheats.AimTargetName == ""
                     ? (borracha ? "BORRACHA: vire a câmera pro Dorminhoco ou pro Puxa-saco"
                                 : "BILHETE: vire a câmera pro Nerd ou pro Fundão") + cancela
                     : borracha
-                        ? "BORRACHA: " + v + " joga no " + Cheats.AimTargetName + " (1 favor)" + cancela
-                        : "BILHETE: " + b + " joga no " + Cheats.AimTargetName + cancela;
+                        ? "BORRACHA: " + Controls.ThrowTag(Acao.Borracha) + " joga no " + Cheats.AimTargetName + " (1 favor)" + cancela
+                        : "BILHETE: " + Controls.ThrowTag(Acao.Bilhete) + " joga no " + Cheats.AimTargetName + cancela;
             }
             HUD.I.SetSeatedHelp(InputLocked ? null : help);
         }

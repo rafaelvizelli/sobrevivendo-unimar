@@ -1223,6 +1223,19 @@ da caixa. A barra tinha largura fixa de 640.
 - Teste `TutorialPromptEAjudaCabemNasCaixas` ganhou todas as frases da barra de segurar (colas, celular, espiar o Nerd,
   entregar, todos os "segure E" da sala), em largura e altura.
 
+### Clique esquerdo joga o bilhete / a borracha — versão 1.1.5 (24/11, noite)
+Pedido: "na hora de jogar a borracha e o bilhete, ao invés de apertar o mesmo botão, quero jogar apertando o botão
+esquerdo do mouse".
+- Mirando (B bilhete / V borracha): **clique esquerdo joga** (`Controls.ClickPressed`). A mesma tecla de novo
+  **cancela** (como o Espaço); a outra tecla troca de mira. No controle (sem mouse) o mesmo botão que armou joga
+  (RT / D-pad), como antes.
+- Barra de ajuda: "BILHETE: [Clique] joga no NERD" (`Controls.ThrowTag`: no controle mostra o botão). Textos:
+  instruções "B bilhete / V borracha (mire e clique)"; tutorial "mira e clique pra jogar" / "V e clicar pra jogar a
+  borracha".
+- Teste PlayMode `CliqueEsquerdoJogaEAMesmaTeclaCancela` (teclado e mouse virtuais: B arma, B cancela sem levantar e
+  sem gastar; câmera virada pro Nerd, B, clique esquerdo → jogou e gastou 1 bilhete). Colas/entrega/identidade
+  visual/tutorial: 43/43.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

@@ -295,6 +295,57 @@ namespace ProvaImpossivel.Tests
             Assert.AreEqual(cargas, c.BilheteCharges, "nada gasto");
         }
 
+        /// <summary>
+        /// Mirando, o clique esquerdo joga; a mesma tecla de novo (B) cancela, sem levantar. (Pedido: "jogar apertando o
+        /// botão esquerdo do mouse".)
+        /// </summary>
+        [UnityTest]
+        public IEnumerator CliqueEsquerdoJogaEAMesmaTeclaCancela()
+        {
+            yield return Comecar(Difficulty.Normal, s =>
+            {
+                s.eventInterval = new Vector2(9999f, 9999f);
+                s.nerdGlanceInterval = new Vector2(999f, 999f);
+                s.bilheteMissChancePerMeter = 0f;
+                s.bilheteLostDistance = 0f;
+            });
+            var p = PlayerController.I;
+            var c = p.Cheats;
+            var mouse = InputSystem.AddDevice<Mouse>("MouseColasNovas");
+            try
+            {
+                // B arma; B de novo cancela (não joga, não levanta, nada gasto)
+                int cargas = c.BilheteCharges;
+                yield return Tecla(Key.B);
+                Assert.IsTrue(c.Aiming);
+                yield return Tecla(Key.B);
+                Assert.IsFalse(c.Aiming, "a mesma tecla de novo cancela");
+                Assert.IsFalse(c.Throwing, "cancelar não joga");
+                Assert.IsTrue(p.IsSeated, "e não levanta");
+                Assert.AreEqual(cargas, c.BilheteCharges);
+
+                // mira no Nerd (câmera virada pra ele) e clique esquerdo: joga
+                var nerd = UnityEngine.Object.FindAnyObjectByType<NerdStudent>();
+                var rig = UnityEngine.Object.FindAnyObjectByType<ThirdPersonCamera>();
+                Vector3 para = nerd.transform.position - p.transform.position;
+                typeof(ThirdPersonCamera).GetField("yaw", BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.SetValue(rig, Mathf.Atan2(para.x, para.z) * Mathf.Rad2Deg);
+                yield return null;
+                yield return Tecla(Key.B);
+                Assert.IsTrue(c.Aiming);
+                yield return null;
+                Assert.AreSame(nerd, c.AimTarget(), "pré-condição: o Nerd na mira");
+                InputSystem.QueueStateEvent(mouse, new MouseState().WithButton(MouseButton.Left, true));
+                yield return null;
+                InputSystem.QueueStateEvent(mouse, new MouseState());
+                yield return null;
+                Assert.IsFalse(c.Aiming, "clicou: saiu da mira");
+                Assert.IsTrue(c.Throwing || c.BilheteCharges == cargas - 1, "o clique esquerdo tem que jogar o bilhete");
+                Assert.AreEqual(cargas - 1, c.BilheteCharges, "jogou: gastou 1 bilhete");
+            }
+            finally { InputSystem.RemoveDevice(mouse); }
+        }
+
         IEnumerator JogarBorracha(StudentBase alvo, string efeito)
         {
             var gm = GameManager.I;
