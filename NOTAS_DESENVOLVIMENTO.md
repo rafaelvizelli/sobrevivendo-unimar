@@ -32,6 +32,7 @@
 
 ## Como rodar os testes
 - Batch (Unity FECHADO): `Unity.exe -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`.
+  No Linux o executável do editor é `~/Unity/Hub/Editor/6000.6.3f1/Editor/Unity` (mesmos argumentos).
 - No editor: Window > General > Test Runner (abas EditMode e PlayMode), com a janela do Unity em foco.
 - Em batch o cursor não trava: o teste de fluxo pula só essa checagem (`Application.isBatchMode`).
 
@@ -1236,10 +1237,29 @@ esquerdo do mouse".
   sem gastar; câmera virada pro Nerd, B, clique esquerdo → jogou e gastou 1 bilhete). Colas/entrega/identidade
   visual/tutorial: 43/43.
 
+### Suporte a Linux (11/11)
+- Motivo: trabalhar também no notebook (Debian 13, Intel Iris Xe). O jogo em si já era portátil: o `MatchLog` usa
+  `Application.persistentDataPath` e não há caminho de Windows no código do jogo. Só o build e a documentação eram Windows.
+- `BuildJogo`: novo menu *Prova Impossível > Gerar Build Linux* (`MenuLinux`) → `Builds/Linux/SobrevivendoUnimar.x86_64`.
+  `OutputFor(BuildTarget)` (puro) escolhe o caminho; plataforma não suportada é recusada sem chamar o BuildPipeline.
+  Build Windows, `Output` e `Menu` continuam iguais.
+- Caminhos no Linux: editor `~/Unity/Hub/Editor/6000.6.3f1/Editor/Unity`; partidas em
+  `~/.config/unity3d/EstudioFundao/Sobrevivendo à UNIMAR/partidas.csv` (antes do Bloco 14: `DefaultCompany/JogoFaculdade`).
+- Testes: +3 EditMode (`BuildJogoTests`); a assembly de testes EditMode agora referencia `ProvaImpossivel.Editor`.
+- Testes no notebook (Linux, Unity 6000.6.3f1 em batch): EditMode 60/60 (+3), PlayMode 60/60.
+- Ao abrir o projeto, o Unity no Linux reescreveu sozinho `.vscode/settings.json` (nome da solution) e
+  `UniversalRenderPipelineGlobalSettings.asset` (esvaziou `m_RuntimeSettings`). Revertidos, fora do escopo;
+  se aparecerem de novo no `git status`, não commitar sem conferir.
+- Build Linux gerada em batch (11/11 21:15): Build Succeeded, 0 erros, 104 MB, 230 s (1ª vez compila shaders).
+  Aberta por 25 s no notebook: Player.log sem exceções e sem erro de NavMesh. A build também mexeu sozinha em
+  `ProjectSettings/UnityConnectSettings.asset` (m_Enabled 1 → 0): revertido.
+- NÃO feito ainda: jogar uma partida completa na build Linux (precisa de um humano).
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`
    (antes do Bloco 14: `LocalLow\DefaultCompany\JogoFaculdade`).
+   Linux: `~/.config/unity3d/EstudioFundao/Sobrevivendo à UNIMAR/partidas.csv`.
    Bloco 14: ouvir o ambiente com fone (murmúrio/relógio/lápis audíveis mas sem tapar o "hm?" e os passos?),
    mexer nos sliders da pausa, e testar R / M na tela final.
 2. Com fone: passos do professor (dá pra saber de que lado ele está?), "hm?", batimento (irritante ou não?).
@@ -1376,3 +1396,4 @@ esquerdo do mouse".
 - Balanceamento: Inspector do `GameManager` (Fácil / Normal / Difícil).
 - Play de fora do Unity: criar `Temp/play_fase1.sinal` (script `Editor/PlayPorSinal.cs`) com a janela do Unity em foco.
 - Executável: menu *Prova Impossível > Gerar Build Windows* → `Builds/Windows/SobrevivendoUnimar.exe` (regenerado em 10/11, Bloco 14). Em batch: `-quit -executeMethod ProvaImpossivel.EditorTools.BuildJogo.Menu`.
+  Linux: menu *Gerar Build Linux* → `Builds/Linux/SobrevivendoUnimar.x86_64` (batch: `...BuildJogo.MenuLinux`).

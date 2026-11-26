@@ -13,4 +13,7 @@
 ## Referência rápida
 - Estado atual, relatórios por bloco e o que falta validar: `NOTAS_DESENVOLVIMENTO.md` (ler primeiro).
 - Testes em batch (com o Unity FECHADO):
-  `"C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe" -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`
+  - Windows (PC de casa): `"C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe" -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`
+  - Linux (notebook): `~/Unity/Hub/Editor/6000.6.3f1/Editor/Unity -batchmode -projectPath <proj> -runTests -testPlatform EditMode|PlayMode -testResults <xml> -logFile <log>`
+- Builds: Windows `-quit -executeMethod ProvaImpossivel.EditorTools.BuildJogo.Menu`; Linux `...BuildJogo.MenuLinux`
+  (precisa do módulo "Linux Build Support (Mono)" no Unity Hub).
