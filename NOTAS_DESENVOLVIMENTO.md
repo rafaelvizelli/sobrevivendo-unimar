@@ -1255,6 +1255,20 @@ esquerdo do mouse".
   `ProjectSettings/UnityConnectSettings.asset` (m_Enabled 1 → 0): revertido.
 - NÃO feito ainda: jogar uma partida completa na build Linux (precisa de um humano).
 
+### Testes alinhados à v1.1.5 (26/11)
+- Primeira rodada completa da 1.1.5 no notebook (Linux): EditMode 172/174, PlayMode 151/153. As 4 falhas eram testes
+  desatualizados pelo equilíbrio da v1.1.3 (`bfb9ce7`) e textos do tutorial que cresceram com a mira (v1.0.8–1.1.5).
+  Nenhum número de `DifficultySettings` mudou.
+- `ColasNovasTests.OrcamentoECargasDiminuemComADificuldade`: o Difícil tem orçamento 5 e o Normal 4 (de propósito,
+  24/11). Agora o teste exige Difícil ≥ Normal ("o Difícil aperta o professor, não o orçamento").
+- `IdentidadeDasColasTests.CelularTemBateriaPorDificuldade`: bateria do Fácil 3→2. `EconomiaDeDistracoesTests.FavoresPorDificuldade`:
+  favores do Fácil 5→4.
+- Tutorial (`Falas.cs`, limite de 100 caracteres por passo): ColasDeBolso 118→99 ("B bilhete (mira + clique)"),
+  Distracao 147→99 ("Sentado: V mira a borracha e clique"). A segunda falha estava escondida, porque o teste para no primeiro passo longo.
+- Testes depois: EditMode 174/174, PlayMode 153/153.
+- Build Linux da 1.1.5 gerada em batch (26/11): Build Succeeded, 0 erros, 11 avisos, 116 MB. Ainda não foi aberta.
+- Validar jogando: no tutorial, ver se os passos "colas de bolso" e "distração" cabem numa linha e continuam claros.
+
 ## Para validar de manhã (precisa de um humano)
 1. Jogar uma partida COMPLETA em cada dificuldade no executável e conferir se dá pra passar e se é divertido.
    Cada partida grava uma linha em `%USERPROFILE%\AppData\LocalLow\EstudioFundao\Sobrevivendo à UNIMAR\partidas.csv`

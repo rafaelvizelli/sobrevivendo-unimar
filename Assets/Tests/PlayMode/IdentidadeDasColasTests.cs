@@ -37,7 +37,8 @@ namespace ProvaImpossivel.Tests
         [UnityTest]
         public IEnumerator CelularTemBateriaPorDificuldade()
         {
-            foreach (var (d, cargas) in new[] { (Difficulty.Facil, 3), (Difficulty.Normal, 1), (Difficulty.Dificil, 1) })
+            // v1.1.3 (24/11): Fácil 3→2 (equilíbrio "Fácil mais difícil")
+            foreach (var (d, cargas) in new[] { (Difficulty.Facil, 2), (Difficulty.Normal, 1), (Difficulty.Dificil, 1) })
             {
                 yield return StartGame(d);
                 Assert.AreEqual(cargas, PlayerController.I.PhoneCharges, d + ": cargas do celular");

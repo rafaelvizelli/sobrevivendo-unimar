@@ -353,11 +353,11 @@ namespace ProvaImpossivel
         // S3: o treino começa sentado (andar e sentar se aprendem no caminho até o Nerd e até a mesa)
         public const string TutorialResponder = "Aperte 1 e responda a questão que você estudou (moldura amarela). Sim, UMA.";
         public const string TutorialCelular = "Segure 2 pra pesquisar no celular. De preferência com o professor olhando pro outro lado.";
-        public const string TutorialColasDeBolso = "Sentado: Q colinha, G garrafinha, B bilhete (mira e clique pra jogar), F fone. Use uma: cada uma gasta 1 do orçamento.";
+        public const string TutorialColasDeBolso = "Sentado: Q colinha, G garrafinha, B bilhete (mira + clique), F fone. Cada uma gasta 1 do orçamento.";
         /// <summary>Aviso que acompanha o passo das colas de bolso: o orçamento é o que nenhum passo explicava antes.</summary>
         public const string TutorialOrcamento = "ORÇAMENTO DE COLAS: na prova, a turma só cobre algumas respostas (painel da direita). Escolha bem QUAIS riscos correr.";
         public const string TutorialNerd = "Levante (Espaço), ande (WASD) até o Nerd e segure E pra espiar. Se ele PARAR de escrever, solta!";
-        public const string TutorialDistracao = "Gaste um favor: cutuque o Dorminhoco ou peça pro Puxa-saco tirar uma 'dúvida' (E). Sentado, dá pra mirar neles com V e clicar pra jogar a borracha.";
+        public const string TutorialDistracao = "Gaste um favor: cutuque o Dorminhoco ou chame o Puxa-saco (E). Sentado: V mira a borracha e clique.";
         public const string TutorialCaraDePaisagem = "Ele vai parar do seu lado e te encarar. CARA DE PAISAGEM: Espaço com o ponteiro no verde!";
         public const string CaraPaisagemTreinoOk = "FUNCIONOU! Na prova, ele desiste e a suspeita cai bastante. Mas só salva quando ele não te VIU colando.";
         public const string CaraPaisagemTreinoFalhou = "TREMEU! Na prova, isso deixa ele MAIS desconfiado (e pode virar flagrante). Aqui no treino, tudo bem.";

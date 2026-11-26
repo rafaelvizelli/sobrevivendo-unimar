@@ -256,7 +256,9 @@ namespace ProvaImpossivel.Tests
             // S2: o orçamento cobre a nota mínima em toda dificuldade (OrcamentoCobreONotaMinima). O Difícil não aperta
             // mais o orçamento: aperta o professor (vê mais, reage mais rápido, pega a colinha de mais longe, acha mais provas)
             Assert.Greater(gm.facil.maxCheatAnswers, gm.normal.maxCheatAnswers);
-            Assert.GreaterOrEqual(gm.normal.maxCheatAnswers, gm.dificil.maxCheatAnswers);
+            // 24/11 (v1.1.3): o Difícil subiu para 5 (com 4, qualquer erro reprovava). Ele não pode ter MENOS orçamento
+            // que o Normal: a dificuldade vem do professor, não de cortar colas
+            Assert.GreaterOrEqual(gm.dificil.maxCheatAnswers, gm.normal.maxCheatAnswers, "o Difícil aperta o professor, não o orçamento");
             Assert.Greater(gm.facil.colinhaCatchVisibility, gm.normal.colinhaCatchVisibility, "no Fácil ele só pega a colinha colado em você");
             Assert.Greater(gm.normal.colinhaCatchVisibility, gm.dificil.colinhaCatchVisibility, "no Difícil ele pega a colinha de mais longe");
             Assert.Less(gm.facil.bilheteFindChance, gm.dificil.bilheteFindChance);

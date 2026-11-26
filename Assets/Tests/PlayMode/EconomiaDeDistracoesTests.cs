@@ -30,7 +30,8 @@ namespace ProvaImpossivel.Tests
         [UnityTest]
         public IEnumerator FavoresPorDificuldade()
         {
-            foreach (var (d, n) in new[] { (Difficulty.Facil, 5), (Difficulty.Normal, 2), (Difficulty.Dificil, 2) })
+            // v1.1.3 (24/11): Fácil 5→4 (equilíbrio "Fácil mais difícil")
+            foreach (var (d, n) in new[] { (Difficulty.Facil, 4), (Difficulty.Normal, 2), (Difficulty.Dificil, 2) })
             {
                 yield return StartGame(d);
                 Assert.AreEqual(n, GameManager.I.Favors, d + ": favores no começo da prova");
